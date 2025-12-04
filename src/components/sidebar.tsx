@@ -1,8 +1,11 @@
+"use client";
+
 import Image from "next/image";
-import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from "lucide-react";
+import { Moon, PanelLeftClose, PanelLeftOpen, Sun, Github } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeMode } from "@/types/follow-list";
 import { Platform } from "@/types/platform";
+import { openLink } from "@/lib/tauri";
 
 type SidebarProps = {
   className?: string;
@@ -87,6 +90,19 @@ export function Sidebar({
       </div>
 
       <div className="flex flex-col items-center gap-4 pb-2">
+        <a
+          href="https://github.com/chen-zeong/DTV"
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => {
+            // 尝试调用 Tauri / 插件打开，同时保留默认跳转
+            void openLink("https://github.com/chen-zeong/DTV");
+          }}
+          title="打开 GitHub"
+          className={`p-2 rounded-2xl border transition-colors ${isDark ? "border-white/10 bg-white/5" : "border-gray-200 bg-white"}`}
+        >
+          <Github className={iconClass} />
+        </a>
         <button
           onClick={toggleLeaderboard}
           title="展开/收起关注列表"

@@ -101,7 +101,7 @@ export function HomeShell({
         </div>
 
         <div className="relative z-20 h-full overflow-hidden">
-          {children ? <div className="h-full overflow-auto p-4 md:p-8 space-y-4">{children}</div> : null}
+          {children ? <div className="h-full overflow-hidden p-2 md:p-4 space-y-3">{children}</div> : null}
         </div>
 
         {showInput && <InputArea theme={theme} />}

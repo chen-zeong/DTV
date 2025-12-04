@@ -149,7 +149,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
 
   return (
     <div className="space-y-4 relative">
-      <div className="flex items-center gap-2 justify-end">
+      <div className="flex items-center gap-3 justify-end">
         <div className="flex items-center gap-2 w-full">
           <div className="relative flex-1">
             <input
@@ -159,12 +159,12 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                 if (e.key === "Enter") doSearch();
               }}
               placeholder="搜索主播或房间..."
-              className="w-full bg-transparent border border-white/10 rounded-lg pr-11 pl-3 py-2 text-sm focus:outline-none focus:border-white/30"
+              className="w-full bg-white/5 border border-white/15 rounded-xl pr-14 pl-4 py-3 text-sm focus:outline-none focus:border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.25)]"
             />
             <button
               onClick={() => void doSearch()}
               disabled={loading}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-50"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-black font-semibold shadow-lg hover:from-emerald-300 hover:to-cyan-400 transition-all disabled:opacity-60"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             </button>

@@ -8,6 +8,23 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "exec-sh",
+          "cmd": "sh",
+          "args": [
+            "-c",
+            {
+              "validator": "\\S+"
+            }
+          ],
+          "sidecar": false
+        }
+      ]
+    },
     "core:window:allow-set-theme",
     "core:window:allow-set-fullscreen",
     "core:window:allow-start-dragging",

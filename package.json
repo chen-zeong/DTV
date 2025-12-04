@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.1",
-    "@tauri-apps/plugin-opener": "^2.5.2",
+    "@tauri-apps/plugin-opener": "^2.4.0",
+    "@tauri-apps/plugin-shell": "^2.3.3",
     "@types/uuid": "^10.0.0",
     "danmu.js": "^1.2.1",
     "framer-motion": "^12.23.25",
