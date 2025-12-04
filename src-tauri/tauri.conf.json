@@ -4,10 +4,10 @@
   "version": "2.3.9",
   "identifier": "com.dtv.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:2896",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "beforeDevCommand": "cd src && npm run dev",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "cd src && npm run build:tauri",
+    "frontendDist": "src/out"
   },
   "app": {
     "macOSPrivateApi": true,
