@@ -1,27 +1,25 @@
-# Node
+# Node / frontend
 node_modules
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 dist
 dist-ssr
-*.local
+coverage
+.next/
+out/
+build
+*.tsbuildinfo
+next-env.d.ts
 
-# Rust
+# Rust / Tauri
 target/
 **/*.rs.bk
 Cargo.lock
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# IDE
-.idea
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # Logs
 logs
@@ -30,3 +28,25 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.pnpm-debug.log*
+
+# Env
+.env*
+
+# Misc / OS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.pem
+
+# IDE / editor
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vercel
+.vercel
