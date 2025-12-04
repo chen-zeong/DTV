@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { PlayerView } from "@/components/player/player-view";
 import { Platform } from "@/types/platform";
 import { useMemo } from "react";
+import { HomeShell } from "@/components/home-shell";
 
 const platformMap: Record<string, Platform> = {
   douyu: Platform.DOUYU,
@@ -34,5 +35,11 @@ export default function PlayerPage() {
     );
   }
 
-  return <PlayerView platform={platform} roomId={roomId} />;
+  return (
+    <HomeShell initialPlatform={platform} initialLeaderboardOpen={false} showInput={false} showSearch={false}>
+      <div className="h-full">
+        <PlayerView platform={platform} roomId={roomId} />
+      </div>
+    </HomeShell>
+  );
 }

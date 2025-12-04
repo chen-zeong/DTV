@@ -36,7 +36,9 @@ export function BilibiliHome() {
     return opts;
   }, [categories]);
 
+  const cate1List = useMemo(() => categories.map((c1) => ({ id: String(c1.id), title: c1.title })), [categories]);
   const [selectedCate, setSelectedCate] = useState<CateOption | null>(null);
+  const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
   const [rooms, setRooms] = useState<BiliLiveRoom[]>([]);
   const [pageNo, setPageNo] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -113,9 +115,18 @@ export function BilibiliHome() {
 
   useEffect(() => {
     if (cateOptions.length > 0) {
-      setSelectedCate(cateOptions[0]);
+      const firstParent = cateOptions[0].parentId || null;
+      setSelectedCate1(firstParent);
+      setSelectedCate(cateOptions.find((c) => c.parentId === firstParent) || cateOptions[0]);
     }
   }, [cateOptions]);
+
+  useEffect(() => {
+    if (selectedCate1) {
+      const nextCate = cateOptions.find((c) => c.parentId === selectedCate1);
+      if (nextCate) setSelectedCate(nextCate);
+    }
+  }, [selectedCate1, cateOptions]);
 
   useEffect(() => {
     if (selectedCate) {
@@ -133,36 +144,49 @@ export function BilibiliHome() {
 
   return (
     <div className="bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-4 md:p-6 space-y-4 min-h-full">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Bilibili</p>
-          <h2 className="text-xl font-semibold text-white">分类与直播</h2>
-        </div>
-        <button
-          onClick={() => void fetchRooms(1, false)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm"
-        >
-          <RefreshCw className="w-4 h-4" /> 刷新
-        </button>
-      </div>
-
       <div className="space-y-2">
-        <div className="text-xs text-gray-400">分类</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-400">一级分类</div>
+          <button
+            onClick={() => void fetchRooms(1, false)}
+            className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-white/10 bg-transparent hover:bg-white/10 transition-colors text-sm"
+            title="刷新"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          {cateOptions.map((c) => (
+          {cate1List.map((c1) => (
             <button
-              key={c.id}
-              onClick={() => {
-                setSelectedCate(c);
-                setPageNo(1);
-              }}
+              key={c1.id}
+              onClick={() => setSelectedCate1(c1.id)}
               className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                selectedCate?.id === c.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                selectedCate1 === c1.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
               }`}
             >
-              {c.title}
+              {c1.title}
             </button>
           ))}
+        </div>
+
+        <div className="text-xs text-gray-400">二级分类</div>
+        <div className="flex gap-2 flex-wrap">
+          {cateOptions
+            .filter((c) => (selectedCate1 ? c.parentId === selectedCate1 : true))
+            .map((c) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  setSelectedCate(c);
+                  setPageNo(1);
+                }}
+                className={`px-3 py-2 rounded-full border text-sm transition-colors ${
+                  selectedCate?.id === c.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                }`}
+              >
+                {c.title}
+              </button>
+            ))}
         </div>
       </div>
 

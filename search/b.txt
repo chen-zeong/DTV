@@ -1,0 +1,55 @@
+[{
+    "room_id": "21192929",
+    "title": "",
+    "cover": "",
+    "anchor": "绝地求生-PUBG官方",
+    "avatar": "https://i0.hdslb.com/bfs/face/460f3b3c6d62e288272dac23e97b5c8011c52f4c.jpg@400w.jpg",
+    "watching": "",
+    "area": "吃鸡行动",
+    "is_live": false
+}, {
+    "room_id": "1831475508",
+    "title": "",
+    "cover": "",
+    "anchor": "我叫磁力棒pubg",
+    "avatar": "https://i2.hdslb.com/bfs/face/8d65bc5f0dd4150f27f2b088a161515dbe7376ea.jpg@400w.jpg",
+    "watching": "",
+    "area": "吃鸡行动",
+    "is_live": false
+}, {
+    "room_id": "21884091",
+    "title": "",
+    "cover": "",
+    "anchor": "熏空空PUBG",
+    "avatar": "https://i2.hdslb.com/bfs/face/b0cd8f9fc7b434ec0825646e7c29404946f5f3eb.jpg@400w.jpg",
+    "watching": "",
+    "area": "吃鸡行动",
+    "is_live": false
+}, {
+    "room_id": "31054005",
+    "title": "",
+    "cover": "",
+    "anchor": "重阳pubg-",
+    "avatar": "https://i1.hdslb.com/bfs/face/86a2c8a7ed6dec91373ae7898e74f766753fbc4a.jpg@400w.jpg",
+    "watching": "",
+    "area": "颜值",
+    "is_live": false
+}, {
+    "room_id": "23422",
+    "title": "",
+    "cover": "",
+    "anchor": "小陈pubg绝地求生",
+    "avatar": "https://i2.hdslb.com/bfs/face/2d54158858df9fda32f13295af8c76662a738f42.jpg@400w.jpg",
+    "watching": "",
+    "area": "颜值",
+    "is_live": false
+}, {
+    "room_id": "22447023",
+    "title": "",
+    "cover": "",
+    "anchor": "PUBG孤星丶",
+    "avatar": "https://i1.hdslb.com/bfs/face/d6c66beea0207f86de038f476cff32341bb93ae0.jpg@400w.jpg",
+    "watching": "",
+    "area": "吃鸡行动",
+    "is_live": true
+}]

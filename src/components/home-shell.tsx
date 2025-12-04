@@ -2,10 +2,9 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { Sidebar } from "@/components/sidebar";
-import { Leaderboard } from "@/components/leaderboard";
+import { FollowList } from "@/components/follow-list";
 import { BackgroundFeed } from "@/components/background-feed";
 import { InputArea } from "@/components/input-area";
-import { SearchPanel } from "@/components/search/search-panel";
 import { useThemeStore } from "@/stores/theme-store";
 import { useFollowStore } from "@/stores/follow-store";
 import { useCategoryStore } from "@/stores/category-store";
@@ -20,7 +19,12 @@ type HomeShellProps = {
   children?: ReactNode;
 };
 
-export function HomeShell({ initialPlatform = "ALL", initialLeaderboardOpen = true, showInput = true, children }: HomeShellProps) {
+export function HomeShell({
+  initialPlatform = "ALL",
+  initialLeaderboardOpen = true,
+  showInput = true,
+  children,
+}: HomeShellProps) {
   const theme = useThemeStore((s) => s.getEffectiveTheme());
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const initTheme = useThemeStore((s) => s.initTheme);
@@ -90,16 +94,14 @@ export function HomeShell({ initialPlatform = "ALL", initialLeaderboardOpen = tr
             isLeaderboardOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <Leaderboard theme={theme} onClose={() => setIsLeaderboardOpen(false)} filterPlatform={activePlatform} />
+          <FollowList
+            theme={theme}
+            searchPlatform={activePlatform === "ALL" ? Platform.DOUYU : activePlatform}
+          />
         </div>
 
         <div className="relative z-20 h-full overflow-hidden">
-          {children ? (
-            <div className="h-full overflow-auto p-4 md:p-8 space-y-4">
-              <SearchPanel />
-              {children}
-            </div>
-          ) : null}
+          {children ? <div className="h-full overflow-auto p-4 md:p-8 space-y-4">{children}</div> : null}
         </div>
 
         {showInput && <InputArea theme={theme} />}

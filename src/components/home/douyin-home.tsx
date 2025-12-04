@@ -35,6 +35,7 @@ export function DouyinHome() {
   }, [categories]);
 
   const [selectedCate, setSelectedCate] = useState<CategorySelected | null>(null);
+  const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Array<ReturnType<typeof mapDouyinRoom>>>([]);
   const [msToken, setMsToken] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
@@ -117,9 +118,19 @@ export function DouyinHome() {
 
   useEffect(() => {
     if (cateOptions.length > 0) {
+      setSelectedCate1(cateOptions[0].cate1Name);
       setSelectedCate(cateOptions[0]);
     }
   }, [cateOptions]);
+
+  useEffect(() => {
+    if (selectedCate1) {
+      const nextCate = cateOptions.find((c) => c.cate1Name === selectedCate1);
+      if (nextCate) {
+        setSelectedCate(nextCate);
+      }
+    }
+  }, [selectedCate1, cateOptions]);
 
   useEffect(() => {
     setOffset(0);
@@ -137,36 +148,49 @@ export function DouyinHome() {
 
   return (
     <div className="bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-4 md:p-6 space-y-4 min-h-full">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Douyin</p>
-          <h2 className="text-xl font-semibold text-white">分类与直播</h2>
-        </div>
-        <button
-          onClick={() => selectedCate && fetchRooms(0, false)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm"
-        >
-          <RefreshCw className="w-4 h-4" /> 刷新
-        </button>
-      </div>
-
       <div className="space-y-2">
-        <div className="text-xs text-gray-400">分类</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-400">一级分类</div>
+          <button
+            onClick={() => selectedCate && fetchRooms(0, false)}
+            className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-white/10 bg-transparent hover:bg-white/10 transition-colors text-sm"
+            title="刷新"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          {cateOptions.map((c) => (
+          {categories.map((c1) => (
             <button
-              key={c.cate2Href}
-              onClick={() => {
-                setSelectedCate(c);
-                setOffset(0);
-              }}
+              key={c1.title}
+              onClick={() => setSelectedCate1(c1.title)}
               className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                selectedCate?.cate2Href === c.cate2Href ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                selectedCate1 === c1.title ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
               }`}
             >
-              {c.cate2Name}
+              {c1.title}
             </button>
           ))}
+        </div>
+
+        <div className="text-xs text-gray-400">二级分类</div>
+        <div className="flex gap-2 flex-wrap">
+          {cateOptions
+            .filter((c) => (selectedCate1 ? c.cate1Name === selectedCate1 : true))
+            .map((c) => (
+              <button
+                key={c.cate2Href}
+                onClick={() => {
+                  setSelectedCate(c);
+                  setOffset(0);
+                }}
+                className={`px-3 py-2 rounded-full border text-sm transition-colors ${
+                  selectedCate?.cate2Href === c.cate2Href ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                }`}
+              >
+                {c.cate2Name}
+              </button>
+            ))}
         </div>
       </div>
 

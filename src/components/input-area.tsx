@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ThemeMode } from "@/types/leaderboard";
+import { ThemeMode } from "@/types/follow-list";
 
 type InputAreaProps = {
   theme: ThemeMode;

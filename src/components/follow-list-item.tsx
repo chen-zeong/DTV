@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Check } from "lucide-react";
-import { LeaderboardItemData, ThemeMode } from "@/types/leaderboard";
+import { LeaderboardItemData, ThemeMode } from "@/types/follow-list";
 
 type LeaderboardItemProps = {
   data: LeaderboardItemData;

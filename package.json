@@ -16,6 +16,7 @@
     "@tauri-apps/plugin-opener": "^2.5.2",
     "@types/uuid": "^10.0.0",
     "danmu.js": "^1.2.1",
+    "framer-motion": "^12.23.25",
     "lucide-react": "^0.555.0",
     "next": "16.0.7",
     "react": "19.2.0",

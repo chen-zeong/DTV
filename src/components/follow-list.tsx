@@ -1,19 +1,19 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import Image from "next/image";
-import { ThemeMode } from "@/types/leaderboard";
+import { ThemeMode } from "@/types/follow-list";
 import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { cn } from "@/utils/cn";
 import { platformLabelMap, platformSlugMap } from "@/utils/platform";
 import { useRouter } from "next/navigation";
+import { SearchPanel } from "@/components/search/search-panel";
 
-type LeaderboardProps = {
+type FollowListProps = {
   theme: ThemeMode;
-  onClose: () => void;
-  filterPlatform: Platform | "ALL";
+  searchPlatform: Platform;
 };
 
 const platformOrder: Array<Platform> = [Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN];
@@ -31,36 +31,31 @@ const platformStyle: Record<
   [Platform.DOUYIN]: { color: "border-purple-400/60 text-purple-200", label: "抖音" },
 };
 
-export function Leaderboard({ theme, onClose, filterPlatform }: LeaderboardProps) {
+export function FollowList({ theme, searchPlatform }: FollowListProps) {
   const isDark = theme === "dark";
   const follows = useFollowStore((s) => s.followedStreamers);
-  const unfollow = useFollowStore((s) => s.unfollowStreamer);
   const folders = useFollowStore((s) => s.folders);
   const createFolder = useFollowStore((s) => s.createFolder);
+  const hydrate = useFollowStore((s) => s.hydrateFromLegacy);
   const moveToFolder = useFollowStore((s) => s.moveStreamerToFolder);
   const removeFromFolder = useFollowStore((s) => s.removeStreamerFromFolder);
   const deleteFolder = useFollowStore((s) => s.deleteFolder);
   const router = useRouter();
-  const [newFolderName, setNewFolderName] = useState("");
-
   const glassClass = isDark
     ? "bg-[rgba(20,20,20,0.65)] border-r border-[rgba(255,255,255,0.08)] text-white"
     : "bg-[rgba(255,255,255,0.85)] border-r border-[rgba(0,0,0,0.05)] text-gray-900";
 
   const backdropBlur = "backdrop-blur-[24px]";
 
-  const headerTextClass = isDark ? "text-white" : "text-gray-900";
   const sectionTitleClass = isDark ? "text-gray-200" : "text-gray-600";
-  const closeButtonClass = isDark ? "bg-white/10 hover:bg-white/20 text-gray-300" : "bg-black/5 hover:bg-black/10 text-gray-600";
 
   const grouped = useMemo(() => {
-    const filtered = filterPlatform === "ALL" ? follows : follows.filter((f) => f.platform === filterPlatform);
     const groups = platformOrder.map((platform) => ({
       platform,
-      items: filtered.filter((f) => f.platform === platform),
+      items: follows.filter((f) => f.platform === platform),
     }));
     return groups.filter((g) => g.items.length > 0);
-  }, [follows, filterPlatform]);
+  }, [follows]);
 
   const folderMap = useMemo(() => {
     const map = new Map<string, typeof follows[number]>();
@@ -71,45 +66,30 @@ export function Leaderboard({ theme, onClose, filterPlatform }: LeaderboardProps
   const emptyState = grouped.length === 0;
 
   return (
-    <div className={`w-[420px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
-      <div className="flex items-center justify-between p-5 pb-2">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400">FOLLOWING</p>
-          <h1 className={`text-2xl font-bold tracking-tight ${headerTextClass}`}>关注列表</h1>
-        </div>
-        <button onClick={onClose} className={`p-1.5 rounded-full transition-colors ${closeButtonClass}`}>
-          <X className="w-4 h-4" />
-        </button>
+    <div className={`w-[280px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
+      <div className="px-5 pb-4 pt-4">
+        <SearchPanel platform={searchPlatform} />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar p-5 pt-2 space-y-8 pb-20">
+      <div className="flex-1 overflow-y-auto no-scrollbar px-2.5 pt-2 space-y-8 pb-20">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xs uppercase tracking-[0.2em] text-gray-400">文件夹</div>
-            <div className="flex items-center gap-2">
-              <input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="新建文件夹"
-                className={`px-2 py-1 rounded border text-xs bg-transparent ${
-                  isDark ? "border-white/15 text-white" : "border-black/15 text-gray-900"
-                }`}
-              />
-              <button
-                onClick={() => {
-                  const name = newFolderName.trim() || "未命名";
-                  createFolder(name);
-                  setNewFolderName("");
-                }}
-                className="text-xs px-3 py-1 rounded-full border border-emerald-400/50 text-emerald-100 hover:bg-emerald-500/10 transition-colors"
-              >
-                创建
-              </button>
-            </div>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => hydrate()}
+              className="p-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 transition-colors text-xs"
+              title="刷新"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => createFolder("新建文件夹")}
+              className="p-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 transition-colors text-xs"
+              title="新建文件夹"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
-          {folders.length === 0 ? (
-            <div className="text-xs text-gray-500">暂无文件夹</div>
-          ) : (
+          {folders.length > 0 && (
             <div className="space-y-3">
               {folders.map((folder) => {
                 const items = (folder.streamerIds || [])
@@ -123,7 +103,6 @@ export function Leaderboard({ theme, onClose, filterPlatform }: LeaderboardProps
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm font-semibold">{folder.name}</div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-gray-500">{items.length} 位</span>
                         <button
                           onClick={() => deleteFolder(folder.id)}
                           className="text-[11px] px-2 py-1 rounded-full border border-red-400/50 text-red-200 hover:bg-red-500/10 transition-colors"
@@ -132,9 +111,7 @@ export function Leaderboard({ theme, onClose, filterPlatform }: LeaderboardProps
                         </button>
                       </div>
                     </div>
-                    {items.length === 0 ? (
-                      <div className="text-xs text-gray-500">空</div>
-                    ) : (
+                    {items.length === 0 ? null : (
                       <div className="space-y-2">
                         {items.map((item) => (
                           <div
@@ -198,33 +175,32 @@ export function Leaderboard({ theme, onClose, filterPlatform }: LeaderboardProps
             <div key={section.platform} className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className={`text-sm font-medium flex items-center gap-2 ${sectionTitleClass}`}>
-          <button
-            className={cn(
-              "inline-flex items-center justify-center rounded-full border px-2 py-[2px] text-[11px] font-semibold",
-              platformStyle[section.platform].color
-            )}
-            onClick={() => router.push(`/${platformSlugMap[section.platform]}`)}
-          >
-            {platformLabelMap[section.platform]}
-          </button>
-          <span className="text-xs text-gray-500">{section.items.length} 位</span>
-        </h2>
-      </div>
+                  <button
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-full border px-2 py-[2px] text-[11px] font-semibold",
+                      platformStyle[section.platform].color
+                    )}
+                    onClick={() => router.push(`/${platformSlugMap[section.platform]}`)}
+                  >
+                    {platformLabelMap[section.platform]}
+                  </button>
+                </h2>
+              </div>
 
               <div className="flex flex-col gap-2">
                 {section.items.map((item) => (
-                <div
-                  key={`${item.platform}-${item.id}`}
-                  className={`flex items-center justify-between py-3 group rounded-lg px-2 transition-colors ${
-                    isDark ? "hover:bg-white/5" : "hover:bg-black/5"
-                  }`}
-                  onClick={() => {
-                    const slug = platformSlugMap[item.platform];
-                    router.push(`/player?platform=${slug}&roomId=${item.id}`);
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
+                  <div
+                    key={`${item.platform}-${item.id}`}
+                    className={`flex items-center justify-between py-3 group rounded-lg px-3 transition-colors ${
+                      isDark ? "hover:bg-white/5" : "hover:bg-black/5"
+                    }`}
+                    onClick={() => {
+                      const slug = platformSlugMap[item.platform];
+                      router.push(`/player?platform=${slug}&roomId=${item.id}`);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
                         {item.avatarUrl ? (
                           <Image
                             src={item.avatarUrl}
@@ -246,31 +222,29 @@ export function Leaderboard({ theme, onClose, filterPlatform }: LeaderboardProps
                       </div>
 
                       <div className="flex flex-col">
-                        <span className={`text-sm font-semibold leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+                        <span
+                          className={`text-sm font-semibold leading-tight ${isDark ? "text-white" : "text-gray-900"} line-clamp-1`}
+                          title={item.displayName || item.nickname}
+                        >
                           {item.displayName || item.nickname}
                         </span>
-                        <span className={`text-xs leading-tight ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                        <span
+                          className={`text-xs leading-tight ${isDark ? "text-gray-400" : "text-gray-500"} line-clamp-1`}
+                          title={item.nickname}
+                        >
                           {item.nickname}
                         </span>
+                        {item.roomTitle ? (
+                          <span
+                            className={`text-[11px] leading-tight ${isDark ? "text-gray-400" : "text-gray-500"} line-clamp-1`}
+                            title={item.roomTitle}
+                          >
+                            {item.roomTitle}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                          isDark ? "bg-white/5 border-white/10 text-white" : "bg-black/5 border-black/10 text-gray-900"
-                        }`}
-                      >
-                        关注中
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          unfollow(item.platform, item.id);
-                        }}
-                        className="text-[11px] px-3 py-1 rounded-full border border-red-400/50 text-red-200 hover:bg-red-500/10 transition-colors"
-                      >
-                        取消
-                      </button>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {folders.length > 0 && (
                         <select
                           className="text-[11px] px-2 py-1 rounded-full border border-white/20 bg-transparent"

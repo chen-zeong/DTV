@@ -34,6 +34,7 @@ export function HuyaHome() {
   );
 
   const [selectedCateId, setSelectedCateId] = useState<string | null>(null);
+  const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
   const [streamers, setStreamers] = useState<HuyaStreamer[]>([]);
   const [pageNo, setPageNo] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -72,10 +73,23 @@ export function HuyaHome() {
   );
 
   useEffect(() => {
-    if (cate2Options.length > 0) {
-      setSelectedCateId(cate2Options[0].id);
+    if (categories.length > 0) {
+      setSelectedCate1(categories[0].title);
+      const firstCate2 = categories[0].subcategories?.[0]?.id;
+      if (firstCate2) setSelectedCateId(firstCate2);
     }
-  }, [cate2Options]);
+  }, [categories]);
+
+  useEffect(() => {
+    if (selectedCate1) {
+      const cate1 = categories.find((c) => c.title === selectedCate1);
+      const firstCate2 = cate1?.subcategories?.[0]?.id;
+      if (firstCate2) {
+        setSelectedCateId(firstCate2);
+        setPageNo(1);
+      }
+    }
+  }, [selectedCate1, categories]);
 
   useEffect(() => {
     if (selectedCateId) {
@@ -90,36 +104,49 @@ export function HuyaHome() {
 
   return (
     <div className="bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-4 md:p-6 space-y-4 min-h-full">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Huya</p>
-          <h2 className="text-xl font-semibold text-white">分类与直播</h2>
-        </div>
-        <button
-          onClick={() => void loadList(1, false)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm"
-        >
-          <RefreshCw className="w-4 h-4" /> 刷新
-        </button>
-      </div>
-
       <div className="space-y-2">
-        <div className="text-xs text-gray-400">分类</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-400">一级分类</div>
+          <button
+            onClick={() => void loadList(1, false)}
+            className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-white/10 bg-transparent hover:bg-white/10 transition-colors text-sm"
+            title="刷新"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          {cate2Options.map((c) => (
+          {categories.map((c1) => (
             <button
-              key={c.id}
-              onClick={() => {
-                setSelectedCateId(c.id);
-                setPageNo(1);
-              }}
+              key={c1.title}
+              onClick={() => setSelectedCate1(c1.title)}
               className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                selectedCateId === c.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                selectedCate1 === c1.title ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
               }`}
             >
-              {c.title}
+              {c1.title}
             </button>
           ))}
+        </div>
+
+        <div className="text-xs text-gray-400">二级分类</div>
+        <div className="flex gap-2 flex-wrap">
+          {cate2Options
+            .filter((c) => (selectedCate1 ? c.parent === selectedCate1 : true))
+            .map((c) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  setSelectedCateId(c.id);
+                  setPageNo(1);
+                }}
+                className={`px-3 py-2 rounded-full border text-sm transition-colors ${
+                  selectedCateId === c.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                }`}
+              >
+                {c.title}
+              </button>
+            ))}
         </div>
       </div>
 

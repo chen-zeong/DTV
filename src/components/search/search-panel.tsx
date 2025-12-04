@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Loader2, Play, UserPlus, UserMinus, AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { Search, Loader2, UserPlus, UserMinus, AlertTriangle } from "lucide-react";
 import { tauriInvoke } from "@/lib/tauri";
 import { Platform } from "@/types/platform";
-import { platformLabelMap, platformSlugMap } from "@/utils/platform";
 import { useFollowStore } from "@/stores/follow-store";
-import { useRouter } from "next/navigation";
 
 type SearchResult = {
   id: string;
@@ -16,22 +15,19 @@ type SearchResult = {
   platform: Platform;
 };
 
-const platformOptions: Array<{ label: string; value: Platform }> = [
-  { label: platformLabelMap[Platform.DOUYU], value: Platform.DOUYU },
-  { label: platformLabelMap[Platform.HUYA], value: Platform.HUYA },
-  { label: platformLabelMap[Platform.BILIBILI], value: Platform.BILIBILI },
-];
-
-export function SearchPanel() {
+export function SearchPanel({ platform: currentPlatform }: { platform?: Platform }) {
   const [keyword, setKeyword] = useState("");
-  const [platform, setPlatform] = useState<Platform>(Platform.DOUYU);
+  const [platform, setPlatform] = useState<Platform>(currentPlatform ?? Platform.DOUYU);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const follow = useFollowStore((s) => s.followStreamer);
   const unfollow = useFollowStore((s) => s.unfollowStreamer);
-  const router = useRouter();
+
+  useEffect(() => {
+    if (currentPlatform) setPlatform(currentPlatform);
+  }, [currentPlatform]);
 
   const parseResult = (payload: unknown): SearchResult[] => {
     if (!payload) return [];
@@ -44,17 +40,69 @@ export function SearchPanel() {
         return [];
       }
     }
-    if (!Array.isArray(data)) return [];
+
+    // Douyu structure: { data: { relateUser: [ { anchorInfo: {...}} ] } }
+    if (!Array.isArray(data) && typeof data === "object" && data !== null) {
+      const relateUser = (data as Record<string, unknown>).data?.relateUser as unknown;
+      if (Array.isArray(relateUser)) {
+        return relateUser
+          .map((item: unknown) => {
+            if (!item || typeof item !== "object") return null;
+            const info = (item as Record<string, unknown>).anchorInfo || {};
+            const id = info.rid || info.roomId || info.userId;
+            const nickname = info.nickName || info.nickname || info.userName;
+            if (!id || !nickname) return null;
+            return {
+              id: String(id),
+              nickname: String(nickname),
+              title: info.description || info.title || "",
+              avatarUrl: info.avatar || "",
+              platform: Platform.DOUYU,
+            } as SearchResult;
+          })
+          .filter(Boolean) as SearchResult[];
+      }
+    }
+
+    if (!Array.isArray(data)) {
+      // Douyin fetch_douyin_room_info returns object
+      if (platform === Platform.DOUYIN && typeof data === "object" && data) {
+        const obj = data as Record<string, unknown>;
+        const id = obj.web_rid || obj.webRid;
+        const nickname = obj.nickname;
+        const title = obj.room_name || obj.roomName;
+        const avatar = obj.avatar_url || obj.avatarUrl;
+        if (id && nickname) {
+          return [
+            {
+              id: String(id),
+              nickname: String(nickname),
+              title: title ? String(title) : "",
+              avatarUrl: avatar ? String(avatar) : "",
+              platform: Platform.DOUYIN,
+            },
+          ];
+        }
+      }
+      return [];
+    }
     const arr = data as Array<Record<string, unknown>>;
     const mapped: SearchResult[] = [];
     for (const item of arr) {
+      // Huya structure: room_id, user_name, title, avatar
+      // Bilibili structure: room_id, anchor, avatar, cover
       const id =
         (item.room_id as string) ||
         (item.rid as string) ||
         (item.id as string) ||
         (item.roomId as string) ||
         (item.roomid as string);
-      const nickname = (item.nickname as string) || (item.userName as string) || (item.name as string);
+      const nickname =
+        (item.nickname as string) ||
+        (item.userName as string) ||
+        (item.name as string) ||
+        (item.user_name as string) ||
+        (item.anchor as string);
       if (!id || !nickname) continue;
       mapped.push({
         id: String(id),
@@ -80,8 +128,13 @@ export function SearchPanel() {
         payload = await tauriInvoke("search_huya_anchors", { keyword });
       } else if (platform === Platform.BILIBILI) {
         payload = await tauriInvoke("search_bilibili_rooms", { keyword });
+      } else if (platform === Platform.DOUYIN) {
+        // 仅支持按房间号搜索
+        payload = await tauriInvoke("fetch_douyin_room_info", { liveId: keyword.trim() });
       } else {
-        payload = [];
+        setError("当前平台暂不支持搜索");
+        setLoading(false);
+        return;
       }
       const parsed = parseResult(payload);
       setResults(parsed);
@@ -95,39 +148,28 @@ export function SearchPanel() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:gap-3 gap-2">
-        <div className="flex items-center gap-2 flex-1">
-          <Search className="w-4 h-4 text-gray-400" />
-          <input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") doSearch();
-            }}
-            placeholder="搜索主播或房间..."
-            className="flex-1 bg-transparent border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-white/30"
-          />
+    <div className="space-y-4 relative">
+      <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-2 w-full">
+          <div className="relative flex-1">
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") doSearch();
+              }}
+              placeholder="搜索主播或房间..."
+              className="w-full bg-transparent border border-white/10 rounded-lg pr-11 pl-3 py-2 text-sm focus:outline-none focus:border-white/30"
+            />
+            <button
+              onClick={() => void doSearch()}
+              disabled={loading}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
-        <select
-          value={platform}
-          onChange={(e) => setPlatform(e.target.value as Platform)}
-          className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm"
-        >
-          {platformOptions.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={doSearch}
-          disabled={loading}
-          className="px-4 py-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 text-sm inline-flex items-center gap-2 disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          搜索
-        </button>
       </div>
 
       {error && (
@@ -136,78 +178,60 @@ export function SearchPanel() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {results.map((r) => {
-          const followed = isFollowed(r.platform, r.id);
-          return (
-            <div
-              key={`${r.platform}-${r.id}`}
-              className="rounded-xl border border-white/10 bg-black/40 p-3 space-y-2 hover:border-white/30 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden">
+      {results.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-white/10 bg-black/85 backdrop-blur-2xl p-2 shadow-2xl max-h-[70vh] overflow-hidden space-y-1">
+          {results.map((r) => {
+            const followed = isFollowed(r.platform, r.id);
+            return (
+              <div
+                key={`${r.platform}-${r.id}`}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 flex items-center gap-2 hover:border-white/25 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden flex-shrink-0">
                   {r.avatarUrl ? (
-                    <img src={r.avatarUrl} alt={r.nickname} className="w-full h-full object-cover" />
+                    <Image src={r.avatarUrl} alt={r.nickname} width={32} height={32} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-white/10 flex items-center justify-center text-sm font-semibold">
+                    <div className="w-full h-full bg-white/10 flex items-center justify-center text-xs font-semibold">
                       {r.nickname.slice(0, 1)}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">{r.nickname}</div>
-                  <div className="text-xs text-gray-400 truncate">
-                    {platformLabelMap[r.platform]} {r.id}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[13px] font-semibold text-white truncate max-w-[8rem]">{r.nickname}</span>
                   </div>
+                  {r.title ? <div className="text-[10px] text-gray-400 line-clamp-1">{r.title}</div> : null}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    className={`text-[11px] px-2 py-1 rounded-full border inline-flex items-center gap-1 ${
+                      followed
+                        ? "border-emerald-400/60 text-emerald-100 bg-emerald-500/10"
+                        : "border-white/20 text-white hover:bg-white/10"
+                    }`}
+                    onClick={() => {
+                      if (followed) {
+                        unfollow(r.platform, r.id);
+                      } else {
+                        follow({
+                          id: r.id,
+                          platform: r.platform,
+                          nickname: r.nickname,
+                          avatarUrl: r.avatarUrl || "",
+                          displayName: r.title || r.nickname,
+                          isLive: true,
+                        });
+                      }
+                    }}
+                  >
+                    {followed ? <UserMinus className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                  </button>
                 </div>
               </div>
-              {r.title && <div className="text-xs text-gray-400 line-clamp-2">{r.title}</div>}
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  className="text-xs px-3 py-1 rounded-full border border-white/20 hover:bg-white/10 inline-flex items-center gap-1"
-                  onClick={() => {
-                    const slug = platformSlugMap[r.platform];
-                    router.push(`/player?platform=${slug}&roomId=${r.id}`);
-                  }}
-                >
-                  <Play className="w-3 h-3" /> 播放
-                </button>
-                <button
-                  className={`text-xs px-3 py-1 rounded-full border inline-flex items-center gap-1 ${
-                    followed
-                      ? "border-emerald-400/60 text-emerald-100 bg-emerald-500/10"
-                      : "border-white/20 text-white hover:bg-white/10"
-                  }`}
-                  onClick={() => {
-                    if (followed) {
-                      unfollow(r.platform, r.id);
-                    } else {
-                      follow({
-                        id: r.id,
-                        platform: r.platform,
-                        nickname: r.nickname,
-                        avatarUrl: r.avatarUrl || "",
-                        displayName: r.title || r.nickname,
-                        isLive: true,
-                      });
-                    }
-                  }}
-                >
-                  {followed ? (
-                    <>
-                      <UserMinus className="w-3 h-3" /> 取消
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3 h-3" /> 关注
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

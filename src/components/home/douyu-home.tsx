@@ -16,6 +16,7 @@ type CateOption = {
   id: string;
   name: string;
   shortName: string;
+  cate1Id: string;
   cate3?: DouyuCate3[];
 };
 
@@ -25,6 +26,8 @@ export function DouyuHome() {
   const follow = useFollowStore((s) => s.followStreamer);
   const unfollow = useFollowStore((s) => s.unfollowStreamer);
 
+  const [cate1List, setCate1List] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
   const [cateOptions, setCateOptions] = useState<CateOption[]>([]);
   const [selectedCate2, setSelectedCate2] = useState<string | null>(null);
   const [selectedCate3, setSelectedCate3] = useState<string | null>(null);
@@ -42,18 +45,27 @@ export function DouyuHome() {
     setLoadingCategories(true);
     try {
       const res = await fetchDouyuCategories();
+      const c1s =
+        res?.cate1List?.map((c1) => ({
+          id: c1.id,
+          name: c1.name,
+        })) || [];
+      setCate1List(c1s);
       const cate2s: CateOption[] =
         res?.cate1List?.flatMap((c1) =>
           (c1.cate2List || []).map((c2: DouyuCate2) => ({
             id: c2.id,
             name: c2.name,
             shortName: c2.short_name,
+            cate1Id: c1.id,
             cate3: c2.cate3List || [],
           }))
         ) || [];
       setCateOptions(cate2s);
-      if (cate2s.length > 0) {
-        setSelectedCate2(cate2s[0].shortName);
+      if (c1s.length > 0) {
+        setSelectedCate1(c1s[0].id);
+        const firstCate2 = cate2s.find((c) => c.cate1Id === c1s[0].id);
+        setSelectedCate2(firstCate2?.shortName || null);
         setSelectedCate3(null);
       }
     } catch (error) {
@@ -99,6 +111,14 @@ export function DouyuHome() {
   }, []);
 
   useEffect(() => {
+    if (selectedCate1) {
+      const firstCate2 = cateOptions.find((c) => c.cate1Id === selectedCate1);
+      setSelectedCate2(firstCate2?.shortName || null);
+      setSelectedCate3(null);
+    }
+  }, [selectedCate1, cateOptions]);
+
+  useEffect(() => {
     setPage(0);
     if (selectedCate2 || selectedCate3) {
       void fetchList(0, false);
@@ -114,23 +134,42 @@ export function DouyuHome() {
 
   return (
     <div className="bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-4 md:p-6 space-y-4 min-h-full">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Douyu</p>
-          <h2 className="text-xl font-semibold text-white">分类与直播</h2>
-        </div>
-        <button
-          onClick={() => {
-            setPage(0);
-            void fetchList(0, false);
-          }}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm"
-        >
-          <RefreshCw className="w-4 h-4" /> 刷新
-        </button>
-      </div>
-
       <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col flex-1 gap-2">
+            <div className="text-xs text-gray-400">一级分类</div>
+            <div className="flex gap-2 flex-wrap">
+              {loadingCategories && cate1List.length === 0 ? (
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" /> 加载分类...
+                </div>
+              ) : (
+                cate1List.map((c1) => (
+                  <button
+                    key={c1.id}
+                    onClick={() => setSelectedCate1(c1.id)}
+                    className={`px-3 py-2 rounded-full border text-sm transition-colors ${
+                      selectedCate1 === c1.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
+                    }`}
+                  >
+                    {c1.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setPage(0);
+              void fetchList(0, false);
+            }}
+            className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-white/10 bg-transparent hover:bg-white/10 transition-colors text-sm"
+            title="刷新"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="text-xs text-gray-400">二级分类</div>
         <div className="flex gap-2 flex-wrap">
           {loadingCategories && cateOptions.length === 0 ? (
@@ -138,22 +177,24 @@ export function DouyuHome() {
               <Loader2 className="w-4 h-4 animate-spin" /> 加载分类...
             </div>
           ) : (
-            cateOptions.map((cate) => (
-              <button
-                key={cate.shortName}
-                onClick={() => {
-                  setSelectedCate2(cate.shortName);
-                  setSelectedCate3(null);
-                }}
-                className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                  selectedCate2 === cate.shortName
-                    ? "border-white/80 text-white bg-white/10"
-                    : "border-white/10 text-gray-200 hover:bg-white/5"
-                }`}
-              >
-                {cate.name}
-              </button>
-            ))
+            cateOptions
+              .filter((cate) => (selectedCate1 ? cate.cate1Id === selectedCate1 : true))
+              .map((cate) => (
+                <button
+                  key={cate.shortName}
+                  onClick={() => {
+                    setSelectedCate2(cate.shortName);
+                    setSelectedCate3(null);
+                  }}
+                  className={`px-3 py-2 rounded-full border text-sm transition-colors ${
+                    selectedCate2 === cate.shortName
+                      ? "border-white/80 text-white bg-white/10"
+                      : "border-white/10 text-gray-200 hover:bg-white/5"
+                  }`}
+                >
+                  {cate.name}
+                </button>
+              ))
           )}
         </div>
         {currentCate3List.length > 0 && (
