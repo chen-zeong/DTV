@@ -11,6 +11,7 @@ import { useCategoryStore } from "@/stores/category-store";
 import { Platform } from "@/types/platform";
 import { platformSlugMap } from "@/utils/platform";
 import { usePathname, useRouter } from "next/navigation";
+import { PlayerOverlay } from "@/components/player/player-overlay";
 
 type HomeShellProps = {
   initialPlatform?: Platform | "ALL";
@@ -105,6 +106,7 @@ export function HomeShell({
         </div>
 
         {showInput && <InputArea theme={theme} />}
+        <PlayerOverlay />
       </div>
     </div>
   );

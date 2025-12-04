@@ -1,16 +1,14 @@
-"use client";
-
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Loader2, RefreshCw, Eye, ChevronDown } from "lucide-react";
+import { Loader2, RefreshCw, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 import { fetchDouyuCategories, fetchDouyuLiveList } from "@/services/douyu";
 import { DouyuCate2, DouyuCate3, DouyuStreamer } from "@/types/douyu";
 import { Platform } from "@/types/platform";
-import { platformSlugMap } from "@/utils/platform";
+import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
+import { LiveGrid, type LiveCardItem } from "@/components/live/live-grid";
 
 type CateOption = {
   id: string;
@@ -21,7 +19,7 @@ type CateOption = {
 };
 
 export function DouyuHome() {
-  const router = useRouter();
+  const openPlayer = usePlayerOverlayStore((s) => s.open);
   const [cate1List, setCate1List] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
   const [cateOptions, setCateOptions] = useState<CateOption[]>([]);
@@ -157,11 +155,10 @@ export function DouyuHome() {
 
   return (
     <div className="h-full flex flex-col bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-3 md:p-4 space-y-3">
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col flex-1 gap-2">
-            <div className="text-xs text-gray-400">一级分类</div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap mt-2 mb-2">
               {loadingCategories && cate1List.length === 0 ? (
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                   <Loader2 className="w-4 h-4 animate-spin" /> 加载分类...
@@ -193,8 +190,7 @@ export function DouyuHome() {
           </button>
         </div>
 
-        <div className="text-xs text-gray-400">二级分类</div>
-        <div className="relative">
+        <div className="relative mt-1">
           <motion.div
             layout
             initial={false}
@@ -279,43 +275,28 @@ export function DouyuHome() {
           <div className="text-center text-sm text-gray-400 py-10">暂无直播</div>
         ) : (
           <div ref={scrollRef} className="max-h-full overflow-y-auto no-scrollbar pr-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {streamers.map((s, idx) => (
-                <div
-                  key={`${s.rid}-${idx}`}
-                  className="group rounded-xl border border-white/10 bg-black/30 overflow-hidden hover:border-white/30 transition-colors cursor-pointer"
-                  onClick={() => {
-                    const slug = platformSlugMap[Platform.DOUYU];
-                    router.push(`/player?platform=${slug}&roomId=${s.rid}`);
-                  }}
-                >
-                  <div className="relative">
-                    <img
-                      src={s.roomSrc || "https://via.placeholder.com/320x180.png?text=No+Image"}
-                      alt={s.roomName}
-                      className="w-full aspect-[16/10] object-cover"
-                    />
-                    <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs bg-black/60 backdrop-blur px-2 py-1 rounded-full">
-                      <Eye className="w-4 h-4" />
-                      <span>{s.hn}</span>
-                    </div>
-                  </div>
-                  <div className="p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={s.avatar || "https://via.placeholder.com/40.png?text=?"}
-                        alt={s.nickname}
-                        className="w-10 h-10 rounded-full object-cover border border-white/10"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-white truncate">{s.roomName}</div>
-                        <div className="text-xs text-gray-400 truncate">{s.nickname}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <LiveGrid
+            items={streamers.map(
+              (s): LiveCardItem => ({
+                id: s.rid,
+                title: s.roomName || s.nickname || s.rid,
+                subtitle: s.nickname,
+                cover: s.roomSrc || "https://via.placeholder.com/320x180.png?text=No+Image",
+                avatar: s.avatar || "https://via.placeholder.com/40.png?text=?",
+                viewerText: String(s.hn ?? ""),
+              })
+            )}
+            className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+            onCardClick={(item) =>
+              openPlayer({
+                platform: Platform.DOUYU,
+                roomId: item.id,
+                title: item.title,
+                anchorName: item.subtitle ?? undefined,
+                avatar: item.avatar ?? undefined,
+              })
+            }
+          />
             <div ref={loaderRef} className="h-8" />
           </div>
         )}

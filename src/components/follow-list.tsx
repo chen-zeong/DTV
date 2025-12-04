@@ -5,11 +5,12 @@ import Image from "next/image";
 import { ThemeMode } from "@/types/follow-list";
 import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
-import { useMemo } from "react";
+import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { cn } from "@/utils/cn";
 import { platformLabelMap, platformSlugMap } from "@/utils/platform";
 import { useRouter } from "next/navigation";
 import { SearchPanel } from "@/components/search/search-panel";
+import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 
 type FollowListProps = {
   theme: ThemeMode;
@@ -36,11 +37,17 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
   const follows = useFollowStore((s) => s.followedStreamers);
   const folders = useFollowStore((s) => s.folders);
   const createFolder = useFollowStore((s) => s.createFolder);
+  const renameFolder = useFollowStore((s) => s.renameFolder);
   const hydrate = useFollowStore((s) => s.hydrateFromLegacy);
   const moveToFolder = useFollowStore((s) => s.moveStreamerToFolder);
   const removeFromFolder = useFollowStore((s) => s.removeStreamerFromFolder);
   const deleteFolder = useFollowStore((s) => s.deleteFolder);
   const router = useRouter();
+  const openPlayer = usePlayerOverlayStore((s) => s.open);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dragSourceFolder, setDragSourceFolder] = useState<string | null>(null);
+  const [hoverFolderId, setHoverFolderId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ folderId: string; x: number; y: number } | null>(null);
   const glassClass = isDark
     ? "bg-[rgba(20,20,20,0.65)] border-r border-[rgba(255,255,255,0.08)] text-white"
     : "bg-[rgba(255,255,255,0.85)] border-r border-[rgba(0,0,0,0.05)] text-gray-900";
@@ -49,13 +56,32 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
 
   const sectionTitleClass = isDark ? "text-gray-200" : "text-gray-600";
 
+  const toKey = (platform: Platform, id: string) => `${String(platform).toUpperCase()}:${id}`;
+
+  const inFolderKeys = useMemo(() => {
+    const set = new Set<string>();
+    folders.forEach((folder) => {
+      (folder.streamerIds || []).forEach((id) => {
+        const [p, i] = (id || "").split(":");
+        if (!p || !i) return;
+        set.add(`${String(p).toUpperCase()}:${i}`);
+      });
+    });
+    return set;
+  }, [folders]);
+
+  const availableStreamers = useMemo(
+    () => follows.filter((f) => !inFolderKeys.has(toKey(f.platform, f.id))),
+    [follows, inFolderKeys]
+  );
+
   const grouped = useMemo(() => {
     const groups = platformOrder.map((platform) => ({
       platform,
-      items: follows.filter((f) => f.platform === platform),
+      items: availableStreamers.filter((f) => f.platform === platform),
     }));
     return groups.filter((g) => g.items.length > 0);
-  }, [follows]);
+  }, [availableStreamers]);
 
   const folderMap = useMemo(() => {
     const map = new Map<string, typeof follows[number]>();
@@ -63,7 +89,63 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
     return map;
   }, [follows]);
 
-  const emptyState = grouped.length === 0;
+  const hasFolderStreamers = folders.some((f) => (f.streamerIds || []).length > 0);
+  const emptyState = grouped.length === 0 && !hasFolderStreamers;
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    const handleGlobalContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest("#follow-context-menu")) return;
+      setContextMenu(null);
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContextMenu(null);
+    };
+    window.addEventListener("click", handleClick);
+    window.addEventListener("contextmenu", handleGlobalContextMenu);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("click", handleClick);
+      window.removeEventListener("contextmenu", handleGlobalContextMenu);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  const resetDragState = () => {
+    setDraggingKey(null);
+    setDragSourceFolder(null);
+    setHoverFolderId(null);
+  };
+
+  const handleRootDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!dragSourceFolder) return;
+    event.preventDefault();
+    const key = event.dataTransfer?.getData("text/plain") || draggingKey;
+    if (!key) return;
+    removeFromFolder(key, dragSourceFolder);
+    resetDragState();
+  };
+
+  const handleRenameFolder = (folderId: string) => {
+    const target = folders.find((f) => f.id === folderId);
+    if (!target) return;
+    const name = window.prompt("重命名文件夹", target.name);
+    if (name && name.trim()) {
+      renameFolder(folderId, name.trim());
+    }
+    setContextMenu(null);
+  };
+
+  const handleDeleteFolder = (folderId: string) => {
+    const target = folders.find((f) => f.id === folderId);
+    if (!target) return;
+    const ok = window.confirm(`确认删除文件夹「${target.name}」？`);
+    if (ok) {
+      deleteFolder(folderId);
+    }
+    setContextMenu(null);
+  };
 
   return (
     <div className={`w-[280px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
@@ -71,7 +153,14 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
         <SearchPanel platform={searchPlatform} />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar px-2.5 pt-2 space-y-8 pb-20">
+      <div
+        className="flex-1 overflow-y-auto no-scrollbar px-2.5 pt-2 space-y-8 pb-20"
+        onDragOver={(e) => {
+          if (!dragSourceFolder) return;
+          e.preventDefault();
+        }}
+        onDrop={handleRootDrop}
+      >
         <div className="space-y-3">
           <div className="flex items-center justify-end gap-2">
             <button
@@ -89,6 +178,22 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
               <Plus className="w-4 h-4" />
             </button>
           </div>
+          {dragSourceFolder && (
+            <div
+              className={`text-[11px] text-center px-3 py-2 rounded-lg border border-dashed transition-colors ${
+                isDark
+                  ? "border-emerald-300/50 text-emerald-200 bg-emerald-500/5"
+                  : "border-emerald-500/40 text-emerald-700 bg-emerald-50"
+              }`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.stopPropagation();
+                handleRootDrop(e);
+              }}
+            >
+              将主播拖到此处即可移出文件夹
+            </div>
+          )}
           {folders.length > 0 && (
             <div className="space-y-3">
               {folders.map((folder) => {
@@ -98,18 +203,39 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                 return (
                   <div
                     key={folder.id}
-                    className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/5" : "border-black/10 bg-white"}`}
+                    className={`rounded-xl border p-3 transition-colors ${
+                      hoverFolderId === folder.id
+                        ? "border-emerald-400/60 bg-emerald-400/5"
+                        : isDark
+                          ? "border-white/10 bg-white/5"
+                          : "border-black/10 bg-white"
+                    }`}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setContextMenu({ folderId: folder.id, x: e.clientX, y: e.clientY });
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setHoverFolderId(folder.id);
+                    }}
+                    onDragLeave={() => setHoverFolderId((prev) => (prev === folder.id ? null : prev))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const key = e.dataTransfer?.getData("text/plain") || draggingKey;
+                      if (!key) return;
+                      if (dragSourceFolder === folder.id) {
+                        resetDragState();
+                        return;
+                      }
+                      moveToFolder(key, folder.id);
+                      resetDragState();
+                    }}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm font-semibold">{folder.name}</div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => deleteFolder(folder.id)}
-                          className="text-[11px] px-2 py-1 rounded-full border border-red-400/50 text-red-200 hover:bg-red-500/10 transition-colors"
-                        >
-                          删除
-                        </button>
-                      </div>
+                      <div className="text-[11px] text-gray-400">{dragSourceFolder ? "拖放即可移动" : "右键管理"}</div>
                     </div>
                     {items.length === 0 ? null : (
                       <div className="space-y-2">
@@ -119,6 +245,14 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                             className={`flex items-center justify-between py-2 px-2 rounded-lg ${
                               isDark ? "bg-white/5" : "bg-black/5"
                             }`}
+                            draggable
+                            onDragStart={(e) => {
+                              setDraggingKey(toKey(item.platform, item.id));
+                              setDragSourceFolder(folder.id);
+                              e.dataTransfer?.setData("text/plain", toKey(item.platform, item.id));
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            onDragEnd={resetDragState}
                           >
                             <div className="flex items-center gap-2">
                               <Image
@@ -129,8 +263,18 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                                 className="rounded-full object-cover w-8 h-8 border border-white/10"
                               />
                               <div className="flex flex-col">
-                                <span className="text-sm">{item.displayName || item.nickname}</span>
-                                <span className="text-xs text-gray-400">{platformLabelMap[item.platform]}</span>
+                                <span
+                                  className={`text-[13px] font-semibold line-clamp-1 ${isDark ? "text-white" : "text-gray-900"}`}
+                                  title={item.nickname || item.displayName}
+                                >
+                                  {item.nickname || item.displayName}
+                                </span>
+                                <span
+                                  className="text-[11px] text-gray-400 line-clamp-2"
+                                  title={item.roomTitle || platformLabelMap[item.platform]}
+                                >
+                                  {item.roomTitle || platformLabelMap[item.platform]}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -138,17 +282,13 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                                 className="text-[11px] px-3 py-1 rounded-full border border-white/20 hover:bg-white/10"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  removeFromFolder(`${item.platform}:${item.id}`, folder.id);
-                                }}
-                              >
-                                移出
-                              </button>
-                              <button
-                                className="text-[11px] px-3 py-1 rounded-full border border-white/20 hover:bg-white/10"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const slug = platformSlugMap[item.platform];
-                                  router.push(`/player?platform=${slug}&roomId=${item.id}`);
+                                  openPlayer({
+                                    platform: item.platform,
+                                    roomId: item.id,
+                                    title: item.roomTitle,
+                                    anchorName: item.nickname,
+                                    avatar: item.avatarUrl,
+                                  });
                                 }}
                               >
                                 播放
@@ -195,9 +335,22 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                       isDark ? "hover:bg-white/5" : "hover:bg-black/5"
                     }`}
                     onClick={() => {
-                      const slug = platformSlugMap[item.platform];
-                      router.push(`/player?platform=${slug}&roomId=${item.id}`);
+                      openPlayer({
+                        platform: item.platform,
+                        roomId: item.id,
+                        title: item.roomTitle,
+                        anchorName: item.nickname,
+                        avatar: item.avatarUrl,
+                      });
                     }}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggingKey(toKey(item.platform, item.id));
+                      setDragSourceFolder(null);
+                      e.dataTransfer?.setData("text/plain", toKey(item.platform, item.id));
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={resetDragState}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -223,54 +376,52 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
 
                       <div className="flex flex-col">
                         <span
-                          className={`text-sm font-semibold leading-tight ${isDark ? "text-white" : "text-gray-900"} line-clamp-1`}
-                          title={item.displayName || item.nickname}
+                          className={`text-[15px] font-semibold leading-tight ${isDark ? "text-white" : "text-gray-900"} line-clamp-1`}
+                          title={item.nickname || item.displayName}
                         >
-                          {item.displayName || item.nickname}
+                          {item.nickname || item.displayName}
                         </span>
                         <span
-                          className={`text-xs leading-tight ${isDark ? "text-gray-400" : "text-gray-500"} line-clamp-1`}
-                          title={item.nickname}
+                          className={`text-xs leading-tight ${isDark ? "text-gray-500" : "text-gray-500"} line-clamp-2`}
+                          title={item.roomTitle || item.nickname || item.displayName}
                         >
-                          {item.nickname}
+                          {item.roomTitle || item.displayName || item.nickname}
                         </span>
-                        {item.roomTitle ? (
-                          <span
-                            className={`text-[11px] leading-tight ${isDark ? "text-gray-400" : "text-gray-500"} line-clamp-1`}
-                            title={item.roomTitle}
-                          >
-                            {item.roomTitle}
-                          </span>
-                        ) : null}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {folders.length > 0 && (
-                        <select
-                          className="text-[11px] px-2 py-1 rounded-full border border-white/20 bg-transparent"
-                          defaultValue=""
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const folderId = e.target.value;
-                            if (!folderId) return;
-                            moveToFolder(`${item.platform}:${item.id}`, folderId);
-                            e.currentTarget.value = "";
-                          }}
-                        >
-                          <option value="">移入文件夹</option>
-                          {folders.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ))
+        )}
+
+        {contextMenu && (
+          <div
+            id="follow-context-menu"
+            className={`fixed z-[100] min-w-[140px] rounded-lg border text-sm shadow-2xl overflow-hidden ${
+              isDark
+                ? "border-white/10 bg-[rgba(20,20,20,0.95)] text-white"
+                : "border-black/10 bg-white text-gray-900"
+            }`}
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className={`w-full text-left px-3 py-2 ${isDark ? "hover:bg-white/10" : "hover:bg-black/5"}`}
+              onClick={() => handleRenameFolder(contextMenu.folderId)}
+            >
+              重命名
+            </button>
+            <button
+              className={`w-full text-left px-3 py-2 text-red-300 ${
+                isDark ? "hover:bg-red-500/10" : "hover:bg-red-100"
+              }`}
+              onClick={() => handleDeleteFolder(contextMenu.folderId)}
+            >
+              删除
+            </button>
+          </div>
         )}
       </div>
     </div>

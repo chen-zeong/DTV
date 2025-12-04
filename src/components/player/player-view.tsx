@@ -5,7 +5,8 @@ import Player from "xgplayer";
 import FlvPlugin from "xgplayer-flv";
 import HlsPlugin from "xgplayer-hls.js";
 import "xgplayer/dist/index.min.css";
-import { Loader2, RotateCw, AlertTriangle, Play, Pause, Maximize2, Minimize2 } from "lucide-react";
+import "./player-controls.css";
+import { Loader2, RotateCw, AlertTriangle, ArrowLeft } from "lucide-react";
 import DanmuJs from "danmu.js";
 import { Platform } from "@/types/platform";
 import { DanmakuMessage } from "@/types/danmaku";
@@ -14,12 +15,26 @@ import { getStreamConfig, startDanmaku, stopDanmaku, StreamConfig } from "@/serv
 import { cn } from "@/utils/cn";
 import { useFollowStore } from "@/stores/follow-store";
 import { platformSlugMap } from "@/utils/platform";
-import Link from "next/link";
 import { getLineLabel, getLineOptionsForPlatform, persistLinePreference, resolveStoredLine } from "@/types/line";
+import { useRouter } from "next/navigation";
+import { arrangeControlClusters } from "./controls/control-layout";
+import { DanmuSettingsControl, DanmuToggleControl } from "./controls/danmu-plugins";
+import { LineControl, QualityControl, RefreshControl, VolumeControl } from "./controls/player-controls-plugins";
+import {
+  DANMU_OPACITY_MIN,
+  ICONS,
+  sanitizeDanmuArea,
+  sanitizeDanmuOpacity,
+  type DanmuUserSettings,
+} from "./controls/constants";
 
 type PlayerViewProps = {
   platform: Platform;
   roomId: string;
+  onClose?: () => void;
+  initialTitle?: string;
+  initialAnchorName?: string;
+  initialAvatar?: string;
 };
 
 type DanmuOverlayInstance = {
@@ -39,32 +54,58 @@ type XgMediaPlayer = Player & {
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
 
-export function PlayerView({ platform, roomId }: PlayerViewProps) {
+export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnchorName, initialAvatar }: PlayerViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<Player | null>(null);
   const danmakuUnlistenRef = useRef<(() => void) | undefined>();
   const danmuOverlayRef = useRef<DanmuOverlayInstance | null>(null);
   const danmakuCountRef = useRef(0);
+  const refreshControlRef = useRef<RefreshControl | null>(null);
+  const qualityControlRef = useRef<QualityControl | null>(null);
+  const lineControlRef = useRef<LineControl | null>(null);
+  const danmuToggleRef = useRef<DanmuToggleControl | null>(null);
+  const danmuSettingsRef = useRef<DanmuSettingsControl | null>(null);
+  const volumeControlRef = useRef<VolumeControl | null>(null);
+  const reloadReasonRef = useRef<"auto" | "refresh" | "quality" | "line">("auto");
 
-  const [quality, setQuality] = useState<(typeof qualityOptions)[number]>("原画");
-  const [line, setLine] = useState<string | null>(null);
+  const [quality, setQuality] = useState<(typeof qualityOptions)[number]>(() => {
+    if (typeof window === "undefined") return "原画";
+    const saved = window.localStorage.getItem(`quality_${platform}`) as (typeof qualityOptions)[number] | null;
+    if (saved && (qualityOptions as readonly string[]).includes(saved)) return saved as (typeof qualityOptions)[number];
+    return "原画";
+  });
+  const [line, setLine] = useState<string | null>(() => resolveStoredLine(platform));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streamMeta, setStreamMeta] = useState<StreamConfig | null>(null);
   const [danmakuMessages, setDanmakuMessages] = useState<DanmakuMessage[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [danmakuEnabled, setDanmakuEnabled] = useState(true);
-  const [danmakuOpacity, setDanmakuOpacity] = useState(0.8);
-  const [danmakuFontSize, setDanmakuFontSize] = useState(14);
+  const [danmakuOpacity, setDanmakuOpacity] = useState(1);
+  const [danmakuFontSize, setDanmakuFontSize] = useState(20);
+  const [danmakuDuration, setDanmakuDuration] = useState(10000);
+  const [danmakuArea, setDanmakuArea] = useState(0.5);
+  const [danmakuColor, setDanmakuColor] = useState("#ffffff");
+  const [danmakuStrokeColor, setDanmakuStrokeColor] = useState("#444444");
   const [volume, setVolume] = useState(0.7);
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const followStreamer = useFollowStore((s) => s.followStreamer);
   const unfollowStreamer = useFollowStore((s) => s.unfollowStreamer);
+  const router = useRouter();
 
   const title = useMemo(() => {
     if (streamMeta?.title) return streamMeta.title;
+    if (initialTitle) return initialTitle;
     return `${platform} - ${roomId}`;
-  }, [streamMeta?.title, platform, roomId]);
+  }, [streamMeta?.title, initialTitle, platform, roomId]);
+
+  const anchorDisplay = useMemo(() => {
+    return streamMeta?.anchorName || initialAnchorName || "主播";
+  }, [streamMeta?.anchorName, initialAnchorName]);
+
+  const avatarDisplay = useMemo(() => {
+    return streamMeta?.avatar || initialAvatar || "";
+  }, [streamMeta?.avatar, initialAvatar]);
 
   const destroyPlayer = () => {
     try {
@@ -79,6 +120,12 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
       console.warn("[player] destroy failed", e);
     }
     playerRef.current = null;
+    refreshControlRef.current = null;
+    volumeControlRef.current = null;
+    danmuToggleRef.current = null;
+    danmuSettingsRef.current = null;
+    qualityControlRef.current = null;
+    lineControlRef.current = null;
   };
 
   const setupPlayer = (config: StreamConfig) => {
@@ -99,14 +146,16 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
       width: "100%",
       videoFillMode: "contain",
       keyShortcut: true,
+      volume: false as unknown as number,
+      playbackRate: false,
       cssFullscreen: { index: 2 },
       icons: {
-        play: Play,
-        pause: Pause,
-        fullscreen: Maximize2,
-        exitFullscreen: Minimize2,
-        cssFullscreen: Maximize2,
-        exitCssFullscreen: Minimize2,
+        play: ICONS.play,
+        pause: ICONS.pause,
+        fullscreen: ICONS.maximize2,
+        exitFullscreen: ICONS.minimize2,
+        cssFullscreen: ICONS.fullscreen,
+        exitCssFullscreen: ICONS.minimize2,
       },
       plugins: [isHls ? HlsPlugin : FlvPlugin],
       ...(isHls
@@ -133,8 +182,90 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
       }),
     });
 
+    refreshControlRef.current = player.registerPlugin(RefreshControl, {
+      onClick: () => {
+        reloadReasonRef.current = "refresh";
+        void initStream("refresh");
+      },
+    }) as RefreshControl;
+
+    volumeControlRef.current = player.registerPlugin(VolumeControl, {}) as VolumeControl;
+
+    danmuToggleRef.current = player.registerPlugin(DanmuToggleControl, {
+      getState: () => danmakuEnabled,
+      onToggle: (enabled: boolean) => {
+        setDanmakuEnabled(enabled);
+      },
+    }) as DanmuToggleControl;
+
+    danmuSettingsRef.current = player.registerPlugin(DanmuSettingsControl, {
+      getSettings: (): DanmuUserSettings => ({
+        color: danmakuColor,
+        strokeColor: danmakuStrokeColor,
+        fontSize: `${danmakuFontSize}px`,
+        duration: danmakuDuration,
+        area: danmakuArea,
+        mode: "scroll",
+        opacity: danmakuOpacity,
+      }),
+      onChange: (partial) => {
+        if (partial.color) setDanmakuColor(partial.color);
+        if (partial.strokeColor) setDanmakuStrokeColor(partial.strokeColor);
+        if (partial.fontSize) {
+          const size = Number.parseInt(partial.fontSize, 10);
+          if (Number.isFinite(size)) setDanmakuFontSize(Math.min(30, Math.max(10, size)));
+        }
+        if (typeof partial.duration === "number") {
+          setDanmakuDuration(Math.min(20000, Math.max(3000, partial.duration)));
+        }
+        if (typeof partial.area === "number") {
+          setDanmakuArea(sanitizeDanmuArea(partial.area));
+        }
+        if (typeof partial.opacity === "number") {
+          setDanmakuOpacity(sanitizeDanmuOpacity(partial.opacity));
+        }
+      },
+    }) as DanmuSettingsControl;
+
+    qualityControlRef.current = player.registerPlugin(QualityControl, {
+      options: [...qualityOptions],
+      getCurrent: () => quality,
+      onSelect: async (option: string) => {
+        if (option === quality) return;
+        reloadReasonRef.current = "quality";
+        qualityControlRef.current?.setSwitching(true);
+        setQuality(option as (typeof qualityOptions)[number]);
+      },
+    }) as QualityControl;
+    qualityControlRef.current?.setOptions([...qualityOptions]);
+    qualityControlRef.current?.updateLabel(quality);
+
+    const lineOptionsForPlatform = getLineOptionsForPlatform(platform);
+    lineControlRef.current = player.registerPlugin(LineControl, {
+      disable: lineOptionsForPlatform.length === 0,
+      options: lineOptionsForPlatform,
+      getCurrentKey: () => line ?? "",
+      getCurrentLabel: () => getLineLabel(lineOptionsForPlatform, line),
+      onSelect: async (optionKey: string) => {
+        if (optionKey === line) return;
+        reloadReasonRef.current = "line";
+        lineControlRef.current?.setSwitching(true);
+        setLine(optionKey || null);
+      },
+    }) as LineControl;
+    lineControlRef.current?.setOptions(lineOptionsForPlatform);
+    lineControlRef.current?.updateLabel(getLineLabel(lineOptionsForPlatform, line));
+
+    arrangeControlClusters(player);
+
     player.on("play", () => setIsPlaying(true));
     player.on("pause", () => setIsPlaying(false));
+    player.on("volumechange", () => {
+      setVolume(player.volume ?? 1);
+    });
+    player.on("ready", () => {
+      arrangeControlClusters(player);
+    });
     playerRef.current = player;
     setupDanmuOverlay(player);
   };
@@ -179,8 +310,8 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
       overlay.start?.();
       overlay.setOpacity?.(danmakuEnabled ? danmakuPanelOpacity : 0);
       overlay.setFontSize?.(danmakuFontSize);
-      overlay.setArea?.({ start: 0, end: 0.8 });
-      overlay.setAllDuration?.("scroll", 12000);
+      overlay.setArea?.({ start: 0, end: danmakuArea });
+      overlay.setAllDuration?.("scroll", danmakuDuration);
       danmuOverlayRef.current = overlay;
       danmakuCountRef.current = danmakuMessages.length;
     } catch (error) {
@@ -188,7 +319,11 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
     }
   };
 
-  const initStream = async () => {
+  const initStream = async (reason: "auto" | "refresh" | "quality" | "line" = "auto") => {
+    reloadReasonRef.current = reason;
+    if (reason === "refresh") refreshControlRef.current?.setLoading(true);
+    if (reason === "quality") qualityControlRef.current?.setSwitching(true);
+    if (reason === "line") lineControlRef.current?.setSwitching(true);
     setLoading(true);
     setError(null);
     setDanmakuMessages([]);
@@ -196,17 +331,20 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
       const cfg = await getStreamConfig(platform, roomId, quality, line ?? undefined);
       setStreamMeta(cfg);
       setupPlayer(cfg);
-
     } catch (e) {
       const err = e as Error;
       setError(err.message || "加载失败");
     } finally {
       setLoading(false);
+      refreshControlRef.current?.setLoading(false);
+      qualityControlRef.current?.setSwitching(false);
+      lineControlRef.current?.setSwitching(false);
+      reloadReasonRef.current = "auto";
     }
   };
 
   useEffect(() => {
-    void initStream();
+    void initStream(reloadReasonRef.current);
     return () => {
       destroyPlayer();
       void stopDanmaku(platform, roomId, danmakuUnlistenRef.current);
@@ -218,26 +356,17 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
   const handleRetry = () => void initStream();
 
   const danmakuPanelOpacity = useMemo(() => {
-    return Math.min(1, Math.max(0.3, danmakuOpacity));
+    return Math.min(1, Math.max(DANMU_OPACITY_MIN, danmakuOpacity));
   }, [danmakuOpacity]);
-
-  useEffect(() => {
-    setLine(resolveStoredLine(platform));
-  }, [platform]);
 
   useEffect(() => {
     if (line) persistLinePreference(platform, line);
   }, [line, platform]);
 
   useEffect(() => {
-    // restore quality preference
-    const key = `quality_${platform}`;
-    if (typeof window !== "undefined") {
-      const saved = window.localStorage.getItem(key) as (typeof qualityOptions)[number] | null;
-      if (saved && qualityOptions.includes(saved as (typeof qualityOptions)[number])) {
-        setQuality(saved as (typeof qualityOptions)[number]);
-      }
-    }
+    // platform change -> sync stored line and volume/font prefs
+    const storedLine = resolveStoredLine(platform);
+    setLine((prev) => (prev === storedLine ? prev : storedLine));
     if (typeof window !== "undefined") {
       const vol = window.localStorage.getItem("player_volume");
       if (vol) {
@@ -260,6 +389,29 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
   }, [quality, platform]);
 
   useEffect(() => {
+    qualityControlRef.current?.updateLabel(quality);
+  }, [quality]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `quality_${platform}`;
+    const saved = window.localStorage.getItem(key) as (typeof qualityOptions)[number] | null;
+    if (saved && (qualityOptions as readonly string[]).includes(saved) && saved !== quality) {
+      setQuality(saved as (typeof qualityOptions)[number]);
+    }
+  }, [platform, quality]);
+
+  useEffect(() => {
+    const options = getLineOptionsForPlatform(platform);
+    lineControlRef.current?.setOptions(options);
+    lineControlRef.current?.updateLabel(getLineLabel(options, line));
+  }, [line, platform]);
+
+  useEffect(() => {
+    danmuToggleRef.current?.setState(danmakuEnabled);
+  }, [danmakuEnabled]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("player_volume", String(volume));
     }
@@ -278,16 +430,18 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
   // manage danmaku listener when toggle/platform/room changes
   useEffect(() => {
     let cancelled = false;
+    const safeUnlisten = (fn: (() => void) | undefined) => {
+      if (!fn) return;
+      try {
+        fn();
+      } catch (e) {
+        console.warn("[player] cleanup danmaku listener", e);
+      }
+    };
     const manageDanmaku = async () => {
       // stop existing
-      if (danmakuUnlistenRef.current) {
-        try {
-          danmakuUnlistenRef.current();
-        } catch (e) {
-          console.warn("[player] stop danmaku unlisten failed", e);
-        }
-        danmakuUnlistenRef.current = undefined;
-      }
+      safeUnlisten(danmakuUnlistenRef.current);
+      danmakuUnlistenRef.current = undefined;
       await stopDanmaku(platform, roomId, undefined);
       if (!danmakuEnabled) return;
       try {
@@ -301,12 +455,8 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
         });
         if (!cancelled) {
           danmakuUnlistenRef.current = unlisten;
-        } else if (unlisten) {
-          try {
-            unlisten();
-          } catch (e) {
-            console.warn("[player] cleanup danmaku listener", e);
-          }
+        } else {
+          safeUnlisten(unlisten);
         }
       } catch (e) {
         console.warn("[player] 弹幕启动失败", e);
@@ -341,15 +491,15 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
       overlay.sendComment?.({
         id: msg.id,
         txt: `${msg.nickname}: ${msg.content}`,
-        duration: 12000,
+        duration: danmakuDuration,
         mode: "scroll",
         style: {
-          color: msg.color || "#fff",
-          "--danmu-stroke-color": "#222",
+          color: msg.color || danmakuColor,
+          "--danmu-stroke-color": danmakuStrokeColor,
         },
       });
     });
-  }, [danmakuMessages, danmakuEnabled]);
+  }, [danmakuMessages, danmakuEnabled, danmakuDuration, danmakuColor, danmakuStrokeColor]);
 
   // sync overlay opacity/font size when settings change
   useEffect(() => {
@@ -364,39 +514,48 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
     overlay.setFontSize?.(danmakuFontSize);
   }, [danmakuFontSize]);
 
+  useEffect(() => {
+    const overlay = danmuOverlayRef.current;
+    if (!overlay) return;
+    overlay.setArea?.({ start: 0, end: danmakuArea });
+    overlay.setAllDuration?.("scroll", danmakuDuration);
+  }, [danmakuArea, danmakuDuration]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white flex flex-col md:flex-row gap-4 p-4">
       <div className="flex-1 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-400">{platform}</p>
-            <h1 className="text-2xl font-semibold">{title}</h1>
-            {streamMeta?.anchorName && <p className="text-sm text-gray-400">{streamMeta.anchorName}</p>}
-          </div>
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">{getLineLabel(getLineOptionsForPlatform(platform), line)}</span>
-              <select
-                className="bg-white/10 border border-white/10 rounded-lg px-3 py-1 text-sm"
-                value={line ?? ""}
-                onChange={(e) => setLine(e.target.value || null)}
-              >
-                {getLineOptionsForPlatform(platform).map((l) => (
-                  <option key={l.key} value={l.key}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 min-w-0">
             <button
-              className={cn(
-                "px-3 py-2 rounded-full border text-sm transition-colors",
-                danmakuEnabled ? "border-white/30 text-white bg-white/10" : "border-white/10 text-gray-400"
-              )}
-              onClick={() => setDanmakuEnabled((v) => !v)}
+              onClick={() => {
+                if (onClose) onClose();
+                else router.back();
+              }}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              title="返回"
             >
-              {danmakuEnabled ? "弹幕开" : "弹幕关"}
+              <ArrowLeft className="w-5 h-5" />
             </button>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-full border border-white/10 overflow-hidden bg-white/10 flex-shrink-0">
+                {avatarDisplay ? (
+                  <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-sm text-white/70">
+                    {(anchorDisplay || roomId).slice(0, 1)}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-lg md:text-xl font-semibold truncate">{streamMeta?.title || title}</h1>
+                <div className="text-sm text-gray-400 truncate">
+                  {anchorDisplay} · 房间号 {roomId} · 平台 {platform}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
             <button
               className={cn(
                 "px-4 py-2 rounded-full border text-sm transition-colors",
@@ -421,17 +580,6 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
             >
               {isFollowed(platform, roomId) ? "已关注" : "关注"}
             </button>
-            <select
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-1 text-sm"
-              value={quality}
-              onChange={(e) => setQuality(e.target.value as (typeof qualityOptions)[number])}
-            >
-              {qualityOptions.map((q) => (
-                <option key={q} value={q}>
-                  {q}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -465,71 +613,6 @@ export function PlayerView({ platform, roomId }: PlayerViewProps) {
             className="transition-opacity"
             style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
           />
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>弹幕透明度/字号</span>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={0.3}
-                max={1}
-                step={0.05}
-                value={danmakuOpacity}
-                onChange={(e) => setDanmakuOpacity(parseFloat(e.target.value))}
-                className="w-32 accent-white"
-              />
-              <input
-                type="range"
-                min={10}
-                max={28}
-                step={1}
-                value={danmakuFontSize}
-                onChange={(e) => setDanmakuFontSize(parseInt(e.target.value, 10))}
-                className="w-32 accent-white"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>音量</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-40 accent-white"
-            />
-          </div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-lg text-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs uppercase tracking-[0.2em] text-gray-400">状态</span>
-            <span
-              className={cn(
-                "px-3 py-1 rounded-full text-xs border",
-                isPlaying ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200" : "bg-gray-500/20 border-gray-400/30 text-gray-200"
-              )}
-            >
-              {isPlaying ? "播放中" : "暂停"}
-            </span>
-          </div>
-          <div className="space-y-1 text-gray-300">
-            <div>房间：{roomId}</div>
-            <div>画质：{quality}</div>
-            <div>线路：默认</div>
-            {streamMeta?.streamUrl && (
-              <div className="text-[12px] text-gray-500 break-all leading-relaxed">URL: {streamMeta.streamUrl}</div>
-            )}
-            <div className="text-xs text-gray-500">
-              <span>平台入口：</span>
-              <Link
-                className="underline hover:text-white"
-                href={`/${platformSlugMap[platform]}`}
-              >
-                {platformSlugMap[platform]}
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

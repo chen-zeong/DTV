@@ -2,14 +2,14 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Loader2, Eye, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Loader2, RefreshCw } from "lucide-react";
 import biliCategories from "@/data/bilibili_categories.json";
 import { BiliCategory, BiliLiveRoom } from "@/types/bilibili";
 import { fetchBilibiliLiveList } from "@/services/bilibili";
 import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
-import { platformSlugMap } from "@/utils/platform";
+import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
+import { LiveGrid, type LiveCardItem } from "@/components/live/live-grid";
 
 type CateOption = {
   id: string;
@@ -18,7 +18,7 @@ type CateOption = {
 };
 
 export function BilibiliHome() {
-  const router = useRouter();
+  const openPlayer = usePlayerOverlayStore((s) => s.open);
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const follow = useFollowStore((s) => s.followStreamer);
   const unfollow = useFollowStore((s) => s.unfollowStreamer);
@@ -198,76 +198,56 @@ export function BilibiliHome() {
         ) : rooms.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-10">暂无直播</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {rooms.map((s) => {
-              const roomId = s.room_id || "";
-              const title = s.title || roomId;
-              const avatar = s.avatar || "";
-              const nickname = s.nickname || "";
-              const cover = s.room_cover || "";
-              const viewerStr = s.viewer_count_str || "0";
-              const followed = isFollowed(Platform.BILIBILI, roomId);
+          <LiveGrid
+            items={rooms.map(
+              (s): LiveCardItem => ({
+                id: s.room_id || "",
+                title: s.title || s.uname || s.nickname || s.room_id || "",
+                subtitle: s.nickname || s.uname || "",
+                cover: s.room_cover || "https://via.placeholder.com/320x180.png?text=No+Image",
+                avatar: s.avatar || "https://via.placeholder.com/40.png?text=?",
+                viewerText: s.viewer_count_str || undefined,
+              })
+            )}
+            onCardClick={(item) =>
+              openPlayer({
+                platform: Platform.BILIBILI,
+                roomId: item.id,
+                title: item.title,
+                anchorName: item.subtitle ?? undefined,
+                avatar: item.avatar ?? undefined,
+              })
+            }
+            renderActions={(item) => {
+              const followed = isFollowed(Platform.BILIBILI, item.id);
               return (
-                <div
-                  key={`${roomId}-${title}`}
-                  className="group rounded-xl border border-white/10 bg-black/40 overflow-hidden hover:border-white/30 transition-colors cursor-pointer"
-                  onClick={() => {
-                    const slug = platformSlugMap[Platform.BILIBILI];
-                    router.push(`/player?platform=${slug}&roomId=${roomId}`);
+                <button
+                  className={`w-full text-sm rounded-lg px-3 py-2 border transition-colors ${
+                    followed
+                      ? "border-emerald-400/60 text-emerald-100 bg-emerald-500/10"
+                      : "border-white/10 text-white hover:bg-white/10"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (followed) {
+                      unfollow(Platform.BILIBILI, item.id);
+                    } else {
+                      follow({
+                        id: item.id,
+                        platform: Platform.BILIBILI,
+                        nickname: item.subtitle || item.title,
+                        avatarUrl: item.avatar || "",
+                        displayName: item.title,
+                        isLive: true,
+                      });
+                    }
                   }}
                 >
-                  <div className="relative">
-                    <img
-                      src={cover || "https://via.placeholder.com/320x180.png?text=No+Image"}
-                      alt={title}
-                      className="w-full aspect-video object-cover"
-                    />
-                    <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs bg-black/60 backdrop-blur px-2 py-1 rounded-full">
-                      <Eye className="w-4 h-4" />
-                      <span>{viewerStr}</span>
-                    </div>
-                  </div>
-                  <div className="p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={avatar || "https://via.placeholder.com/40.png?text=?"}
-                        alt={nickname}
-                        className="w-10 h-10 rounded-full object-cover border border-white/10"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-white truncate">{title}</div>
-                        <div className="text-xs text-gray-400 truncate">{nickname}</div>
-                      </div>
-                    </div>
-                    <button
-                      className={`w-full text-sm rounded-lg px-3 py-2 border transition-colors ${
-                        followed
-                          ? "border-emerald-400/60 text-emerald-100 bg-emerald-500/10"
-                          : "border-white/10 text-white hover:bg-white/10"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (followed) {
-                          unfollow(Platform.BILIBILI, roomId);
-                        } else {
-                          follow({
-                            id: roomId,
-                            platform: Platform.BILIBILI,
-                            nickname,
-                            avatarUrl: avatar,
-                            displayName: title,
-                            isLive: true,
-                          });
-                        }
-                      }}
-                    >
-                      {followed ? "已关注" : "关注"}
-                    </button>
-                  </div>
-                </div>
+                  {followed ? "已关注" : "关注"}
+                </button>
               );
-            })}
-          </div>
+            }}
+          />
         )}
 
         <div className="flex justify-center mt-4">
