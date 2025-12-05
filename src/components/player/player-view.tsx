@@ -94,7 +94,9 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   const unfollowStreamer = useFollowStore((s) => s.unfollowStreamer);
   const router = useRouter();
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
-  const sidebarWidth = isSidebarOpen ? 240 : 80;
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1024 : window.innerWidth));
+  const isMobile = viewportWidth <= 768;
+  const sidebarWidth = isMobile ? 0 : isSidebarOpen ? 240 : 80;
 
   const title = useMemo(() => {
     if (streamMeta?.title) return streamMeta.title;
@@ -390,6 +392,21 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
       window.localStorage.setItem(key, quality);
     }
   }, [quality, platform]);
+
+  useEffect(() => {
+    const update = () => {
+      if (typeof window === "undefined") return;
+      const width = window.visualViewport?.width ?? window.innerWidth;
+      setViewportWidth(width);
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     qualityControlRef.current?.updateLabel(quality);

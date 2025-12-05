@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PlayerView } from "@/components/player/player-view";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
@@ -11,6 +12,8 @@ export function PlayerOverlay() {
   const { isOpen, platform, roomId, title, anchorName, avatar, close } = usePlayerOverlayStore();
   const theme = useThemeStore((s) => s.getEffectiveTheme());
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1024 : window.innerWidth));
+  const isMobile = viewportWidth <= 768;
   const sidebarWidthCollapsed = 80;
   const sidebarWidthExpanded = 240;
   const slideTransition = {
@@ -20,6 +23,21 @@ export function PlayerOverlay() {
   };
 
   const canRender = isOpen && platform && roomId;
+
+  useEffect(() => {
+    const update = () => {
+      if (typeof window === "undefined") return;
+      const width = window.visualViewport?.width ?? window.innerWidth;
+      setViewportWidth(width);
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, []);
 
   return (
     <AnimatePresence>
@@ -32,15 +50,17 @@ export function PlayerOverlay() {
           transition={{ duration: 0.2 }}
         >
           <div className="relative w-full h-full flex">
-            <motion.div
-              className="h-full"
-              animate={{ width: isSidebarOpen ? sidebarWidthExpanded : sidebarWidthCollapsed }}
-              initial={false}
-              transition={slideTransition}
-              layout
-            >
-              <Sidebar className="h-full" theme={theme} isLeaderboardOpen={isSidebarOpen} />
-            </motion.div>
+            {!isMobile && (
+              <motion.div
+                className="h-full"
+                animate={{ width: isSidebarOpen ? sidebarWidthExpanded : sidebarWidthCollapsed }}
+                initial={false}
+                transition={slideTransition}
+                layout
+              >
+                <Sidebar className="h-full" theme={theme} isLeaderboardOpen={isSidebarOpen} />
+              </motion.div>
+            )}
 
             <motion.div
               className="flex-1 h-full overflow-auto p-3 md:p-5"

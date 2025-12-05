@@ -20,6 +20,7 @@ type CateOption = {
 
 export function DouyuHome() {
   const openPlayer = usePlayerOverlayStore((s) => s.open);
+  const [isMobile, setIsMobile] = useState(false);
   const [cate1List, setCate1List] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
   const [cateOptions, setCateOptions] = useState<CateOption[]>([]);
@@ -30,6 +31,7 @@ export function DouyuHome() {
   const [loading, setLoading] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [cate2Expanded, setCate2Expanded] = useState(false);
+  const [showCateSheet, setShowCateSheet] = useState<"cate1" | "cate2" | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const pageRef = useRef(0);
@@ -116,6 +118,21 @@ export function DouyuHome() {
   }, []);
 
   useEffect(() => {
+    const update = () => {
+      if (typeof window === "undefined") return;
+      const width = window.visualViewport?.width ?? window.innerWidth;
+      setIsMobile(width <= 768);
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, []);
+
+  useEffect(() => {
     if (selectedCate1) {
       const firstCate2 = cateOptions.find((c) => c.cate1Id === selectedCate1);
       setSelectedCate2(firstCate2?.shortName || null);
@@ -160,6 +177,13 @@ export function DouyuHome() {
     return () => observer.disconnect();
   }, [loadMore, hasMore, loading]);
 
+  const cate1Limit = isMobile ? 8 : cate1List.length;
+  const cate2Limit = isMobile ? 12 : cateOptions.length;
+  const visibleCate1 = isMobile ? cate1List.slice(0, cate1Limit) : cate1List;
+  const visibleCate2 = isMobile
+    ? cateOptions.filter((cate) => (selectedCate1 ? cate.cate1Id === selectedCate1 : true)).slice(0, cate2Limit)
+    : cateOptions.filter((cate) => (selectedCate1 ? cate.cate1Id === selectedCate1 : true));
+
   return (
     <div className="h-full flex flex-col space-y-3">
       <div className="space-y-4">
@@ -171,7 +195,7 @@ export function DouyuHome() {
                   <Loader2 className="w-4 h-4 animate-spin" /> 加载分类...
                 </div>
               ) : (
-                cate1List.map((c1) => (
+                visibleCate1.map((c1) => (
                   <button
                     key={c1.id}
                     onClick={() => setSelectedCate1(c1.id)}
@@ -181,6 +205,14 @@ export function DouyuHome() {
                   </button>
                 ))
               )}
+              {isMobile && cate1List.length > cate1Limit ? (
+                <button
+                  className="px-3 py-2 rounded-full border border-white/15 text-xs text-gray-200"
+                  onClick={() => setShowCateSheet("cate1")}
+                >
+                  更多
+                </button>
+              ) : null}
             </div>
           </div>
           <button
@@ -209,23 +241,31 @@ export function DouyuHome() {
                 <Loader2 className="w-4 h-4 animate-spin" /> 加载分类...
               </div>
             ) : (
-              cateOptions
-                .filter((cate) => (selectedCate1 ? cate.cate1Id === selectedCate1 : true))
-                .map((cate) => (
-                  <button
-                    key={cate.shortName}
-                    onClick={() => {
-                      setSelectedCate2(cate.shortName);
-                      setSelectedCate3(null);
-                    }}
-                    className={categoryChipClass(selectedCate2 === cate.shortName)}
-                  >
-                    {cate.name}
-                  </button>
-                ))
+              visibleCate2.map((cate) => (
+                <button
+                  key={cate.shortName}
+                  onClick={() => {
+                    setSelectedCate2(cate.shortName);
+                    setSelectedCate3(null);
+                  }}
+                  className={categoryChipClass(selectedCate2 === cate.shortName)}
+                >
+                  {cate.name}
+                </button>
+              ))
             )}
           </motion.div>
-          {cateOptions.length > 10 && (
+          {isMobile && cateOptions.length > cate2Limit ? (
+            <div className="flex justify-center mt-2">
+              <button
+                className="inline-flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                onClick={() => setShowCateSheet("cate2")}
+              >
+                更多
+              </button>
+            </div>
+          ) : null}
+          {!isMobile && cateOptions.length > 10 && (
             <div className="flex justify-center mt-2">
               <button
                 className="inline-flex items-center gap-1 text-xs text-gray-300 hover:text-white"
@@ -317,6 +357,53 @@ export function DouyuHome() {
           )}
         </div>
       </div>
+
+      {isMobile && showCateSheet ? (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end justify-center">
+          <div className="w-full max-h-[80vh] bg-[#0f111a] text-white rounded-t-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold">{showCateSheet === "cate1" ? "选择一级分类" : "选择二级分类"}</div>
+              <button
+                onClick={() => setShowCateSheet(null)}
+                className="text-xs px-3 py-1 rounded-full border border-white/15 hover:bg-white/10"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 overflow-y-auto no-scrollbar max-h-[65vh]">
+              {(showCateSheet === "cate1" ? cate1List : cateOptions).map((item) => {
+                const active =
+                  showCateSheet === "cate1"
+                    ? selectedCate1 === item.id
+                    : selectedCate2 === (item as CateOption).shortName;
+                return (
+                  <button
+                    key={showCateSheet === "cate1" ? item.id : (item as CateOption).shortName}
+                    onClick={() => {
+                      if (showCateSheet === "cate1") {
+                        setSelectedCate1(item.id);
+                        const firstCate2 = cateOptions.find((c) => c.cate1Id === item.id);
+                        setSelectedCate2(firstCate2?.shortName || null);
+                        setSelectedCate3(null);
+                      } else {
+                        const c = item as CateOption;
+                        setSelectedCate2(c.shortName);
+                        setSelectedCate3(null);
+                      }
+                      setShowCateSheet(null);
+                    }}
+                    className={`px-3 py-2 rounded-xl text-sm text-left ${
+                      active ? "bg-white text-gray-900 font-semibold" : "bg-white/10 text-white hover:bg-white/15"
+                    }`}
+                  >
+                    {"name" in item ? item.name : (item as CateOption).name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

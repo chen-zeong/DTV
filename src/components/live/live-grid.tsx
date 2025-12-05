@@ -26,7 +26,7 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
   return (
     <div
       className={cn(
-        "grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]",
+        "grid gap-4 grid-cols-2",
         "sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]",
         className
       )}

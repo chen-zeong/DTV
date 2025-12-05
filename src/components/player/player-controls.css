@@ -482,3 +482,9 @@
   height: 100vh;
   z-index: 20;
 }
+
+@media (max-width: 768px) {
+  .player-view-page {
+    --sidebar-offset: 0px !important;
+  }
+}

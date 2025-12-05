@@ -172,7 +172,7 @@ export function FollowList({ theme }: FollowListProps) {
   };
 
   return (
-    <div className={`w-[240px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
+    <div className={`w-full md:w-[240px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
       <div
         className="flex-1 overflow-y-auto no-scrollbar px-3 pt-3 space-y-5 pb-10"
         onDragOver={(e) => {
