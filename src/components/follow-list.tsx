@@ -8,15 +8,13 @@ import { type FollowListItem, useFollowStore } from "@/stores/follow-store";
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { cn } from "@/utils/cn";
 import { platformLabelMap } from "@/utils/platform";
-import { SearchPanel } from "@/components/search/search-panel";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 
 type FollowListProps = {
   theme: ThemeMode;
-  searchPlatform: Platform;
 };
 
-export function FollowList({ theme, searchPlatform }: FollowListProps) {
+export function FollowList({ theme }: FollowListProps) {
   const isDark = theme === "dark";
   const follows = useFollowStore((s) => s.followedStreamers);
   const folders = useFollowStore((s) => s.folders);
@@ -174,13 +172,9 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
   };
 
   return (
-    <div className={`w-[280px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
-      <div className="px-5 pb-4 pt-4">
-        <SearchPanel platform={searchPlatform} />
-      </div>
-
+    <div className={`w-[240px] h-full flex flex-col relative z-40 ${glassClass} ${backdropBlur} transition-colors duration-300`}>
       <div
-        className="flex-1 overflow-y-auto no-scrollbar px-2.5 pt-2 space-y-8 pb-20"
+        className="flex-1 overflow-y-auto no-scrollbar px-3 pt-3 space-y-5 pb-10"
         onDragOver={(e) => {
           if (!dragSourceFolder) return;
           e.preventDefault();

@@ -35,10 +35,10 @@ export function DouyuHome() {
   const pageRef = useRef(0);
 
   const categoryChipClass = (active: boolean) =>
-    `inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold border transition-all backdrop-blur-sm ${
+    `flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm whitespace-nowrap transition-all duration-300 backdrop-blur-md ${
       active
-        ? "bg-white text-gray-900 shadow-[0_10px_30px_-14px_rgba(255,255,255,0.85)] border-white/80 dark:bg-white dark:text-gray-900"
-        : "bg-white/70 text-gray-700 border-gray-200 hover:bg-white dark:bg-white/5 dark:text-gray-200 dark:border-white/10 dark:hover:bg-white/10"
+        ? "font-bold bg-slate-800 text-white shadow-lg shadow-slate-300 dark:bg-white dark:text-slate-900 dark:shadow-white/10"
+        : "font-semibold bg-white/60 text-slate-600 hover:bg-white hover:shadow-sm dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
     }`;
 
   const currentCate3List = useMemo(() => {
@@ -161,7 +161,7 @@ export function DouyuHome() {
   }, [loadMore, hasMore, loading]);
 
   return (
-    <div className="h-full flex flex-col p-3 md:p-4 space-y-3">
+    <div className="h-full flex flex-col space-y-3">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col flex-1 gap-2">
@@ -267,7 +267,7 @@ export function DouyuHome() {
         )}
       </div>
 
-      <div className="flex-1 bg-transparent p-2 md:p-3 overflow-hidden">
+      <div className="flex-1 bg-transparent overflow-hidden">
         {loading && streamers.length === 0 ? (
           <div className="flex items-center justify-center gap-2 text-gray-300 text-sm">
             <Loader2 className="w-5 h-5 animate-spin" /> 加载直播列表...
@@ -276,28 +276,28 @@ export function DouyuHome() {
           <div className="text-center text-sm text-gray-400 py-10">暂无直播</div>
         ) : (
           <div ref={scrollRef} className="max-h-full overflow-y-auto no-scrollbar pr-3">
-          <LiveGrid
-            items={streamers.map(
-              (s): LiveCardItem => ({
-                id: s.rid,
-                title: s.roomName || s.nickname || s.rid,
-                subtitle: s.nickname,
-                cover: s.roomSrc || "https://via.placeholder.com/320x180.png?text=No+Image",
-                avatar: s.avatar || "https://via.placeholder.com/40.png?text=?",
-                viewerText: String(s.hn ?? ""),
-              })
-            )}
-            className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-            onCardClick={(item) =>
-              openPlayer({
-                platform: Platform.DOUYU,
-                roomId: item.id,
-                title: item.title,
-                anchorName: item.subtitle ?? undefined,
-                avatar: item.avatar ?? undefined,
-              })
-            }
-          />
+            <LiveGrid
+              items={streamers.map(
+                (s): LiveCardItem => ({
+                  id: s.rid,
+                  title: s.roomName || s.nickname || s.rid,
+                  subtitle: s.nickname,
+                  cover: s.roomSrc || "https://via.placeholder.com/320x180.png?text=No+Image",
+                  avatar: s.avatar || "https://via.placeholder.com/40.png?text=?",
+                  viewerText: String(s.hn ?? ""),
+                })
+              )}
+              className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+              onCardClick={(item) =>
+                openPlayer({
+                  platform: Platform.DOUYU,
+                  roomId: item.id,
+                  title: item.title,
+                  anchorName: item.subtitle ?? undefined,
+                  avatar: item.avatar ?? undefined,
+                })
+              }
+            />
             <div ref={loaderRef} className="h-8" />
           </div>
         )}

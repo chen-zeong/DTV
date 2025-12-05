@@ -467,3 +467,18 @@
     transform: rotate(360deg);
   }
 }
+
+/* Keep layout when css fullscreen on player page but leave sidebar visible */
+.player-view-page {
+  --sidebar-offset: 0px;
+}
+.player-view-page .xgplayer.xgplayer-is-cssfullscreen {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-offset);
+  width: auto;
+  height: 100vh;
+  z-index: 20;
+}

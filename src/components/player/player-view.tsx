@@ -27,6 +27,7 @@ import {
   sanitizeDanmuOpacity,
   type DanmuUserSettings,
 } from "./controls/constants";
+import { useSidebarStore } from "@/stores/sidebar-store";
 
 type PlayerViewProps = {
   platform: Platform;
@@ -92,6 +93,8 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   const followStreamer = useFollowStore((s) => s.followStreamer);
   const unfollowStreamer = useFollowStore((s) => s.unfollowStreamer);
   const router = useRouter();
+  const isSidebarOpen = useSidebarStore((s) => s.isOpen);
+  const sidebarWidth = isSidebarOpen ? 240 : 80;
 
   const title = useMemo(() => {
     if (streamMeta?.title) return streamMeta.title;
@@ -522,7 +525,10 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   }, [danmakuArea, danmakuDuration]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white flex flex-col md:flex-row gap-4 p-4">
+    <div
+      className="player-view-page min-h-screen bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white flex flex-col md:flex-row gap-4 p-4"
+      style={{ ["--sidebar-offset" as string]: `${sidebarWidth}px` }}
+    >
       <div className="flex-1 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4 min-w-0">

@@ -24,7 +24,13 @@ type LiveGridProps = {
 export function LiveGrid({ items, onCardClick, renderActions, className }: LiveGridProps) {
   if (!items.length) return null;
   return (
-    <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4", className)}>
+    <div
+      className={cn(
+        "grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]",
+        "sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]",
+        className
+      )}
+    >
       {items.map((item) => (
         <div
           key={item.id}

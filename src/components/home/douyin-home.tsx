@@ -44,10 +44,10 @@ export function DouyinHome() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const categoryChipClass = (active: boolean) =>
-    `inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold border transition-all backdrop-blur-sm ${
+    `flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm whitespace-nowrap transition-all duration-300 backdrop-blur-md ${
       active
-        ? "bg-white text-gray-900 shadow-[0_10px_30px_-14px_rgba(255,255,255,0.85)] border-white/80 dark:bg-white dark:text-gray-900"
-        : "bg-white/70 text-gray-700 border-gray-200 hover:bg-white dark:bg-white/5 dark:text-gray-200 dark:border-white/10 dark:hover:bg-white/10"
+        ? "font-bold bg-slate-800 text-white shadow-lg shadow-slate-300 dark:bg-white dark:text-slate-900 dark:shadow-white/10"
+        : "font-semibold bg-white/60 text-slate-600 hover:bg-white hover:shadow-sm dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
     }`;
 
   const parsePartition = (href: string) => {
