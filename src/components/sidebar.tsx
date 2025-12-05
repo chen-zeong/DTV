@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
+import { useMemo } from "react";
 import { Moon, PanelLeftClose, PanelLeftOpen, Sun, Github } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeMode } from "@/types/follow-list";
-import { Platform } from "@/types/platform";
 import { openLink } from "@/lib/tauri";
+import { useFollowStore } from "@/stores/follow-store";
 
 type SidebarProps = {
   className?: string;
@@ -13,8 +13,6 @@ type SidebarProps = {
   toggleTheme: () => void;
   isLeaderboardOpen: boolean;
   toggleLeaderboard: () => void;
-  activePlatform: Platform | "ALL";
-  onSelectPlatform: (platform: Platform | "ALL") => void;
 };
 
 export function Sidebar({
@@ -23,70 +21,58 @@ export function Sidebar({
   toggleTheme,
   isLeaderboardOpen,
   toggleLeaderboard,
-  activePlatform,
-  onSelectPlatform,
 }: SidebarProps) {
   const isDark = theme === "dark";
+  const followedStreamers = useFollowStore((s) => s.followedStreamers);
+  const listOrder = useFollowStore((s) => s.listOrder);
+
+  const orderedFollows = useMemo(() => {
+    const map = new Map<string, (typeof followedStreamers)[number]>();
+    followedStreamers.forEach((s) => map.set(`${s.platform}:${s.id}`, s));
+    const ordered = listOrder
+      .filter((item): item is Extract<typeof listOrder[number], { type: "streamer" }> => item.type === "streamer")
+      .map((item) => map.get(`${item.data.platform}:${item.data.id}`))
+      .filter((s): s is (typeof followedStreamers)[number] => Boolean(s));
+    if (ordered.length) return ordered;
+    return followedStreamers;
+  }, [followedStreamers, listOrder]);
 
   const containerClass = isDark
     ? "bg-gradient-to-b from-[#0b0c12] via-[#0f111a] to-[#0b0c12] border-gray-800/70"
     : "bg-gradient-to-b from-white via-[#f4f7ff] to-white border-gray-200 shadow-xl";
 
   const iconClass = `w-6 h-6 transition-all cursor-pointer ${isDark ? "opacity-70 hover:opacity-100" : "opacity-80 hover:opacity-100"}`;
-  const activeIconContainerClass = `p-2 rounded-2xl border ring-2 ring-offset-2 transition-all ${
-    isDark
-      ? "bg-white/5 border-white/10 ring-emerald-400/40 ring-offset-[#0f111a]"
-      : "bg-white border-gray-200 ring-blue-400/40 ring-offset-white"
-  }`;
-
-  const platforms: Array<{ platform: Platform; label: string; logo: string }> = [
-    { platform: Platform.DOUYU, label: "斗鱼", logo: "/logos/douyu.webp" },
-    { platform: Platform.HUYA, label: "虎牙", logo: "/logos/huya.webp" },
-    { platform: Platform.BILIBILI, label: "哔哩哔哩", logo: "/logos/bilibili.webp" },
-    { platform: Platform.DOUYIN, label: "抖音", logo: "/logos/douyin.webp" },
-  ];
 
   return (
     <div
       className={`flex flex-col items-center justify-between py-5 w-[80px] h-full border-r z-50 transition-colors duration-300 ${containerClass} ${className}`}
     >
       <div className="flex flex-col items-center gap-4">
-        <div className="flex flex-col items-center gap-3">
-          {platforms.map((item) => {
-            const isActive = activePlatform === item.platform;
-            return (
-              <motion.button
-                key={item.platform}
-                className={`${isActive ? activeIconContainerClass : "p-2 rounded-2xl"} relative overflow-hidden`}
-                onClick={() => onSelectPlatform(item.platform)}
-                aria-label={item.label}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={{ type: "spring", stiffness: 220, damping: 18 }}
+        {!isLeaderboardOpen && orderedFollows.length > 0 ? (
+          <div className="flex flex-col items-center gap-2 mt-1">
+            {orderedFollows.slice(0, 8).map((s) => (
+              <div
+                key={`${s.platform}:${s.id}`}
+                className={`w-10 h-10 rounded-full overflow-hidden border shadow-sm ${
+                  isDark ? "border-white/10" : "border-gray-200"
+                }`}
+                title={s.nickname || s.displayName || s.id}
               >
-                {isActive && (
-                  <motion.span
-                    className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400/30 via-transparent to-cyan-400/20 blur-md"
-                    transition={{ type: "tween", duration: 0.25 }}
-                  />
+                {s.avatarUrl ? (
+                  <img src={s.avatarUrl} alt={s.nickname || s.displayName || s.id} className="w-full h-full object-cover" />
+                ) : (
+                  <div
+                    className={`w-full h-full flex items-center justify-center text-xs ${
+                      isDark ? "text-gray-300 bg-white/10" : "text-gray-600 bg-gray-100"
+                    }`}
+                  >
+                    {(s.nickname || s.displayName || s.id).slice(0, 1)}
+                  </div>
                 )}
-                <div className="relative flex items-center justify-center">
-                  <Image
-                    src={item.logo}
-                    alt={item.label}
-                    width={32}
-                    height={32}
-                    className={`${iconClass} w-8 h-8 object-contain drop-shadow`}
-                    priority
-                  />
-                  {isActive && (
-                    <span className="absolute inset-0 rounded-2xl ring-2 ring-emerald-300/60 shadow-[0_6px_20px_-6px_rgba(16,185,129,0.7)]" />
-                  )}
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-col items-center gap-4 pb-2">

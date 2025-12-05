@@ -34,6 +34,13 @@ export function DouyuHome() {
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const pageRef = useRef(0);
 
+  const categoryChipClass = (active: boolean) =>
+    `inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold border transition-all backdrop-blur-sm ${
+      active
+        ? "bg-white text-gray-900 shadow-[0_10px_30px_-14px_rgba(255,255,255,0.85)] border-white/80 dark:bg-white dark:text-gray-900"
+        : "bg-white/70 text-gray-700 border-gray-200 hover:bg-white dark:bg-white/5 dark:text-gray-200 dark:border-white/10 dark:hover:bg-white/10"
+    }`;
+
   const currentCate3List = useMemo(() => {
     return cateOptions.find((c) => c.shortName === selectedCate2)?.cate3 ?? [];
   }, [cateOptions, selectedCate2]);
@@ -154,7 +161,7 @@ export function DouyuHome() {
   }, [loadMore, hasMore, loading]);
 
   return (
-    <div className="h-full flex flex-col bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-3 md:p-4 space-y-3">
+    <div className="h-full flex flex-col p-3 md:p-4 space-y-3">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col flex-1 gap-2">
@@ -168,9 +175,7 @@ export function DouyuHome() {
                   <button
                     key={c1.id}
                     onClick={() => setSelectedCate1(c1.id)}
-                    className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                      selectedCate1 === c1.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
-                    }`}
+                    className={categoryChipClass(selectedCate1 === c1.id)}
                   >
                     {c1.name}
                   </button>
@@ -213,11 +218,7 @@ export function DouyuHome() {
                       setSelectedCate2(cate.shortName);
                       setSelectedCate3(null);
                     }}
-                    className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                      selectedCate2 === cate.shortName
-                        ? "border-white/80 text-white bg-white/10"
-                        : "border-white/10 text-gray-200 hover:bg-white/5"
-                    }`}
+                    className={categoryChipClass(selectedCate2 === cate.shortName)}
                   >
                     {cate.name}
                   </button>

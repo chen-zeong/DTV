@@ -9,7 +9,7 @@ import { useThemeStore } from "@/stores/theme-store";
 import { useFollowStore } from "@/stores/follow-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { Platform } from "@/types/platform";
-import { platformSlugMap } from "@/utils/platform";
+import { platformLabelMap, platformSlugMap } from "@/utils/platform";
 import { usePathname, useRouter } from "next/navigation";
 import { PlayerOverlay } from "@/components/player/player-overlay";
 
@@ -48,6 +48,11 @@ export function HomeShell({
     setMounted(true);
   }, [initTheme, hydrateFollow, hydrateCategory]);
 
+  const contentGradient =
+    theme === "dark"
+      ? "bg-gradient-to-br from-[#0c101a] via-[#0d111c] to-[#0b0f18]"
+      : "bg-gradient-to-br from-[#e9f1ff] via-[#f7faff] to-white";
+
   // Keep activePlatform in sync with current path
   useEffect(() => {
     if (pathname?.startsWith("/douyu")) setActivePlatform(Platform.DOUYU);
@@ -77,14 +82,6 @@ export function HomeShell({
         toggleTheme={toggleTheme}
         isLeaderboardOpen={isLeaderboardOpen}
         toggleLeaderboard={toggleLeaderboard}
-        activePlatform={activePlatform}
-        onSelectPlatform={(p) => {
-          setActivePlatform(p);
-          const path = p === "ALL" ? "/" : `/${platformSlugMap[p]}`;
-          if (pathname !== path) {
-            router.push(path);
-          }
-        }}
       />
 
       <div className="relative flex-1 h-full">
@@ -101,8 +98,46 @@ export function HomeShell({
           />
         </div>
 
-        <div className="relative z-20 h-full overflow-hidden">
-          {children ? <div className="h-full overflow-hidden p-2 md:p-4 space-y-3">{children}</div> : null}
+        <div className="relative z-20 h-full overflow-hidden flex flex-col">
+          <div className="flex justify-center pt-4 pb-2">
+            <div
+              className={`flex items-center gap-2 rounded-full border px-2.5 py-1.5 shadow-lg backdrop-blur-xl ${
+                theme === "dark"
+                  ? "bg-white/10 border-white/10 shadow-black/40"
+                  : "bg-white border-gray-200 shadow-gray-300/60"
+              }`}
+            >
+              {[Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN].map((p) => {
+                const isActive = activePlatform === p;
+                const label = platformLabelMap[p];
+                return (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      setActivePlatform(p);
+                      const path = `/${platformSlugMap[p]}`;
+                      if (pathname !== path) {
+                        router.push(path);
+                      }
+                    }}
+                    className={`px-3 py-1.5 text-sm font-semibold rounded-full transition-all ${
+                      isActive
+                        ? theme === "dark"
+                          ? "bg-white text-gray-900 shadow-[0_10px_30px_-12px_rgba(255,255,255,0.8)]"
+                          : "bg-gray-900 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)]"
+                        : theme === "dark"
+                          ? "text-gray-200 hover:text-white hover:bg-white/10"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {children ? <div className={`flex-1 overflow-hidden p-2 md:p-4 space-y-3 ${contentGradient}`}>{children}</div> : null}
         </div>
 
         {showInput && <InputArea theme={theme} />}

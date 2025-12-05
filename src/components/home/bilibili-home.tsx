@@ -45,6 +45,13 @@ export function BilibiliHome() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  const categoryChipClass = (active: boolean) =>
+    `inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold border transition-all backdrop-blur-sm ${
+      active
+        ? "bg-white text-gray-900 shadow-[0_10px_30px_-14px_rgba(255,255,255,0.85)] border-white/80 dark:bg-white dark:text-gray-900"
+        : "bg-white/70 text-gray-700 border-gray-200 hover:bg-white dark:bg-white/5 dark:text-gray-200 dark:border-white/10 dark:hover:bg-white/10"
+    }`;
+
   const PAGE_SIZE = 30;
 
   const fetchRooms = useCallback(
@@ -143,7 +150,7 @@ export function BilibiliHome() {
   };
 
   return (
-    <div className="bg-black/40 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-4 md:p-6 space-y-4 min-h-full">
+    <div className="p-4 md:p-6 space-y-4 min-h-full">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="text-xs text-gray-400">一级分类</div>
@@ -160,9 +167,7 @@ export function BilibiliHome() {
             <button
               key={c1.id}
               onClick={() => setSelectedCate1(c1.id)}
-              className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                selectedCate1 === c1.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
-              }`}
+              className={categoryChipClass(selectedCate1 === c1.id)}
             >
               {c1.title}
             </button>
@@ -180,9 +185,7 @@ export function BilibiliHome() {
                   setSelectedCate(c);
                   setPageNo(1);
                 }}
-                className={`px-3 py-2 rounded-full border text-sm transition-colors ${
-                  selectedCate?.id === c.id ? "border-white/80 text-white bg-white/10" : "border-white/10 text-gray-200 hover:bg-white/5"
-                }`}
+                className={categoryChipClass(selectedCate?.id === c.id)}
               >
                 {c.title}
               </button>
@@ -190,7 +193,7 @@ export function BilibiliHome() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
+      <div className="p-4">
         {loading && rooms.length === 0 ? (
           <div className="flex items-center justify-center gap-2 text-gray-300 text-sm">
             <Loader2 className="w-5 h-5 animate-spin" /> 加载直播列表...

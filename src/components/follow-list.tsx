@@ -4,32 +4,16 @@ import { Plus, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { ThemeMode } from "@/types/follow-list";
 import { Platform } from "@/types/platform";
-import { useFollowStore } from "@/stores/follow-store";
+import { type FollowListItem, useFollowStore } from "@/stores/follow-store";
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { cn } from "@/utils/cn";
-import { platformLabelMap, platformSlugMap } from "@/utils/platform";
-import { useRouter } from "next/navigation";
+import { platformLabelMap } from "@/utils/platform";
 import { SearchPanel } from "@/components/search/search-panel";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 
 type FollowListProps = {
   theme: ThemeMode;
   searchPlatform: Platform;
-};
-
-const platformOrder: Array<Platform> = [Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN];
-
-const platformStyle: Record<
-  Platform,
-  {
-    color: string;
-    label: string;
-  }
-> = {
-  [Platform.DOUYU]: { color: "border-orange-500/60 text-orange-300", label: "斗鱼" },
-  [Platform.HUYA]: { color: "border-amber-400/70 text-amber-200", label: "虎牙" },
-  [Platform.BILIBILI]: { color: "border-pink-400/60 text-pink-200", label: "哔哩" },
-  [Platform.DOUYIN]: { color: "border-purple-400/60 text-purple-200", label: "抖音" },
 };
 
 export function FollowList({ theme, searchPlatform }: FollowListProps) {
@@ -42,19 +26,19 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
   const moveToFolder = useFollowStore((s) => s.moveStreamerToFolder);
   const removeFromFolder = useFollowStore((s) => s.removeStreamerFromFolder);
   const deleteFolder = useFollowStore((s) => s.deleteFolder);
-  const router = useRouter();
+  const listOrder = useFollowStore((s) => s.listOrder);
+  const updateListOrder = useFollowStore((s) => s.updateListOrder);
   const openPlayer = usePlayerOverlayStore((s) => s.open);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dragSourceFolder, setDragSourceFolder] = useState<string | null>(null);
   const [hoverFolderId, setHoverFolderId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ folderId: string; x: number; y: number } | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const glassClass = isDark
     ? "bg-[rgba(20,20,20,0.65)] border-r border-[rgba(255,255,255,0.08)] text-white"
     : "bg-[rgba(255,255,255,0.85)] border-r border-[rgba(0,0,0,0.05)] text-gray-900";
 
   const backdropBlur = "backdrop-blur-[24px]";
-
-  const sectionTitleClass = isDark ? "text-gray-200" : "text-gray-600";
 
   const toKey = (platform: Platform, id: string) => `${String(platform).toUpperCase()}:${id}`;
 
@@ -75,14 +59,6 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
     [follows, inFolderKeys]
   );
 
-  const grouped = useMemo(() => {
-    const groups = platformOrder.map((platform) => ({
-      platform,
-      items: availableStreamers.filter((f) => f.platform === platform),
-    }));
-    return groups.filter((g) => g.items.length > 0);
-  }, [availableStreamers]);
-
   const folderMap = useMemo(() => {
     const map = new Map<string, typeof follows[number]>();
     follows.forEach((f) => map.set(`${f.platform}:${f.id}`, f));
@@ -90,7 +66,17 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
   }, [follows]);
 
   const hasFolderStreamers = folders.some((f) => (f.streamerIds || []).length > 0);
-  const emptyState = grouped.length === 0 && !hasFolderStreamers;
+  const orderedAvailable = useMemo(() => {
+    const availableMap = new Map<string, (typeof availableStreamers)[number]>();
+    availableStreamers.forEach((s) => availableMap.set(toKey(s.platform, s.id), s));
+    const ordered = listOrder
+      .filter((item): item is Extract<typeof listOrder[number], { type: "streamer" }> => item.type === "streamer")
+      .map((item) => availableMap.get(toKey(item.data.platform, item.data.id)))
+      .filter((s): s is (typeof availableStreamers)[number] => Boolean(s));
+    const leftover = availableStreamers.filter((s) => !ordered.includes(s));
+    return [...ordered, ...leftover];
+  }, [availableStreamers, listOrder]);
+  const emptyState = orderedAvailable.length === 0 && !hasFolderStreamers;
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -125,6 +111,7 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
     if (!key) return;
     removeFromFolder(key, dragSourceFolder);
     resetDragState();
+    setHoverIndex(null);
   };
 
   const handleRenameFolder = (folderId: string) => {
@@ -135,6 +122,45 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
       renameFolder(folderId, name.trim());
     }
     setContextMenu(null);
+  };
+
+  const persistReorder = (ordered: typeof availableStreamers) => {
+    const keyQueue = ordered.map((s) => toKey(s.platform, s.id));
+    const streamerMap = new Map<string, typeof follows[number]>();
+    availableStreamers.forEach((s) => streamerMap.set(toKey(s.platform, s.id), s));
+
+    const nextListOrder = listOrder
+      .map((item) => {
+        if (item.type === "folder") return item;
+        const nextKey = keyQueue.shift();
+        if (!nextKey) return null;
+        const nextStreamer = streamerMap.get(nextKey);
+        if (!nextStreamer) return null;
+        return { type: "streamer" as const, data: nextStreamer };
+      })
+      .filter((v): v is FollowListItem => Boolean(v));
+
+    keyQueue.forEach((key) => {
+      const streamer = streamerMap.get(key);
+      if (streamer) {
+        nextListOrder.push({ type: "streamer", data: streamer });
+      }
+    });
+
+    updateListOrder(nextListOrder);
+  };
+
+  const handleReorder = (targetIndex: number) => {
+    if (!draggingKey || dragSourceFolder) return;
+    const fromIndex = orderedAvailable.findIndex((s) => toKey(s.platform, s.id) === draggingKey);
+    if (fromIndex === -1) return;
+    let toIndex = targetIndex;
+    if (fromIndex < toIndex) toIndex -= 1;
+    const reordered = [...orderedAvailable];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    persistReorder(reordered);
+    setHoverIndex(null);
   };
 
   const handleDeleteFolder = (folderId: string) => {
@@ -311,29 +337,31 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
             <p className="text-xs mt-1 text-gray-500">在首页关注后会出现在这里</p>
           </div>
         ) : (
-          grouped.map((section) => (
-            <div key={section.platform} className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className={`text-sm font-medium flex items-center gap-2 ${sectionTitleClass}`}>
-                  <button
-                    className={cn(
-                      "inline-flex items-center justify-center rounded-full border px-2 py-[2px] text-[11px] font-semibold",
-                      platformStyle[section.platform].color
-                    )}
-                    onClick={() => router.push(`/${platformSlugMap[section.platform]}`)}
-                  >
-                    {platformLabelMap[section.platform]}
-                  </button>
-                </h2>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {section.items.map((item) => (
+          <div className="flex flex-col gap-2">
+            {orderedAvailable.map((item, index) => {
+              const key = toKey(item.platform, item.id);
+              const isHover = hoverIndex === index;
+              return (
+                <div key={key} className="flex flex-col">
                   <div
-                    key={`${item.platform}-${item.id}`}
-                    className={`flex items-center justify-between py-3 group rounded-lg px-3 transition-colors ${
-                      isDark ? "hover:bg-white/5" : "hover:bg-black/5"
-                    }`}
+                    className={`h-2 transition-colors ${isHover ? "bg-emerald-400/50" : "bg-transparent"}`}
+                    onDragOver={(e) => {
+                      if (!draggingKey || dragSourceFolder) return;
+                      e.preventDefault();
+                      setHoverIndex(index);
+                    }}
+                    onDragLeave={() => setHoverIndex((prev) => (prev === index ? null : prev))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleReorder(index);
+                    }}
+                  />
+                  <div
+                    className={cn(
+                      "flex items-center justify-between py-3 group rounded-lg px-3 transition-colors",
+                      isDark ? "hover:bg-white/5" : "hover:bg-black/5",
+                      isHover ? "ring-1 ring-emerald-400/60" : ""
+                    )}
                     onClick={() => {
                       openPlayer({
                         platform: item.platform,
@@ -345,12 +373,15 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                     }}
                     draggable
                     onDragStart={(e) => {
-                      setDraggingKey(toKey(item.platform, item.id));
+                      setDraggingKey(key);
                       setDragSourceFolder(null);
-                      e.dataTransfer?.setData("text/plain", toKey(item.platform, item.id));
+                      e.dataTransfer?.setData("text/plain", key);
                       e.dataTransfer.effectAllowed = "move";
                     }}
-                    onDragEnd={resetDragState}
+                    onDragEnd={() => {
+                      resetDragState();
+                      setHoverIndex(null);
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -390,10 +421,25 @@ export function FollowList({ theme, searchPlatform }: FollowListProps) {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))
+                </div>
+              );
+            })}
+            {orderedAvailable.length > 0 ? (
+              <div
+                className="h-2 transition-colors"
+                onDragOver={(e) => {
+                  if (!draggingKey || dragSourceFolder) return;
+                  e.preventDefault();
+                  setHoverIndex(orderedAvailable.length);
+                }}
+                onDragLeave={() => setHoverIndex((prev) => (prev === orderedAvailable.length ? null : prev))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleReorder(orderedAvailable.length);
+                }}
+              />
+            ) : null}
+          </div>
         )}
 
         {contextMenu && (
