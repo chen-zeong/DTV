@@ -88,7 +88,7 @@ export function HomeShell({
       />
 
       <div className="relative flex-1 h-full">
-        <BackgroundFeed />
+        <BackgroundFeed theme={theme} />
 
         <div
           className={`absolute top-0 left-0 bottom-0 z-30 transition-transform duration-500 ease-in-out ${
