@@ -495,19 +495,18 @@
   align-items: center;
   justify-content: center;
 }
-/* Keep layout when css fullscreen on player page but leave sidebar visible */
 .player-view-page {
   --sidebar-offset: 0px;
 }
 .player-view-page .xgplayer.xgplayer-is-cssfullscreen {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: var(--sidebar-offset);
-  width: auto;
-  height: 100vh;
-  z-index: 20;
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: var(--sidebar-offset) !important;
+  width: calc(100vw - var(--sidebar-offset)) !important;
+  height: 100vh !important;
+  z-index: 30;
 }
 
 @media (max-width: 768px) {

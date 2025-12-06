@@ -72,10 +72,22 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                 const s = orderedFollows.find((f) => f.platform === item.data.platform && f.id === item.data.id);
                 if (!s) return null;
                 return (
-                  <div
+                  <button
                     key={`${s.platform}:${s.id}`}
+                    type="button"
+                    onClick={() =>
+                      openPlayer({
+                        platform: s.platform,
+                        roomId: s.id,
+                        title: s.roomTitle,
+                        anchorName: s.nickname,
+                        avatar: s.avatarUrl,
+                      })
+                    }
                     className={`relative w-10 h-10 rounded-full border shadow-sm transition-all duration-200 ${
-                      isDark ? "border-white/10 hover:border-white/25" : "border-gray-200 hover:border-gray-300"
+                      isDark
+                        ? "border-white/10 hover:border-white/25 hover:scale-105"
+                        : "border-gray-200 hover:border-gray-300 hover:scale-105"
                     }`}
                     title={s.nickname || s.displayName || s.id}
                   >
@@ -95,7 +107,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                       </div>
                     )}
                     {statusDot(s.isLive)}
-                  </div>
+                  </button>
                 );
               }
               const folder = folders.find((f) => f.id === item.data.id);

@@ -28,6 +28,11 @@ type LiveGridSkeletonProps = {
 
 export function LiveGrid({ items, onCardClick, renderActions, className }: LiveGridProps) {
   if (!items.length) return null;
+  const idCounts: Record<string, number> = {};
+  items.forEach((item) => {
+    idCounts[item.id] = (idCounts[item.id] || 0) + 1;
+  });
+  const used: Record<string, number> = {};
   return (
     <div
       className={cn(
@@ -36,9 +41,12 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
         className
       )}
     >
-      {items.map((item) => (
+      {items.map((item) => {
+        const occur = (used[item.id] = (used[item.id] || 0) + 1);
+        const key = idCounts[item.id] > 1 ? `${item.id}-${occur}` : item.id;
+        return (
         <div
-          key={item.id}
+          key={key}
           className="group rounded-xl bg-white shadow-[0_10px_30px_-18px_rgba(0,0,0,0.4)] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.45)] cursor-pointer dark:bg-[#0c101a] dark:shadow-[0_12px_34px_-22px_rgba(0,0,0,0.7)] dark:hover:shadow-[0_18px_48px_-22px_rgba(0,0,0,0.8)]"
           onClick={() => onCardClick(item)}
         >
@@ -78,7 +86,8 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
             {renderActions ? <div onClick={(e) => e.stopPropagation()}>{renderActions(item)}</div> : null}
           </div>
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 }

@@ -28,6 +28,7 @@ export function HuyaHome() {
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
   const theme = useThemeStore((s) => s.getEffectiveTheme());
   const isDark = theme === "dark";
+  const [viewportHeight, setViewportHeight] = useState(() => (typeof window === "undefined" ? 900 : window.innerHeight));
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const follow = useFollowStore((s) => s.followStreamer);
   const unfollow = useFollowStore((s) => s.unfollowStreamer);
@@ -127,7 +128,9 @@ export function HuyaHome() {
     const update = () => {
       if (typeof window === "undefined") return;
       const width = window.visualViewport?.width ?? window.innerWidth;
+      const height = window.visualViewport?.height ?? window.innerHeight;
       setIsMobile(width <= 768);
+      setViewportHeight(height || window.innerHeight);
     };
     update();
     window.addEventListener("resize", update);
@@ -173,6 +176,8 @@ export function HuyaHome() {
     ? cate2Options.filter((cate) => (selectedCate1 ? cate.parent === selectedCate1 : true)).slice(0, cate2Limit)
     : cate2Options.filter((cate) => (selectedCate1 ? cate.parent === selectedCate1 : true));
   const cate2CollapsedHeight = 96;
+  const cate2ContainerMaxHeight = Math.max(260, Math.floor(viewportHeight * 0.8));
+  const cate2ExpandedMaxHeight = Math.max(200, cate2ContainerMaxHeight - 60);
   const expandedCate2 = cate2Expanded || visibleCate2.length <= 10;
   const cate2Transition = {
     maxHeight: { duration: expandedCate2 ? 0.6 : 0.38, ease: [0.16, 1, 0.3, 1] },
@@ -218,18 +223,25 @@ export function HuyaHome() {
           </button>
         </div>
 
-        <div className="relative mt-1">
+        <div
+          className="relative mt-1 flex flex-col gap-2"
+          style={{ maxHeight: cate2ContainerMaxHeight, overflow: "hidden" }}
+        >
           <motion.div
             layout
             initial={false}
             animate={{
-              maxHeight: expandedCate2 ? 2000 : cate2CollapsedHeight,
+              maxHeight: expandedCate2 ? cate2ExpandedMaxHeight : cate2CollapsedHeight,
               opacity: expandedCate2 ? 1 : 0.97,
               scaleY: expandedCate2 ? 1 : 0.995,
             }}
             transition={cate2Transition}
-            className="flex gap-2 flex-wrap overflow-hidden"
-            style={{ willChange: "transform, max-height, opacity" }}
+            className="flex-1 flex gap-2 flex-wrap overflow-hidden no-scrollbar"
+            style={{
+              willChange: "transform, max-height, opacity",
+              overflowY: expandedCate2 ? "auto" : "hidden",
+              paddingBottom: expandedCate2 ? 8 : 0,
+            }}
           >
             {visibleCate2.map((c) => (
               <button

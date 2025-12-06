@@ -77,8 +77,7 @@ export function HomeShell({
 
   useEffect(() => {
     setActivePlatform(initialPlatform);
-    setSidebarOpen(initialLeaderboardOpen);
-  }, [initialPlatform, initialLeaderboardOpen, setSidebarOpen]);
+  }, [initialPlatform]);
 
   useEffect(() => {
     if (isMobile && isSidebarOpen) {

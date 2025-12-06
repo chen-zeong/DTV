@@ -1,0 +1,3477 @@
+{
+  "cate1List": [
+    {
+      "id": "1",
+      "name": "网游竞技",
+      "cate2List": [
+        {
+          "id": "1",
+          "name": "英雄联盟",
+          "short_name": "LOL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1de1ea5215b513cf4f5b3c326f5f9657.png"
+        },
+        {
+          "id": "270",
+          "name": "热门游戏",
+          "short_name": "rmyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e8d2f2deca2025ec12874d6d6792489a.png"
+        },
+        {
+          "id": "4133",
+          "name": "三角洲行动",
+          "short_name": "DF",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/dea05a0997c94c6698f319f29da955da.png"
+        },
+        {
+          "id": "33",
+          "name": "穿越火线",
+          "short_name": "CF",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/de31e9d475fdbdde59d3f0c4364f06f7.png"
+        },
+        {
+          "id": "1554",
+          "name": "无畏契约",
+          "short_name": "VALORANT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1ce37f9b81ca774c9b627528e371daac.png"
+        },
+        {
+          "id": "1997",
+          "name": "CFHD",
+          "short_name": "CFHD",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fb26cc75b5d8777f287b2ca0947f5df6.png"
+        },
+        {
+          "id": "3528",
+          "name": "命运方舟",
+          "short_name": "LostArk",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7d4f056c7a412ccec4643c4a4d8ff8b5.png"
+        },
+        {
+          "id": "40",
+          "name": "DNF",
+          "short_name": "DNF",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/0cd803160cfc26acfd0831dfe7b3de92.jpg"
+        },
+        {
+          "id": "3",
+          "name": "DOTA2",
+          "short_name": "DOTA2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fe91c6e215d551081be647ff2bbb6fd5.jpg"
+        },
+        {
+          "id": "472",
+          "name": "使命召唤",
+          "short_name": "COD",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f04ffd3c4907a14c07b73f43d152e47b.png"
+        },
+        {
+          "id": "2",
+          "name": "炉石传说",
+          "short_name": "How",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/26d993d79c1daa53d1b083980e97559e.jpg"
+        },
+        {
+          "id": "6",
+          "name": "CS2",
+          "short_name": "CounterStrike",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/26116cb8187bd1bdc35cfdaf2dd71f8b.png"
+        },
+        {
+          "id": "917",
+          "name": "lol云顶之弈",
+          "short_name": "ydzhy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c6c1c602c5c1c1bac9181b53249b17f7.png"
+        },
+        {
+          "id": "55",
+          "name": "魔兽争霸",
+          "short_name": "mszb",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/6aac4340f1c23cf9f6a6b5cd637f6527.jpg"
+        },
+        {
+          "id": "1055",
+          "name": "魔兽怀旧服",
+          "short_name": "wowclassic",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/18568d09ee2bec4f7674af99951d3dd7.png"
+        },
+        {
+          "id": "4043",
+          "name": "全民街篮",
+          "short_name": "qmjl",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/67cb13e199f03224e960506712dcc694.png"
+        },
+        {
+          "id": "650",
+          "name": "自走棋",
+          "short_name": "dota2rpg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a1cabbaaff61d3cbbc15206627265beb.png"
+        },
+        {
+          "id": "187",
+          "name": "传奇",
+          "short_name": "cq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/23128c58f31ca7684dd1c2d8ff32302f.jpg"
+        },
+        {
+          "id": "90",
+          "name": "跑跑卡丁车",
+          "short_name": "Popkart",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0afabf072e2e2c1a942528cb9808e592.png"
+        },
+        {
+          "id": "3567",
+          "name": "网易游戏",
+          "short_name": "wyyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7d7e6453aeb9c188822237b0c1e83b67.png"
+        },
+        {
+          "id": "4",
+          "name": "星际争霸",
+          "short_name": "SC",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/6db9044e2f8a5f9b4e8b9e3e82302828.jpg"
+        },
+        {
+          "id": "148",
+          "name": "守望先锋",
+          "short_name": "Overwatch",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/17dc1cd2164e3b50424ca0d9d80b2155.jpg"
+        },
+        {
+          "id": "217",
+          "name": "DOTA",
+          "short_name": "DOTA",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/e7bbe8818f8da82e35e5b69c7c4321c7.jpg"
+        },
+        {
+          "id": "5",
+          "name": "魔兽世界",
+          "short_name": "WOW",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/b6ae05443687a28ab177e3ff17de1590.jpg"
+        },
+        {
+          "id": "65",
+          "name": "剑网3",
+          "short_name": "JX3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/077062cd7d9c6c2b051eb863689361ac.jpg"
+        },
+        {
+          "id": "63",
+          "name": "魔域",
+          "short_name": "EudemonsOnline",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/70827484c011cf6506f6dc8a282049ed.png"
+        },
+        {
+          "id": "44",
+          "name": "我的世界",
+          "short_name": "MC",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/95a7a48a57bf02b3f46d3afa23f1be89.jpg"
+        },
+        {
+          "id": "1133",
+          "name": "超激斗梦境",
+          "short_name": "cjdmj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/515de23b8c69610353befb9c91eb4db5.png"
+        },
+        {
+          "id": "1588",
+          "name": "冒险岛",
+          "short_name": "mxd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/328031313cbe08550853b04bb4bf5e87.png"
+        },
+        {
+          "id": "14",
+          "name": "三国杀",
+          "short_name": "sanguosha",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/c3b0e07b2cdfbd9fc762232ea31594da.jpg"
+        },
+        {
+          "id": "69",
+          "name": "梦幻西游",
+          "short_name": "MHXYOL",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/8d963c1b9f207bedbd7583d1d43833ee.jpg"
+        },
+        {
+          "id": "59",
+          "name": "天涯明月刀",
+          "short_name": "tianya",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/5a8f00f7c729644b0470ec08d101f6a8.jpg"
+        },
+        {
+          "id": "155",
+          "name": "街头篮球",
+          "short_name": "jtlq",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/1899804b3e20111eb923deba2eeb605f.jpg"
+        },
+        {
+          "id": "438",
+          "name": "NBA2KOL2",
+          "short_name": "NBA2KOL2",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/fb166e5852a3eec260fd8c475b83145a.jpg"
+        },
+        {
+          "id": "375",
+          "name": "QQ飞车端游",
+          "short_name": "qqfcdy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/301b7135d0eb2ee5c5bc97fd8f2ae635.jpg"
+        },
+        {
+          "id": "255",
+          "name": "军事游戏",
+          "short_name": "jsyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2b505a95cd020e4d67ca5874bb9addbb.png"
+        },
+        {
+          "id": "113",
+          "name": "棋牌娱乐",
+          "short_name": "qipai",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/1ba73805803186ac8bcbf1c044b53fd1.jpg"
+        },
+        {
+          "id": "766",
+          "name": "FC ONLINE",
+          "short_name": "FCOL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/821b429ae4bd60ebb9ef1bc496c25d2c.png"
+        },
+        {
+          "id": "203",
+          "name": "热门网游",
+          "short_name": "rmwy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/801b8750f0a509fd0b0c43139c7ab20b.jpg"
+        },
+        {
+          "id": "3332",
+          "name": "诛仙世界",
+          "short_name": "zxsj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6eb5f81e09f213c837154cdbe863db00.png"
+        },
+        {
+          "id": "651",
+          "name": "APEX",
+          "short_name": "APEX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e69bad47c2f0d364e9192fc2eb6d60b6.png"
+        },
+        {
+          "id": "79",
+          "name": "流放之路POE",
+          "short_name": "PathofExile",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/176eb036de63f451b14696392cba5e45.jpg"
+        },
+        {
+          "id": "434",
+          "name": "逆水寒",
+          "short_name": "nsh",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/a2473b2f8bdd65db982c50550a92c128.jpg"
+        },
+        {
+          "id": "35",
+          "name": "风暴英雄",
+          "short_name": "HOTS",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/04b83dc8bbdeef4cc04c04cea581a9c2.jpg"
+        },
+        {
+          "id": "46",
+          "name": "逆战",
+          "short_name": "NZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c814241f75fa0205fa579aaa895dbe3b.jpg"
+        },
+        {
+          "id": "142",
+          "name": "坦克世界",
+          "short_name": "TKSJ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d7b585a4f11b565d9dea5e385e76e50c.png"
+        },
+        {
+          "id": "2847",
+          "name": "战舰世界",
+          "short_name": "wfws",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/15b4ee9d12655f3750733fbe75620153.png"
+        },
+        {
+          "id": "66",
+          "name": "反恐精英Online",
+          "short_name": "CS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d5c9cd0e7151eaa8cd2deefed1dbcc87.png"
+        },
+        {
+          "id": "32",
+          "name": "暗黑破坏神",
+          "short_name": "DIABLO",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d1abf9cb82f9d5f3cc846fb0f4ea39b8.png"
+        },
+        {
+          "id": "83",
+          "name": "梦三国2",
+          "short_name": "msg2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/42e02082c3a8cde3cb0342ea43577e95.jpg"
+        },
+        {
+          "id": "251",
+          "name": "传奇世界",
+          "short_name": "cqsj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/776a9ddf6ba43de4a8dfae759c60d594.png"
+        },
+        {
+          "id": "382",
+          "name": "方舟：生存进化",
+          "short_name": "fzscjh",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/4dc01ef53e9b17edadbd829b1d40f7bf.jpg"
+        },
+        {
+          "id": "1136",
+          "name": "神武4电脑版",
+          "short_name": "swdnb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d7b42571ec75d3839fbdadd453d2093b.png"
+        },
+        {
+          "id": "87",
+          "name": "群雄逐鹿",
+          "short_name": "qxzl",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/1c2236089d48d979c07162a81160cd65.jpg"
+        },
+        {
+          "id": "347",
+          "name": "堡垒之夜",
+          "short_name": "blzy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c9b812e16779902421e309129a9b8a93.png"
+        },
+        {
+          "id": "572",
+          "name": "无限法则",
+          "short_name": "roe",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7f855550a5165d5febc2ca775c0d2a9a.jpg"
+        },
+        {
+          "id": "413",
+          "name": "问道电脑版",
+          "short_name": "wddnb",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/c11f8fe6f7a913bcad4cc80c2d3ccbee.jpg"
+        },
+        {
+          "id": "3404",
+          "name": "西山居游戏",
+          "short_name": "Seasun",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/79ab77eb359b7473b992ffac23a34295.png"
+        },
+        {
+          "id": "41",
+          "name": "最终幻想14",
+          "short_name": "FF14",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b2ae331dad3cfc2eefced9a95eab394d.jpg"
+        },
+        {
+          "id": "310",
+          "name": "战意",
+          "short_name": "WYZY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/94822ab5ac7f02524162f0b6f65e6b95.png"
+        },
+        {
+          "id": "13",
+          "name": "剑灵",
+          "short_name": "BladeSoul",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/5e3a49396165a34da44b4db3a258d399.jpg"
+        },
+        {
+          "id": "126",
+          "name": "星际战甲",
+          "short_name": "Warframe",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/d14287da86a2dbf6856e319eeebd4cbd.jpg"
+        },
+        {
+          "id": "106",
+          "name": "龙之谷",
+          "short_name": "DragonNest",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/57cffd6b91721b08f604b7088f6a1cd3.png"
+        },
+        {
+          "id": "669",
+          "name": "铁甲雄兵",
+          "short_name": "tjxb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/778f6bc5ef6ba6d2782a7e94d607eb1a.png"
+        },
+        {
+          "id": "186",
+          "name": "神途",
+          "short_name": "shentu",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9635f8de6ca3ac4c5a50d375f8aa9a12.png"
+        },
+        {
+          "id": "15",
+          "name": "激战2",
+          "short_name": "GuildWars2",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/a31fc7999cf06ab4167325fc4df5a74d.jpg"
+        },
+        {
+          "id": "590",
+          "name": "高达文化区",
+          "short_name": "gdyxq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4ac60c834a2b9ea406b30fc2d95b88c0.png"
+        },
+        {
+          "id": "397",
+          "name": "忍者村大战2",
+          "short_name": "rzcdz2",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/0328da75def991668567ce13ae907376.png"
+        },
+        {
+          "id": "605",
+          "name": "RPG网游专区",
+          "short_name": "rpgwyzq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0c9aaa5e9fb89a10ef8c4d3fcbf214de.jpg"
+        },
+        {
+          "id": "157",
+          "name": "诛仙3",
+          "short_name": "zhuxian3",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/a5f3d858c1c2440a42418be4a9a757e0.jpg"
+        },
+        {
+          "id": "660",
+          "name": "笑傲江湖OL",
+          "short_name": "xajhol",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/17c61a635315e264c07d2fefd9c9d696.png"
+        },
+        {
+          "id": "197",
+          "name": "无尽战区",
+          "short_name": "WJZQ",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/171789b1c2b83a2347acba2f52483404.jpg"
+        },
+        {
+          "id": "167",
+          "name": "永恒之塔",
+          "short_name": "AION",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/19306c36b462f2680a9d9b64dc871e6d.jpg"
+        },
+        {
+          "id": "1440",
+          "name": "FPS综合网游",
+          "short_name": "FPSOL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2dedaa044d08f1ae348ddfa45375ecc5.png"
+        },
+        {
+          "id": "412",
+          "name": "劲舞团",
+          "short_name": "jwt",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f83002c4e75218adba5db35b37f0bb12.png"
+        },
+        {
+          "id": "280",
+          "name": "天下",
+          "short_name": "tianxai",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4d8b72956fa8a1d6c190a8d6dc350e62.png"
+        },
+        {
+          "id": "322",
+          "name": "火箭联盟",
+          "short_name": "hjlm",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/72814b2482ae8baf6c25caf4b774a3e5.jpg"
+        },
+        {
+          "id": "506",
+          "name": "武侠乂",
+          "short_name": "wxy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fefbd3dbfba9482e4408e9c7523484b4.jpg"
+        },
+        {
+          "id": "54",
+          "name": "音乐游戏",
+          "short_name": "MG",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/0116342c283da46d09d631b9b3353765.jpg"
+        },
+        {
+          "id": "277",
+          "name": "新倩女幽魂",
+          "short_name": "ONLINE",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/0e8bce63baa3d89bb8d50d5e361c2e9e.jpg"
+        },
+        {
+          "id": "105",
+          "name": "天谕",
+          "short_name": "tianyu",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/29109daa3a37e99130100af338d2fb91.png"
+        },
+        {
+          "id": "710",
+          "name": "QQ炫舞",
+          "short_name": "qqxw",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4da522007b7969b96da15f923824d865.png"
+        },
+        {
+          "id": "164",
+          "name": "怪物猎人ol",
+          "short_name": "MHol",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/265691d8766854af6b9cf479513ed205.JPG"
+        },
+        {
+          "id": "632",
+          "name": "手工星球",
+          "short_name": "sgxq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c5e526fe46431f4610d703bfc328f33f.png"
+        },
+        {
+          "id": "1557",
+          "name": "星战前夜：晨曦",
+          "short_name": "EVE",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a8179f934595ee6f89730d98da215782.png"
+        },
+        {
+          "id": "1626",
+          "name": "热血传奇：本源",
+          "short_name": "rxcqhjsgb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1cd46cc948124f467f0a4930cbc72106.png"
+        },
+        {
+          "id": "1898",
+          "name": "彩虹岛",
+          "short_name": "CHD",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6daf91610021fad84df4368d8d2970c6.png"
+        },
+        {
+          "id": "1899",
+          "name": "御龙在天",
+          "short_name": "YLZT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a28cb7aec23b988879a30898667994b0.png"
+        },
+        {
+          "id": "1906",
+          "name": "自由篮球",
+          "short_name": "ZYLQ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8eaf18486503d5ac1bea29e4fbc45d0e.png"
+        },
+        {
+          "id": "1907",
+          "name": "洛奇英雄传",
+          "short_name": "LQYXZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/45b12cf39a4555872fa9a598c62e1689.png"
+        },
+        {
+          "id": "1929",
+          "name": "盛趣游戏",
+          "short_name": "SQYX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c72185581cab870c051d9b47c5266dc4.png"
+        },
+        {
+          "id": "1960",
+          "name": "新热血英豪",
+          "short_name": "XRXYH",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/67f0700801ad10f077d16a51d3969342.png"
+        },
+        {
+          "id": "1963",
+          "name": "沙盒游戏",
+          "short_name": "SHYX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c5563db8dc66983be5ecc53a04d2302b.png"
+        },
+        {
+          "id": "1910",
+          "name": "恐鬼症",
+          "short_name": "KGZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d451ca33c3adea645e1752d4a4351205.png"
+        },
+        {
+          "id": "1971",
+          "name": "领地人生",
+          "short_name": "LDRS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1c62729ff52f99d339408dadf952bc41.png"
+        },
+        {
+          "id": "2013",
+          "name": "大话西游2",
+          "short_name": "dhxy2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4ef96bc56c65b48e82d3efba5507367d.png"
+        },
+        {
+          "id": "2028",
+          "name": "猎人",
+          "short_name": "lr",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1e3a7c1dcb73e5c7a18497fcc3353c78.png"
+        },
+        {
+          "id": "2282",
+          "name": "黑色沙漠",
+          "short_name": "hssm",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/76874c3db39d1cd7efc68b231a547507.png"
+        },
+        {
+          "id": "2343",
+          "name": "热血江湖online",
+          "short_name": "rxjhol",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1edd7f042978be1035b8d7b0f97f0fce.png"
+        },
+        {
+          "id": "2371",
+          "name": "千年3",
+          "short_name": "qn3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e0cc4f47b4fd046fcc5747d602bde279.png"
+        },
+        {
+          "id": "2372",
+          "name": "逍遥情缘",
+          "short_name": "xyqy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7921becb8467b3850379afefb4e478e8.png"
+        },
+        {
+          "id": "2437",
+          "name": "鹿鼎记",
+          "short_name": "ldj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/143d5edbcaad163a615c246f5907ecb8.png"
+        },
+        {
+          "id": "2451",
+          "name": "奇迹世界sun",
+          "short_name": "qjsjsun",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5cbd8ba7c9c6e80c43441904387f0afd.png"
+        },
+        {
+          "id": "2526",
+          "name": "剑侠世界2电脑版",
+          "short_name": "jxsj2pc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c7c77f34cf9d9604a110b65ffd4eff39.png"
+        },
+        {
+          "id": "2568",
+          "name": "大唐2",
+          "short_name": "dt2pc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/348d2d180675449b62e20c887956e683.png"
+        },
+        {
+          "id": "2616",
+          "name": "狼人对决网游",
+          "short_name": "lrdjpc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/31b38c90f6818863c4d3d3e4c2928c3e.png"
+        },
+        {
+          "id": "2726",
+          "name": "武林群侠传",
+          "short_name": "wlqxzpc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a5a7bcead28236bbdc4564aed43a38f6.png"
+        },
+        {
+          "id": "3248",
+          "name": "剑雨江湖",
+          "short_name": "jyjh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/90d4610d64f54b56d33477052c8fb509.png"
+        },
+        {
+          "id": "3351",
+          "name": "四国军棋",
+          "short_name": "sgjq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d74eeff942a6aee3d676f4316182093b.png"
+        },
+        {
+          "id": "3562",
+          "name": "装甲战争",
+          "short_name": "zjzz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/01c640564da2c20b47c5bbd1245bfa51.png"
+        },
+        {
+          "id": "3613",
+          "name": "暴雪游戏综合",
+          "short_name": "g_bliz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8ca7fadaf953da6a0539ce81f26976e7.png"
+        },
+        {
+          "id": "3775",
+          "name": "燕云十六声",
+          "short_name": "WHEREWINDSMEET",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/48f1525e85c689938b64e8e773a99ca4.png"
+        },
+        {
+          "id": "3871",
+          "name": "NBA2K Online",
+          "short_name": "NBA2KOL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/813fdcbfc3071af0e52912b66a5e2fea.png"
+        },
+        {
+          "id": "3878",
+          "name": "塔瑞斯世界",
+          "short_name": "Tarisland",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/492519b3766908fdc9d5857214955fdd.png"
+        },
+        {
+          "id": "3885",
+          "name": "跑跑卡丁车：漂移",
+          "short_name": "KartRiderDrift",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ba2d8837efac61f1b1f18c84a2e18ae2.png"
+        },
+        {
+          "id": "3889",
+          "name": "传奇永恒",
+          "short_name": "EternalLegend",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2dba0c8046e58df3e9b74b31110634f9.png"
+        },
+        {
+          "id": "3911",
+          "name": "异星前哨",
+          "short_name": "AlienMarauder",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ca92c3ef056ecd37b1fde2995c00d829.png"
+        },
+        {
+          "id": "3956",
+          "name": "全境封锁2",
+          "short_name": "TheDivision2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/714ee73e56621e806decb2c94a2afb59.png"
+        },
+        {
+          "id": "4166",
+          "name": "火爆热游",
+          "short_name": "hbry",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/cd1f12f22fe5fbc10f2cf82ea03d9ce4.png"
+        },
+        {
+          "id": "4247",
+          "name": "暗区突围 无限",
+          "short_name": "aqtwwx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8d661a2e2dc3e9a4e35c8f0573009747.png"
+        },
+        {
+          "id": "4248",
+          "name": "剑灵2",
+          "short_name": "BladeSoul2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/25cce4fb75d62e250784d3d305d757f5.png"
+        },
+        {
+          "id": "4252",
+          "name": "漫威争锋",
+          "short_name": "MarvelRivals",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9b1f14170c662009167ca11f89f1231c.jpg"
+        },
+        {
+          "id": "4275",
+          "name": "彩虹六号",
+          "short_name": "RAINBOWSIX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/959658c67f335823ebcceff2f04ecb48.jpg"
+        },
+        {
+          "id": "4289",
+          "name": "BATTLE ACES",
+          "short_name": "BattleAces",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/74d4e98a1358fb8eff48e413c19334e0.png"
+        },
+        {
+          "id": "4295",
+          "name": "和平精英模拟器",
+          "short_name": "hppcmnq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/40295e247f176590a72c0128eab957ea.jpg"
+        },
+        {
+          "id": "4312",
+          "name": "人气新游",
+          "short_name": "topxy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d490a44d943d9216da135fed6b218621.png"
+        },
+        {
+          "id": "4335",
+          "name": "永恒之塔2",
+          "short_name": "yhzt2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/79da39d5127884cfd4865cd445c6d751.jpg"
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "name": "单机热游",
+      "cate2List": [
+        {
+          "id": "19",
+          "name": "主机游戏",
+          "short_name": "TVgame",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/602c38f19a4fe9af40fdb64a00ce9ed5.jpg"
+        },
+        {
+          "id": "469",
+          "name": "刺客信条:英灵殿",
+          "short_name": "AC",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/107001569adb35d0daafe7febdeca135.png"
+        },
+        {
+          "id": "928",
+          "name": "马里奥制造",
+          "short_name": "Mario",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8716342bc42de5fb5993d3f04d882a6f.png"
+        },
+        {
+          "id": "1024",
+          "name": "逃离塔科夫",
+          "short_name": "EFT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/450f45bb2aae46b8d6d234b94dfd6265.png"
+        },
+        {
+          "id": "286",
+          "name": "命运2",
+          "short_name": "MY2",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/d3f55728c3651a9f172a2c5921c1cd89.JPG"
+        },
+        {
+          "id": "760",
+          "name": "恐怖游戏",
+          "short_name": "Horror",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ad3d00ebcf88dd5a5956118464b7a0e4.png"
+        },
+        {
+          "id": "475",
+          "name": "荒野大镖客",
+          "short_name": "hydbk",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/9dca013c40ba0c7f7a7cf861d4e9a478.png"
+        },
+        {
+          "id": "461",
+          "name": "灵魂筹码",
+          "short_name": "lhcm",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/05681a45ef1310fec8e50da268d62295.png"
+        },
+        {
+          "id": "491",
+          "name": "骑马与砍杀",
+          "short_name": "MountAndBlade",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/05d31ff71112c44b27f9233399e51edc.jpg"
+        },
+        {
+          "id": "658",
+          "name": "只狼",
+          "short_name": "ZL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6e6f6232f33d9ad61947fc717623a272.png"
+        },
+        {
+          "id": "29",
+          "name": "格斗游戏",
+          "short_name": "FTG",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/d014202049bb30994b1462714507cd8e.jpg"
+        },
+        {
+          "id": "23",
+          "name": "饥荒",
+          "short_name": "DontStarve",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/f7839d347329e7d4b3675af50c0e0b01.jpg"
+        },
+        {
+          "id": "478",
+          "name": "全境封锁",
+          "short_name": "qjfs",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/b891f32f65328c34690f5c42dd671f39.jpg"
+        },
+        {
+          "id": "26",
+          "name": "怀旧游戏",
+          "short_name": "classic",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/568029e11adb524c778da572b578f2e3.jpg"
+        },
+        {
+          "id": "473",
+          "name": "NBA2K",
+          "short_name": "NBA2K",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/f144a61f5e8b9710d14bf2b26719c07b.png"
+        },
+        {
+          "id": "740",
+          "name": "八方旅人",
+          "short_name": "OT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/cc044e76f74017753bd5f03191f60557.png"
+        },
+        {
+          "id": "963",
+          "name": "人类一败涂地",
+          "short_name": "Human",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4d3bd558d254d39ca04b27ac1135a09f.png"
+        },
+        {
+          "id": "721",
+          "name": "环世界",
+          "short_name": "RimWorld",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/91d433c4b1ec702e19ac1844161fc37e.png"
+        },
+        {
+          "id": "470",
+          "name": "古墓丽影",
+          "short_name": "gmly",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c5a6a14e669fd4a5ca8e6740de1b56bb.png"
+        },
+        {
+          "id": "725",
+          "name": "鬼泣",
+          "short_name": "DMC",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9982d0ae9b5133fe2f7ca6c7dd1ea669.png"
+        },
+        {
+          "id": "690",
+          "name": "往日不再",
+          "short_name": "WRBZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fbeba3123aab48d3b21c238a21cec071.png"
+        },
+        {
+          "id": "685",
+          "name": "仙剑奇侠传",
+          "short_name": "PAL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d4770f706e1670d51e67c9a8077d9cf2.png"
+        },
+        {
+          "id": "696",
+          "name": "神秘海域",
+          "short_name": "Uncharted",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4550d76e4c7016bbed99fa0d979a6a40.png"
+        },
+        {
+          "id": "699",
+          "name": "塞尔达系列",
+          "short_name": "TLoZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2b9d04a00338691915e7cdeed056ea27.png"
+        },
+        {
+          "id": "719",
+          "name": "僵尸世界大战",
+          "short_name": "WWZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0248f7b91d6b885fe0b52f06dc17c9b4.png"
+        },
+        {
+          "id": "661",
+          "name": "足球游戏",
+          "short_name": "zq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e59aece530ef4a865b1d2be361947536.jpg"
+        },
+        {
+          "id": "427",
+          "name": "橙光",
+          "short_name": "cg",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/63fcfb5abe9e2c3f00ad883d5869e228.jpg"
+        },
+        {
+          "id": "735",
+          "name": "超级马里奥",
+          "short_name": "SMO",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3551d2117bbc66177ad8dfe3585e5780.png"
+        },
+        {
+          "id": "698",
+          "name": "三国志系列",
+          "short_name": "Sangokushi",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/073d3c7147548a0958488ea469522a7a.png"
+        },
+        {
+          "id": "827",
+          "name": "最终幻想",
+          "short_name": "FF",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/677ccdc717b92c77c3afed6dc4c8eea8.png"
+        },
+        {
+          "id": "847",
+          "name": "流放者柯南",
+          "short_name": "Conan",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ce20796517f93d7668263c951f444e04.png"
+        },
+        {
+          "id": "881",
+          "name": "三国群英传",
+          "short_name": "SANGO",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4808d23129da576c37b866aea52d6528.png"
+        },
+        {
+          "id": "920",
+          "name": "无主之地",
+          "short_name": "Bor",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/973da9803e911d96f65a126212654bcc.png"
+        },
+        {
+          "id": "480",
+          "name": "辐射",
+          "short_name": "fs",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/1969d4857a0984949540f1febed8608a.png"
+        },
+        {
+          "id": "567",
+          "name": "SCUM",
+          "short_name": "Scum",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bacb2ba76374ce4b019c07f34a04643e.jpg"
+        },
+        {
+          "id": "687",
+          "name": "文明",
+          "short_name": "CVI",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2b41aad96c6800e16a4396ab7d370995.png"
+        },
+        {
+          "id": "701",
+          "name": "仁王",
+          "short_name": "NIOH",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d85abd572c4efd3bfaa731e57fe6adc8.png"
+        },
+        {
+          "id": "702",
+          "name": "缺氧",
+          "short_name": "ONI",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7c45faa7afd889163e1d58ee246dd261.png"
+        },
+        {
+          "id": "728",
+          "name": "古剑奇谭",
+          "short_name": "GuJian3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6ead5693c16ca18f048218a5b02c286c.png"
+        },
+        {
+          "id": "479",
+          "name": "皇牌空战",
+          "short_name": "hpkz",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/c149cc360198f8ba8a83fb54b235aad7.jpg"
+        },
+        {
+          "id": "517",
+          "name": "体育游戏",
+          "short_name": "tyyx",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/a2977dda15f81de9faf714f98a084e6a.png"
+        },
+        {
+          "id": "482",
+          "name": "海岛大亨",
+          "short_name": "hddh",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/9cca6e87917bdd4d50d83c55c8e2a23e.jpg"
+        },
+        {
+          "id": "477",
+          "name": "碧海黑帆",
+          "short_name": "klhdt",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/4b3dc9e0b79fa08de9563b0fd809e676.jpg"
+        },
+        {
+          "id": "673",
+          "name": "植物大战僵尸:花园战争系列",
+          "short_name": "PvsZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5b98d61373fdf6219592369f96d38a2b.png"
+        },
+        {
+          "id": "681",
+          "name": "遗迹：灰烬重生",
+          "short_name": "Rem",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2ae814e412ab6a46da3a0cadc96b1c94.png"
+        },
+        {
+          "id": "682",
+          "name": "血源",
+          "short_name": "BB",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3af5fc8d1635808f2fcc493265ae744e.png"
+        },
+        {
+          "id": "700",
+          "name": "忍者龙剑传",
+          "short_name": "NG",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/27f6e0f27b554699362bf3920e4fdd44.png"
+        },
+        {
+          "id": "706",
+          "name": "模拟人生",
+          "short_name": "Sims",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/522c7ed9fc050fa9b3e96107289576f7.png"
+        },
+        {
+          "id": "715",
+          "name": "空洞骑士",
+          "short_name": "HKS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bff106012bee9d9e5c30982bd47df0b7.png"
+        },
+        {
+          "id": "723",
+          "name": "河洛群侠传",
+          "short_name": "TBoD",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1a2ec1f1c193364688ac4cba71455a25.png"
+        },
+        {
+          "id": "732",
+          "name": "地铁:离去",
+          "short_name": "ME",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b2d45ec2fbaba88d8d55f5327a6d9508.png"
+        },
+        {
+          "id": "1781",
+          "name": "生死狙击2",
+          "short_name": "ssjjtwo",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/146dfc8dbbe13dc8b7938832e57fe519.png"
+        },
+        {
+          "id": "1795",
+          "name": "三国战纪",
+          "short_name": "sgzj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3cf899610618ebb6ab2e5cfde4064e68.png"
+        },
+        {
+          "id": "1796",
+          "name": "怀旧FC",
+          "short_name": "edwcy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8e7544eee6d369ba9300480129ea39cd.png"
+        },
+        {
+          "id": "1801",
+          "name": "经典单机",
+          "short_name": "jddj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ced078cdd181db258f933a26289577ad.png"
+        },
+        {
+          "id": "1797",
+          "name": "英雄无敌",
+          "short_name": "HoMM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4fe86f3fe8473bd2df9a64b393382a35.png"
+        },
+        {
+          "id": "1798",
+          "name": "街机游戏",
+          "short_name": "jjyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/968b3b578576261ad15f07116f4cf8ad.png"
+        },
+        {
+          "id": "781",
+          "name": "合金装备",
+          "short_name": "MetalGear",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d565479a2cb27d6bbc014ded348f4cd8.png"
+        },
+        {
+          "id": "1799",
+          "name": "红色警戒",
+          "short_name": "hsjj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/da7640753ba29ff66e200f54bc0bc39c.png"
+        },
+        {
+          "id": "812",
+          "name": "火焰纹章系列",
+          "short_name": "FireEmblem",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/90f82fafa31ba0f334ce4456fd99dd55.png"
+        },
+        {
+          "id": "816",
+          "name": "星露谷物语",
+          "short_name": "Stardew",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/09f2bb05db27b23ab1d651310f913e03.png"
+        },
+        {
+          "id": "819",
+          "name": "英雄传说",
+          "short_name": "Heroes",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/250af6b95510e6c5a29469fc280cdc37.png"
+        },
+        {
+          "id": "836",
+          "name": "赛博朋克2077",
+          "short_name": "Cyberpunk",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/86cb65bfe00af77f508b0dc429048fb1.png"
+        },
+        {
+          "id": "838",
+          "name": "中国式家长",
+          "short_name": "CP",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/427a797c6d41160cc9ab7269181b93cb.png"
+        },
+        {
+          "id": "532",
+          "name": "无人深空",
+          "short_name": "NMS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/24edf53e5f14307b584e7ca8211e97f8.png"
+        },
+        {
+          "id": "873",
+          "name": "GT赛车7",
+          "short_name": "GT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/88db5e015418231ccf1db0c93a1086bd.png"
+        },
+        {
+          "id": "877",
+          "name": "超级机器人大战",
+          "short_name": "SRW",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b4da2e621abd32a70f41b2809aa62445.png"
+        },
+        {
+          "id": "879",
+          "name": "信长之野望",
+          "short_name": "KOEINOBU",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bde497d368cac5167513aed596ce8315.png"
+        },
+        {
+          "id": "880",
+          "name": "这是我的战争",
+          "short_name": "TWoM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9fb36df6941cffadc37e5c42fc5e38ff.png"
+        },
+        {
+          "id": "390",
+          "name": "杀戮尖塔",
+          "short_name": "sljt",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/595c95305fbafb7f0d5f2c0b2e474bcb.png"
+        },
+        {
+          "id": "884",
+          "name": "帝国时代",
+          "short_name": "AoEIV",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/588e4c373052e42201c8ecd8edd192df.png"
+        },
+        {
+          "id": "977",
+          "name": "足球经理",
+          "short_name": "Football",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b0b9e9888e9ec1c33b8ff5487f0d80e7.png"
+        },
+        {
+          "id": "979",
+          "name": "亿万僵尸",
+          "short_name": "Billions",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/06b6cbaf716d7d07527c8b70814f3c53.png"
+        },
+        {
+          "id": "991",
+          "name": "欧洲卡车模拟器",
+          "short_name": "Truck",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0681820ce3cc8107435fde62aca1c8e7.png"
+        },
+        {
+          "id": "997",
+          "name": "永恒轮回",
+          "short_name": "Survival",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4ebcb65c049e10742ed8c5d00843a98a.png"
+        },
+        {
+          "id": "391",
+          "name": "孤岛惊魂",
+          "short_name": "FarCry",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b4b7e231dbd6b380d7a9085e5338ea24.png"
+        },
+        {
+          "id": "484",
+          "name": "都市：天际线",
+          "short_name": "Skylines",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3578e12c134a5a7bda4fc40907979ceb.png"
+        },
+        {
+          "id": "389",
+          "name": "盗贼之海",
+          "short_name": "hdzh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e7b5f6ff4cf5f74c17c7a5bcb32f75f9.png"
+        },
+        {
+          "id": "1002",
+          "name": "raft",
+          "short_name": "raft",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/612d9789eb63dd7ae54aea327b4f4d5c.png"
+        },
+        {
+          "id": "1003",
+          "name": "Dayz",
+          "short_name": "DayZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7ec6fc00ade74a0e1b8fdcfc6d2cda2c.png"
+        },
+        {
+          "id": "1004",
+          "name": "60秒",
+          "short_name": "60S",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/10c0605fe6ad2ef700b280f5cad7dd8d.png"
+        },
+        {
+          "id": "1022",
+          "name": "俄罗斯钓鱼",
+          "short_name": "RF",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/74c5f91f8e2a9dd69663e72107822a1f.png"
+        },
+        {
+          "id": "1026",
+          "name": "猎人：荒野的召唤",
+          "short_name": "theHunter",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d71e31c25d6d6deb6f60a80c2977da35.png"
+        },
+        {
+          "id": "1033",
+          "name": "看门狗",
+          "short_name": "kmg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5c7440c22aa3aed43f304c35e13006f2.png"
+        },
+        {
+          "id": "1034",
+          "name": "真三国无双",
+          "short_name": "DW",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ffd2b79b949b64d0e98eff0e090142dd.png"
+        },
+        {
+          "id": "1040",
+          "name": "围攻",
+          "short_name": "Besiege",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4abdaabf8305828862ad590cd52b4d92.png"
+        },
+        {
+          "id": "1041",
+          "name": "百战天虫",
+          "short_name": "Worms",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c10b0e531877c5db8a3795381d38ba6d.png"
+        },
+        {
+          "id": "1045",
+          "name": "泰拉瑞亚",
+          "short_name": "Terraria",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c25a6ccd333b36cee6956f0634053e74.png"
+        },
+        {
+          "id": "1047",
+          "name": "异星工厂",
+          "short_name": "Factorio",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/63c449b7502810bba29570b3e39cbf15.png"
+        },
+        {
+          "id": "1048",
+          "name": "群星",
+          "short_name": "Stellaris",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e0da5c1e7d1023096cd25cf70c1d19f5.png"
+        },
+        {
+          "id": "1061",
+          "name": "底特律:变人",
+          "short_name": "Detroit",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9dfebbcd669cc97908d6d22d7e43db4e.png"
+        },
+        {
+          "id": "1063",
+          "name": "恶魔城",
+          "short_name": "Castlevania",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f8af5bcb139b957669ebebd05da22b4a.png"
+        },
+        {
+          "id": "1069",
+          "name": "毁灭战士",
+          "short_name": "Doom",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/996ef4b30e58aa4fcb5a070d6f7e78f3.png"
+        },
+        {
+          "id": "1070",
+          "name": "火影忍者：究极忍者风暴",
+          "short_name": "Naruto",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d0eeed166eaba36834ca0583fa328fa5.png"
+        },
+        {
+          "id": "1072",
+          "name": "监狱建筑师",
+          "short_name": "PA",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/852fa57c1853890c3dbdcef4d01592fe.png"
+        },
+        {
+          "id": "1074",
+          "name": "坎巴拉太空计划",
+          "short_name": "Kerbal",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/892af27add2be8893ecf1370f3967439.png"
+        },
+        {
+          "id": "1078",
+          "name": "龙珠：超宇宙",
+          "short_name": "DBX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f4adf4b39a15c5fd3f217d663780506a.png"
+        },
+        {
+          "id": "1079",
+          "name": "马里奥赛车",
+          "short_name": "MarioKart",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ccfaac1cccf5d45514075e80969cb53a.png"
+        },
+        {
+          "id": "1084",
+          "name": "欧陆风云",
+          "short_name": "EU",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/564e716e1b7ac9b842337cd1da6efdb7.png"
+        },
+        {
+          "id": "1086",
+          "name": "乞丐模拟器",
+          "short_name": "HoboToughLife",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/698d3a60d42d96150340bd36f811a130.png"
+        },
+        {
+          "id": "1095",
+          "name": "逆转裁判",
+          "short_name": "AceA",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/59a97eb9f20b28d3d085827692c9f184.png"
+        },
+        {
+          "id": "1101",
+          "name": "超越光速",
+          "short_name": "FTL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/54263b9cb41fb38da677a8bf69eb0fbf.png"
+        },
+        {
+          "id": "1105",
+          "name": "植物大战僵尸",
+          "short_name": "PvZ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/489b2d32f9becbc98a0bb28e5200924c.png"
+        },
+        {
+          "id": "1108",
+          "name": "游戏开发者",
+          "short_name": "GGM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/32c4267e32f5f427fa91a7eff952ab8b.png"
+        },
+        {
+          "id": "1413",
+          "name": "猎杀对决",
+          "short_name": "LSDJ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bb9ee8258a835742f5ba8a12193d58e0.png"
+        },
+        {
+          "id": "1140",
+          "name": "大富翁",
+          "short_name": "RichMan",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/af519a409658f3fd04642e5472302445.png"
+        },
+        {
+          "id": "1174",
+          "name": "英雄连",
+          "short_name": "yxl",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7965e7fb60fcd7d12bfee28e700e7bd4.png"
+        },
+        {
+          "id": "1217",
+          "name": "死亡岛2",
+          "short_name": "swn",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0e5347cb43f34dc3d13c25256a62be35.png"
+        },
+        {
+          "id": "1227",
+          "name": "永劫无间",
+          "short_name": "NB",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/295a70686fb367573ee20e36a4f694da.png"
+        },
+        {
+          "id": "1251",
+          "name": "幽灵行者",
+          "short_name": "Ghostrunner",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/455242ed159334c9d835faac5ae1fd02.png"
+        },
+        {
+          "id": "1273",
+          "name": "一起开火车！",
+          "short_name": "Unrailed",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f6f8024558038736756d5b1c33e01352.png"
+        },
+        {
+          "id": "1275",
+          "name": "霓虹深渊",
+          "short_name": "NA",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9044237a211818c4d312ec192efdd0a2.png"
+        },
+        {
+          "id": "1282",
+          "name": "主机其他游戏",
+          "short_name": "OG",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/50cfb9f01dd2fc1e087f64b050846141.png"
+        },
+        {
+          "id": "1340",
+          "name": "工作模拟器",
+          "short_name": "JS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2259311660563fd1d239b349f20e45d3.png"
+        },
+        {
+          "id": "1365",
+          "name": "创造世界",
+          "short_name": "czsj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ba7e6c99f5e2117c1ec32f9a1efdbfb4.png"
+        },
+        {
+          "id": "1370",
+          "name": "军团战争",
+          "short_name": "jtzz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/198f33c11423485195960596af596fa3.png"
+        },
+        {
+          "id": "1382",
+          "name": "战术小队",
+          "short_name": "Squad",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ddb9324af457736599aac95b416cd114.png"
+        },
+        {
+          "id": "1383",
+          "name": "战争行为",
+          "short_name": "zzxw",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0ea09c906ad7adc24a07b21abc6bc086.png"
+        },
+        {
+          "id": "1407",
+          "name": "皇家美食",
+          "short_name": "HJMS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c6ec678fa68192bdc6456c4e860211fe.png"
+        },
+        {
+          "id": "1410",
+          "name": "僵尸毁灭工程",
+          "short_name": "jshmgc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/be3ed9f0285764015182270be71e23d0.png"
+        },
+        {
+          "id": "1446",
+          "name": "碧蓝航线",
+          "short_name": "AL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/70bf51e29ddd5f62454b2af00801636e.png"
+        },
+        {
+          "id": "1450",
+          "name": "食人鲨",
+          "short_name": "SRS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/07ee63203c31f24f60c3ec97e6c63543.png"
+        },
+        {
+          "id": "1476",
+          "name": "超级兔子人",
+          "short_name": "Bunny",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/60a50ee169230db8a3a8ea6d0c67e171.png"
+        },
+        {
+          "id": "1536",
+          "name": "岛屿生存者",
+          "short_name": "Sur",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6e01969a5b81f3ff708ba3e60843ae9b.png"
+        },
+        {
+          "id": "1595",
+          "name": "冬日计划",
+          "short_name": "drjh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/30e68de0d1a74594a2634a6211382c5e.png"
+        },
+        {
+          "id": "1644",
+          "name": "四海兄弟",
+          "short_name": "shxd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2c7c4182a8d9bc76ded10e62df3b893b.png"
+        },
+        {
+          "id": "1650",
+          "name": "创世理想乡",
+          "short_name": "Craftopia",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1703b1de40944b0cfbeace0d6f1ec4d0.png"
+        },
+        {
+          "id": "1673",
+          "name": "柯娜：精神之桥",
+          "short_name": "Kena",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/044b4db891e2253b8b89873988c08f0e.png"
+        },
+        {
+          "id": "1674",
+          "name": "幽灵线：东京",
+          "short_name": "GTO",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5cae65fb1fc22cc930adf3fd8cd3045c.png"
+        },
+        {
+          "id": "1680",
+          "name": "生化危机4重制版",
+          "short_name": "ResidentEvil",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e53c42c0c5d7943e17b3e60cff106fcd.png"
+        },
+        {
+          "id": "1778",
+          "name": "糖豆人",
+          "short_name": "FallGuys",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9d15d73ff53349c2527631e98e35831c.png"
+        },
+        {
+          "id": "1806",
+          "name": "渡神纪",
+          "short_name": "Gods",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b7012143958a60137a6bb90581bbced6.png"
+        },
+        {
+          "id": "1875",
+          "name": "暗影火炬城",
+          "short_name": "FIST",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ffbfde8a9975dd5a1c0b34a872b4c66f.png"
+        },
+        {
+          "id": "1887",
+          "name": "阿尔比恩",
+          "short_name": "Albion",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/982ab40a78bcb6e43635d5d5aed7e202.png"
+        },
+        {
+          "id": "2046",
+          "name": "恐惧之间",
+          "short_name": "Fearsurrounds",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d128e6fa8fa2d6f3dbd6ac1594fd8edf.png"
+        },
+        {
+          "id": "2067",
+          "name": "孤岛惊魂6",
+          "short_name": "FarCry6",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/79f0504614e2c6a83c367a7315e82cb5.png"
+        },
+        {
+          "id": "2068",
+          "name": "怪物猎人",
+          "short_name": "MonsterHunterRise",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b3f27021492417b122c2940389ae01f8.png"
+        },
+        {
+          "id": "2075",
+          "name": "黑神话：悟空",
+          "short_name": "BlackMythWuKong",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0cd4c36631be722be54f90fa6155a97c.png"
+        },
+        {
+          "id": "2081",
+          "name": "仁王2",
+          "short_name": "Nioh2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6911502b917e748bef59133d82a0e757.png"
+        },
+        {
+          "id": "2085",
+          "name": "三国志14",
+          "short_name": "THREEKINGDOMSXIV",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d8bec4dbe95fa0813282cb08b18afb44.png"
+        },
+        {
+          "id": "2087",
+          "name": "双人成行",
+          "short_name": "ittakestwo",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/95c8c6bef40fb0f82eef19c7f51bd6c8.png"
+        },
+        {
+          "id": "2231",
+          "name": "全面战争",
+          "short_name": "TotalWarWARHAMMER",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/80c54ae9a22ee9fa24e6ee15de51f2ed.png"
+        },
+        {
+          "id": "2348",
+          "name": "刺客信条：奥德赛",
+          "short_name": "Odyssey",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/cd9bd21d9efa5fcf4003440dc171901d.png"
+        },
+        {
+          "id": "2353",
+          "name": "星球大战：前线",
+          "short_name": "Battlefront",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f6b579ba16aa2697a242e2959d621abf.png"
+        },
+        {
+          "id": "2378",
+          "name": "俄罗斯方块效应：连接",
+          "short_name": "TetrisEffect",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8cce4cc2dde347e5560e622b48ce5948.png"
+        },
+        {
+          "id": "2399",
+          "name": "SD高达G世纪：起源",
+          "short_name": "SDGundamG",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6121885047da65d935bf9a555d03ae4d.png"
+        },
+        {
+          "id": "2431",
+          "name": "苍翼默示录：神观之梦",
+          "short_name": "CentralFiction",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/729a4d5856244cb5e2fed2922fa30c6f.png"
+        },
+        {
+          "id": "2464",
+          "name": "巡警",
+          "short_name": "BeatCop",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/550a05375e1a40a15d8979da7d141df2.png"
+        },
+        {
+          "id": "2465",
+          "name": "冥河：黑暗碎片",
+          "short_name": "Styx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c1e9a9697daa91a15b486acea6f620e7.png"
+        },
+        {
+          "id": "2466",
+          "name": "极限脱出：九人游戏",
+          "short_name": "ZeroEscape",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6dada1dc56a95d73d30bb7e56b017e06.png"
+        },
+        {
+          "id": "2470",
+          "name": "三国志13：威力加强版",
+          "short_name": "Sangokushi13",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b5bc25cb73e42755ac06bfb453f84269.png"
+        },
+        {
+          "id": "2474",
+          "name": "史诗战争模拟器",
+          "short_name": "BattleSimulator",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/00c3f0806d7defec6ae82be6f6a4ec52.png"
+        },
+        {
+          "id": "2475",
+          "name": "银河护卫队",
+          "short_name": "Guardians",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e0b582c3ccceca9ade69fc374024b7a5.png"
+        },
+        {
+          "id": "2479",
+          "name": "幽灵行动：荒野",
+          "short_name": "GhostReconWildland",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/204c419e55297f40cbb51da507ab0561.png"
+        },
+        {
+          "id": "2495",
+          "name": "双截龙4",
+          "short_name": "DoubleDragon4",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/387ef5b2730138c6984fa4b61768ec48.png"
+        },
+        {
+          "id": "2497",
+          "name": "地下蚁国",
+          "short_name": "Undergrowth",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b8dd97968be7f704c6d847f0f82464eb.png"
+        },
+        {
+          "id": "2502",
+          "name": "小兵大战",
+          "short_name": "Warpips",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/57389d7d5809ea3f2e55de6655445cd4.png"
+        },
+        {
+          "id": "2536",
+          "name": "寻找天堂",
+          "short_name": "findparadise",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8ddae4f148f5b53f88821648b09c4e74.png"
+        },
+        {
+          "id": "2537",
+          "name": "画中世界",
+          "short_name": "Gorogoa",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7e7f29939d9d95ddd079497d6a54c387.png"
+        },
+        {
+          "id": "2547",
+          "name": "骑士精神2",
+          "short_name": "Chivalry2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/99a93391374acf26189fffcd9cd0bf45.png"
+        },
+        {
+          "id": "2552",
+          "name": "红至日2：幸存者",
+          "short_name": "TheRed2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8c2b273d8a33bfc467cf5170f03e3a57.png"
+        },
+        {
+          "id": "2584",
+          "name": "地球灭亡前60秒",
+          "short_name": "Meteor60",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3780bdd1990deaf040ad3fc6f736066c.png"
+        },
+        {
+          "id": "2687",
+          "name": "GRIS",
+          "short_name": "GRIS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/775dcf1bfd8622b3fb08b60893cc892c.png"
+        },
+        {
+          "id": "2713",
+          "name": "嗜血印",
+          "short_name": "BloodySpell",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c34c951ecb2c7106ab5e9857fb50a003.png"
+        },
+        {
+          "id": "2730",
+          "name": "遗忘之城",
+          "short_name": "ForgotCity",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a087167b5d6f1c7a202e1f46a5ef8c12.png"
+        },
+        {
+          "id": "2961",
+          "name": "DJMAX致敬",
+          "short_name": "DJMAXRESPECT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/47f694c11989342775bb7aa19eef7aff.png"
+        },
+        {
+          "id": "3016",
+          "name": "PICO PARK",
+          "short_name": "PICOPARK",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c3d56f5eb188c3bc67a4c7de3cf48585.png"
+        },
+        {
+          "id": "3017",
+          "name": "光明记忆：无限",
+          "short_name": "Brightmemory",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/301b1848de1cfa472626762304ceb12e.png"
+        },
+        {
+          "id": "3192",
+          "name": "战地系列",
+          "short_name": "Battlefiel",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9f0f01fa39cf0204222483c968e378c3.png"
+        },
+        {
+          "id": "3193",
+          "name": "塞尔达传说：天空之剑HD",
+          "short_name": "SkywardSword",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2d47c5290650b3434b9a161bb7d1fa27.png"
+        },
+        {
+          "id": "3281",
+          "name": "12分钟",
+          "short_name": "TwelveMinutes",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/197bca6d5c8d85460b55e6113b673657.png"
+        },
+        {
+          "id": "3339",
+          "name": "喋血复仇",
+          "short_name": "Back4Blood",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/92c2ca85f1983722175646f94afa4555.png"
+        },
+        {
+          "id": "3369",
+          "name": "剑侠图",
+          "short_name": "JianXiaTu",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c57d7205199416e13b267b856ab90536.png"
+        },
+        {
+          "id": "3370",
+          "name": "审判之逝",
+          "short_name": "Lostjudgment",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6b0f737844f3030cc18250f06f7a4622.png"
+        },
+        {
+          "id": "3371",
+          "name": "帝国神话",
+          "short_name": "mythofempires",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/38ecb27a673c871e7e9accefe4a083c3.png"
+        },
+        {
+          "id": "3406",
+          "name": "艾尔登法环",
+          "short_name": "ELDENRING",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/008d00e89dcee5f2980eedd8c51f6c34.png"
+        },
+        {
+          "id": "3467",
+          "name": "偶像大师：星耀季节",
+          "short_name": "IdolmasterStarlit",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/17631b07c991159e9655d8e6b240592e.png"
+        },
+        {
+          "id": "3468",
+          "name": "极限竞速：地平线5",
+          "short_name": "ForzaHorizon5",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d4c60fbde3389737a2076b1fc6a581d9.png"
+        },
+        {
+          "id": "3480",
+          "name": "酒馆带师",
+          "short_name": "TavernMaster",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/88ca4117907fdb871d8b6f46211f5f4d.png"
+        },
+        {
+          "id": "3514",
+          "name": "Propnight",
+          "short_name": "Propnight",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6bb0633d421a3997a17cbdde56a2f052.png"
+        },
+        {
+          "id": "3518",
+          "name": "网吧模拟器",
+          "short_name": "InternetCS",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8727e4aba310c42f4b877fcca25a5881.png"
+        },
+        {
+          "id": "3529",
+          "name": "消逝的光芒2",
+          "short_name": "DyingLight2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/856b1ffb1503c01373334994b1e16064.png"
+        },
+        {
+          "id": "3530",
+          "name": "无主之地3",
+          "short_name": "Borderlands3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/af64f6b065333c03d2d50f98a6945c3b.png"
+        },
+        {
+          "id": "3553",
+          "name": "小缇娜的奇幻之地",
+          "short_name": "TinyTina",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2f6c5080e30bd8f1e6da55549e55f713.png"
+        },
+        {
+          "id": "3556",
+          "name": "海上狼人杀",
+          "short_name": "DreadHunger",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a6d4ed1cad0e125a654f4cff386ddf22.png"
+        },
+        {
+          "id": "3557",
+          "name": "吸血鬼幸存者",
+          "short_name": "VampireSurvivors",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3543f2e13a41eaac733937d52914f968.png"
+        },
+        {
+          "id": "3636",
+          "name": "江湖客栈",
+          "short_name": "TheJianghu",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/eea17856f2d49bc58be7177f8295db1d.png"
+        },
+        {
+          "id": "3668",
+          "name": "Overprime",
+          "short_name": "Overprime",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b269de22f7525d3afb32db4bb0fd80ed.png"
+        },
+        {
+          "id": "3669",
+          "name": "森林之子",
+          "short_name": "SonsOfTheForest",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/25abbaf058885bc61e68498b23ae123c.png"
+        },
+        {
+          "id": "3682",
+          "name": "弈仙牌",
+          "short_name": "yixianpai",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0e3e443fc10f273c0170b2f6dd9b1a20.png"
+        },
+        {
+          "id": "3684",
+          "name": "夜族崛起",
+          "short_name": "VRising",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f4a9442f3f61f90656bdb26a79255dc2.png"
+        },
+        {
+          "id": "3699",
+          "name": "木卫四协议",
+          "short_name": "CallistoProtocol",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5e4c3ec979c700f4e3e112e7aa7b8a60.png"
+        },
+        {
+          "id": "3704",
+          "name": "罗马复兴",
+          "short_name": "RomanRenaissance",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/08c41fdebb17963da4a63d5b4b4b7373.png"
+        },
+        {
+          "id": "3726",
+          "name": "SD高达：激斗同盟",
+          "short_name": "BATTLEALLIANC",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/05f3f0a6026ff5f3ea033b7583e40cac.png"
+        },
+        {
+          "id": "3764",
+          "name": "沙丘：觉醒",
+          "short_name": "DuneAwakening",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/75e16c441362ad13d9692cbcbcb69098.png"
+        },
+        {
+          "id": "3793",
+          "name": "塞尔达传说：王国之泪",
+          "short_name": "TEARSKINGDOM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f73a4009c26b25180dd9a8109a7d1172.png"
+        },
+        {
+          "id": "3806",
+          "name": "原子之心",
+          "short_name": "AtomicHeart",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2fc41a827e44ef371cf44860884c3ffc.png"
+        },
+        {
+          "id": "3820",
+          "name": "宝可梦：朱/紫",
+          "short_name": "ScarletandViolet",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/606ceccee5fef7ad2de68f1c6a10404b.png"
+        },
+        {
+          "id": "3848",
+          "name": "主机一起看",
+          "short_name": "zjyqk",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5cb6282affa762b952e7acd4a7123e26.png"
+        },
+        {
+          "id": "3861",
+          "name": "无限暖暖",
+          "short_name": "wxnn",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9d679cedc3eef8c766e77c8d8c8ffe6e.png"
+        },
+        {
+          "id": "3868",
+          "name": "至暗时刻",
+          "short_name": "DarkandDarker",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/877227af2a30fcafeb70a28476a22b4c.png"
+        },
+        {
+          "id": "3870",
+          "name": "自杀小队：杀死正义联盟",
+          "short_name": "KTJL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6f89cdcf17499315641d125e1976593d.png"
+        },
+        {
+          "id": "3906",
+          "name": "收获日3",
+          "short_name": "PAYDAY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c795c18d8458edbc44671046bae31ace.png"
+        },
+        {
+          "id": "3916",
+          "name": "最终幻想16",
+          "short_name": "FinalFantasyXVI",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/91adc41c7adc57674fa318426e0d68ea.png"
+        },
+        {
+          "id": "3917",
+          "name": "街头霸王",
+          "short_name": "StreetFighter",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f597b5fe4d6192ee8b8999496e807970.png"
+        },
+        {
+          "id": "3935",
+          "name": "幻兽帕鲁",
+          "short_name": "Palworld",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b00b6b24eaaf8397372e218d5ba98253.png"
+        },
+        {
+          "id": "3972",
+          "name": "明末：渊虚之羽",
+          "short_name": "Mingmo",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/908ce6843784af49049ddeb13a14787b.png"
+        },
+        {
+          "id": "4023",
+          "name": "严阵以待",
+          "short_name": "ReadyorNot",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f259186131c5ca02a4b837e7f5d409a7.png"
+        },
+        {
+          "id": "4047",
+          "name": "战锤40K：星际战士2",
+          "short_name": "SpaceMarine2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b6ebc8f386003af6762c666f3dc03b1a.png"
+        },
+        {
+          "id": "4050",
+          "name": "流放之路2",
+          "short_name": "PathofExile2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/01125196a5ebef6311baa1e9ed4d43d5.png"
+        },
+        {
+          "id": "4060",
+          "name": "幽灵诡计",
+          "short_name": "PhantomDetective",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7ec1393943fed320e96dade4e7c7edc9.png"
+        },
+        {
+          "id": "4086",
+          "name": "龙之信条2",
+          "short_name": "DragonsDogma2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/92f223dd7a4ab9fd0f39a3e222a6c597.png"
+        },
+        {
+          "id": "4106",
+          "name": "哈迪斯2",
+          "short_name": "Hades2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/29da9c75a80074087bffecbcc9f0fd4a.png"
+        },
+        {
+          "id": "4110",
+          "name": "漫威蜘蛛侠2",
+          "short_name": "MarvelSpiderman2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c44fcfc0edd284bbe6216c68ed19c036.png"
+        },
+        {
+          "id": "4111",
+          "name": "王权与自由",
+          "short_name": "ThroneandLiberty",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/51e97c022c934cadbb4f9fc8771ff814.png"
+        },
+        {
+          "id": "4112",
+          "name": "博德之门3",
+          "short_name": "BG3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1ff7db05dd402a158cb73d48b1f95a63.png"
+        },
+        {
+          "id": "4188",
+          "name": "七日世界",
+          "short_name": "qrsj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e49a9b1b05aa14579d1bac06cace7852.png"
+        },
+        {
+          "id": "4190",
+          "name": "雾锁王国",
+          "short_name": "wswg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/81536b6a8c5005655ce73d8ad608dff2.png"
+        },
+        {
+          "id": "4265",
+          "name": "其他",
+          "short_name": "else",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7aae2d043d4665370e0f964d18240377.jpg"
+        },
+        {
+          "id": "4268",
+          "name": "inZOI",
+          "short_name": "inZOI",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/372a1fa3257887acaa938960a0344661.png"
+        },
+        {
+          "id": "4276",
+          "name": "怪物猎人：荒野",
+          "short_name": "MonsterHunterWilds",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7764b3fe0d982479599fae455849bfde.jpg"
+        },
+        {
+          "id": "4279",
+          "name": "天国：拯救2",
+          "short_name": "KingdomCome2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f6831986e86c217242099f5ac1851495.jpg"
+        },
+        {
+          "id": "4283",
+          "name": "双影奇境",
+          "short_name": "SplitFiction",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3f57898bc5660bae7b0cfdbe5a77e684.jpg"
+        },
+        {
+          "id": "4288",
+          "name": "失控进化-RUST",
+          "short_name": "RUSTM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4a1a7f7320762d9e3ed2ac59317b3809.png"
+        },
+        {
+          "id": "4297",
+          "name": "无主星渊",
+          "short_name": "Wildgate",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ebd55b33ad7dcc5c46f4f4169c872109.jpg"
+        },
+        {
+          "id": "4301",
+          "name": "光与影：33号远征队",
+          "short_name": "Expeditionary33",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d43ca9cc5d9558d54ee10b2a59b27fcb.png"
+        },
+        {
+          "id": "4331",
+          "name": "逃离鸭科夫",
+          "short_name": "EscapefromDuckov",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/dfc7f6d6d06d7c5bd0dd2d1c2ab2151f.jpg"
+        },
+        {
+          "id": "4336",
+          "name": "足球经理26",
+          "short_name": "FM26",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8426e2780f8030e6a7660e4a1c04bc25.png"
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "name": "手游休闲",
+      "cate2List": [
+        {
+          "id": "1092",
+          "name": "DNF手游",
+          "short_name": "mdnf",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8ac838baa94b5932794c907c6c832aa3.png"
+        },
+        {
+          "id": "181",
+          "name": "王者荣耀",
+          "short_name": "wzry",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0d96d63ee9550728acd899d66eee3625.png"
+        },
+        {
+          "id": "1920",
+          "name": "LOL手游",
+          "short_name": "LOLM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c7a594f559fdd8c719be22740166a9ea.png"
+        },
+        {
+          "id": "3379",
+          "name": "崩坏：星穹铁道",
+          "short_name": "bhxqtd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2bf962e7e048f13e354812cbd8c76594.png"
+        },
+        {
+          "id": "350",
+          "name": "和平精英",
+          "short_name": "hpjy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8560eb4cba9e734a0d7408f6a9b9efb8.png"
+        },
+        {
+          "id": "3133",
+          "name": "暗区突围",
+          "short_name": "aqtw",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2305358d1f547bc295c2b886892192e2.png"
+        },
+        {
+          "id": "3358",
+          "name": "蛋仔派对",
+          "short_name": "dzpd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fa0d1d86a8a5b892041cda4203b45efe.png"
+        },
+        {
+          "id": "4022",
+          "name": "高能英雄",
+          "short_name": "gnyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4cab520503fc20f7b831275715d2a7ef.png"
+        },
+        {
+          "id": "2263",
+          "name": "幻塔",
+          "short_name": "ht",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2a33e1b7fa660da5d666faa671e2b5ed.png"
+        },
+        {
+          "id": "196",
+          "name": "火影忍者",
+          "short_name": "hyrz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0cba2f9de9e73fadf759f4b4604c3b59.png"
+        },
+        {
+          "id": "767",
+          "name": "COD手游",
+          "short_name": "smzhsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/921102d7b802ecd561c2221c81cccd1f.png"
+        },
+        {
+          "id": "3561",
+          "name": "lol电竞经理",
+          "short_name": "EGAME",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/74a8c810b5ccecc86b8fe9b76ec8a794.png"
+        },
+        {
+          "id": "4149",
+          "name": "元梦之星",
+          "short_name": "YMZX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a89325fff5c4d539230b02ab2ddfe743.png"
+        },
+        {
+          "id": "2556",
+          "name": "金铲铲之战",
+          "short_name": "JGAME",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4594694d441d5723db9b2365c136b0d8.png"
+        },
+        {
+          "id": "911",
+          "name": "天刀手游",
+          "short_name": "tdsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/76e9dde9bfc60118e3e80a750496131d.png"
+        },
+        {
+          "id": "1223",
+          "name": "原神",
+          "short_name": "yuanshen",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/587bbb22deacda90a98b2a55815b1e10.png"
+        },
+        {
+          "id": "1883",
+          "name": "航海王热血航线",
+          "short_name": "HHWRXHX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/eea83a1ec204421f0d159f3818abbadd.png"
+        },
+        {
+          "id": "2446",
+          "name": "逆水寒手游",
+          "short_name": "NSHM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2e6cd09d6a56d8dbf8ed7a7d3a607778.png"
+        },
+        {
+          "id": "1816",
+          "name": "鸿图之下",
+          "short_name": "htzx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/01eda59fc398ff0e49f50e704e16a96f.png"
+        },
+        {
+          "id": "451",
+          "name": "欢乐麻将",
+          "short_name": "HLMJ",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/059ed7799be681f8c8d9aad81d322c4c.jpg"
+        },
+        {
+          "id": "1056",
+          "name": "王者模拟战",
+          "short_name": "wzrpg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5c531f054bb3ca14d3951a2264f10f27.png"
+        },
+        {
+          "id": "543",
+          "name": "中国象棋",
+          "short_name": "ZGXQ",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/1e6b3f263271fd678910f5532757cc69.jpg"
+        },
+        {
+          "id": "1509",
+          "name": "天谕手游",
+          "short_name": "tysy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/396ee3f8e65de398cf7da94e2dc4eea8.png"
+        },
+        {
+          "id": "1858",
+          "name": "巅峰坦克",
+          "short_name": "DFTK",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/84102e5d5395ed083db3a736d970b123.png"
+        },
+        {
+          "id": "229",
+          "name": "新游中心",
+          "short_name": "xyzx",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/b4fb71fbdedc3c4089616df87b535790.png"
+        },
+        {
+          "id": "30",
+          "name": "热门手游",
+          "short_name": "phone",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ed64ede702536cb0f495b09b71ff5bd2.png"
+        },
+        {
+          "id": "179",
+          "name": "梦幻手游",
+          "short_name": "mhxy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/27bc3ae8a92fb40f02bd9a71adbd9db9.jpg"
+        },
+        {
+          "id": "331",
+          "name": "QQ飞车",
+          "short_name": "qqfcsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/263c4b6fa8ffa181976433ad7b4dfb0d.png"
+        },
+        {
+          "id": "356",
+          "name": "第五人格",
+          "short_name": "dwrg",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/eea057821f85467c16e2349bbc19d43a.jpg"
+        },
+        {
+          "id": "416",
+          "name": "欢乐斗地主",
+          "short_name": "hlddz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/41e36dfe32488f3cb5faa0c5177a379a.png"
+        },
+        {
+          "id": "625",
+          "name": "荒野乱斗",
+          "short_name": "hyld",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/47ed2ac60bccaa2a29ab04ff092adde6.png"
+        },
+        {
+          "id": "240",
+          "name": "阴阳师",
+          "short_name": "yys",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/58add83c479d4e47fc3a62a4be253934.png"
+        },
+        {
+          "id": "260",
+          "name": "狼人杀",
+          "short_name": "LRS",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/927eeab9dde1b7d185e4beec21362403.jpg"
+        },
+        {
+          "id": "454",
+          "name": "JJ斗地主",
+          "short_name": "jj",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/1b94d9383b0aa518f9cb723543c75cc9.jpg"
+        },
+        {
+          "id": "1583",
+          "name": "梦幻新诛仙",
+          "short_name": "mhxzx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3ec19af4c7b77940597c88f56dc70bee.png"
+        },
+        {
+          "id": "1591",
+          "name": "街霸对决",
+          "short_name": "jbdj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e73e5ff77a84d73c2f412d42bdf247fe.png"
+        },
+        {
+          "id": "380",
+          "name": "崩坏3",
+          "short_name": "bhxl",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/897b1f2ff43f4d9ac62ac617b8af1eef.png"
+        },
+        {
+          "id": "1947",
+          "name": "云游戏",
+          "short_name": "cloudgame",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/67da5ef47e2322041216e3c4359aa434.png"
+        },
+        {
+          "id": "654",
+          "name": "跑跑手游",
+          "short_name": "PPKDCSY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/69730b2d8b2bf5bd72b38bc59197a529.png"
+        },
+        {
+          "id": "376",
+          "name": "率土之滨",
+          "short_name": "stzb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/799b8f27fbacf8caf57340439a0a5fb2.png"
+        },
+        {
+          "id": "1098",
+          "name": "灌篮高手",
+          "short_name": "glgs",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b50eb895835f624c4df6449e5a0aceb6.png"
+        },
+        {
+          "id": "190",
+          "name": "皇室战争",
+          "short_name": "hszz",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/d622d3e81bd1fd785184def6cf138fa3.png"
+        },
+        {
+          "id": "566",
+          "name": "忍者必须死3",
+          "short_name": "rzbxs3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fa8f8af6531ce6ea509e1892559d7c20.png"
+        },
+        {
+          "id": "500",
+          "name": "梦幻模拟战",
+          "short_name": "mhmnz",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/8830f55ff818bf74196c2363564daf22.png"
+        },
+        {
+          "id": "474",
+          "name": "实况足球",
+          "short_name": "skzq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/89a8f75fee3f2e689ad19d93a0ae24b8.png"
+        },
+        {
+          "id": "192",
+          "name": "球球大作战",
+          "short_name": "qqdzz",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/d55ab0fa8a2c840f71123738e83fd088.jpg"
+        },
+        {
+          "id": "448",
+          "name": "英雄杀",
+          "short_name": "yxs",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/cd3c277eb0d66a1bca5719dcb28fcdf5.jpg"
+        },
+        {
+          "id": "291",
+          "name": "精灵宝贝",
+          "short_name": "KDXLC",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8be03f4f5791bbe7f76317631f078f0e.png"
+        },
+        {
+          "id": "177",
+          "name": "部落冲突",
+          "short_name": "blct",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/eea39cd8b41bf91ab38fab338351c0f6.jpg"
+        },
+        {
+          "id": "1150",
+          "name": "新笑傲江湖",
+          "short_name": "xxajh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/48318ff81977575306379aac7cf87473.png"
+        },
+        {
+          "id": "524",
+          "name": "猫和老鼠",
+          "short_name": "mhls",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/1c37fb5ed79c7be77203d931880e7fcb.jpg"
+        },
+        {
+          "id": "430",
+          "name": "明日之后",
+          "short_name": "mrzh",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/4d1c931a45332e0be29efcf7ec6448a7.jpg"
+        },
+        {
+          "id": "408",
+          "name": "影之诗",
+          "short_name": "yzs",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a613e8ffdf8444281dbe3d277a451887.png"
+        },
+        {
+          "id": "344",
+          "name": "决战平安京",
+          "short_name": "jzpaj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/380c4a37a7352a6caf4309d1e19dcf85.png"
+        },
+        {
+          "id": "508",
+          "name": "圣斗士星矢",
+          "short_name": "sdsxs",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/caca1886b89a078035451fc90b2923f8.png"
+        },
+        {
+          "id": "398",
+          "name": "魔力宝贝手游",
+          "short_name": "mlbbsy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/f945cd3478e3e55a95ca9ef6214c0e72.jpg"
+        },
+        {
+          "id": "1192",
+          "name": "哈利波特：魔法觉醒",
+          "short_name": "HarryPotter",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1948578f2982f156c67fa9f2046e0bb9.png"
+        },
+        {
+          "id": "418",
+          "name": "手游推广",
+          "short_name": "rmsy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/6e8d06ea04064ed5bb0e0223460fa159.jpg"
+        },
+        {
+          "id": "273",
+          "name": "迷你世界",
+          "short_name": "MNSJ",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/c08f4eee87f8ab91d58d7771e6ea3395.png"
+        },
+        {
+          "id": "336",
+          "name": "荒野行动",
+          "short_name": "hyxd",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/e4c3cec55cea3c5247eca9d7883e0ee7.jpg"
+        },
+        {
+          "id": "421",
+          "name": "FC足球世界",
+          "short_name": "FCZQSJ",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/372db90707e454ffe6c0edd7a73f6643.png"
+        },
+        {
+          "id": "244",
+          "name": "街篮",
+          "short_name": "jl",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/6ec677b6e8f52211b493c279d569c5fc.jpg"
+        },
+        {
+          "id": "531",
+          "name": "明日方舟",
+          "short_name": "mrfz",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/aa6c7321d7903275778d63e130485758.png"
+        },
+        {
+          "id": "366",
+          "name": "一梦江湖",
+          "short_name": "ymjh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/93f9fd19098258f37d7f0b3f8f34c21d.png"
+        },
+        {
+          "id": "214",
+          "name": "拳皇98OL",
+          "short_name": "kof98",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/f29417f1e94417ecbce53778f3a4b832.jpg"
+        },
+        {
+          "id": "664",
+          "name": "梦塔防手游",
+          "short_name": "mtfsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e7376e8f67f97348db7b0637e6666a06.png"
+        },
+        {
+          "id": "362",
+          "name": "猎魂觉醒",
+          "short_name": "lhjx",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/d924255504a4b3d4c6639d5beded3c97.jpg"
+        },
+        {
+          "id": "556",
+          "name": "逃跑吧少年",
+          "short_name": "tpbsn",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/48f7998e79f4150c6f4b4f6fb12ebba7.png"
+        },
+        {
+          "id": "639",
+          "name": "石器时代",
+          "short_name": "sqsd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9dc7524fc4ad835bf2a106bdb489c3cf.png"
+        },
+        {
+          "id": "289",
+          "name": "英魂之刃口袋版",
+          "short_name": "yh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/85ff021b3b740a6e7e2624b977baf10c.png"
+        },
+        {
+          "id": "648",
+          "name": "雀魂",
+          "short_name": "Majsoul",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/21cc1f5209a3a792a51444fab7daac72.png"
+        },
+        {
+          "id": "411",
+          "name": "征途2手游",
+          "short_name": "zt2sy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/9c155edadd8e95d63b2c074d49a97a51.png"
+        },
+        {
+          "id": "536",
+          "name": "元气骑士",
+          "short_name": "yuanqiqishi",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/2fa243f088f382a2e713f14b6823aeef.png"
+        },
+        {
+          "id": "298",
+          "name": "植物大战僵尸手游",
+          "short_name": "ZWDZJS",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/7c2841c16fbaa204d9469261621ce2cf.png"
+        },
+        {
+          "id": "371",
+          "name": "创造与魔法",
+          "short_name": "ccymf",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/49778f0642b696e98900a770c385ebb5.png"
+        },
+        {
+          "id": "1132",
+          "name": "光遇",
+          "short_name": "skygy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fa90906d331be8276a801399d2d3abed.png"
+        },
+        {
+          "id": "1137",
+          "name": "巅峰战舰",
+          "short_name": "dfzj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/07037e0ae49053f78a34baa6e6781bc6.png"
+        },
+        {
+          "id": "433",
+          "name": "天天象棋",
+          "short_name": "ttxq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/228581580343edd6c678dc846ad4dd97.png"
+        },
+        {
+          "id": "526",
+          "name": "王国纪元",
+          "short_name": "wgjy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/4ad0252e99513e5d0e38fd50123f9b5e.png"
+        },
+        {
+          "id": "630",
+          "name": "龙族幻想",
+          "short_name": "lzhx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/c2638fe6ac0b682a9940ef570690d60f.png"
+        },
+        {
+          "id": "657",
+          "name": "三国杀移动版",
+          "short_name": "SGSSY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d68b7a1959974284755989d7688c93cf.png"
+        },
+        {
+          "id": "513",
+          "name": "足球手游",
+          "short_name": "zqsy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/d13a854a02da5d6e38ebb33bf83f846c.jpg"
+        },
+        {
+          "id": "282",
+          "name": "天龙八部",
+          "short_name": "TLBB",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/96c40b071dcc6951b9c98ee36e77083c.jpg"
+        },
+        {
+          "id": "1148",
+          "name": "微乐棋牌",
+          "short_name": "WLQP",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/85299b7e77df67b6b8a077acfeafae79.png"
+        },
+        {
+          "id": "918",
+          "name": "辐射：避难所Online",
+          "short_name": "fsbnsonline"
+        },
+        {
+          "id": "1763",
+          "name": "街篮2",
+          "short_name": "jl2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/acad0aac17d49c1fbaedfd31716da274.png"
+        },
+        {
+          "id": "1504",
+          "name": "极光计划",
+          "short_name": "jgjh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4059d09c7c36d71920f45f85a077a3a7.png"
+        },
+        {
+          "id": "348",
+          "name": "乱世王者",
+          "short_name": "lswz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b5cf7de9641c40110c71aaa5a776360a.png"
+        },
+        {
+          "id": "511",
+          "name": "篮球手游",
+          "short_name": "lqsy",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/a588614b01988df22cab579751fd323a.png"
+        },
+        {
+          "id": "1184",
+          "name": "鬼泣-巅峰之战",
+          "short_name": "gqdfzz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/572d748e9ac4b10ccd4a997f8cedc4df.png"
+        },
+        {
+          "id": "341",
+          "name": "射击类手游",
+          "short_name": "qtsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ba29ac14d4f416bb1a20ad843ef41d28.png"
+        },
+        {
+          "id": "2846",
+          "name": "暗黑不朽",
+          "short_name": "diabloimmortal",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4c78a5a5a0917889636376384985520c.png"
+        },
+        {
+          "id": "1581",
+          "name": "三国志战略版",
+          "short_name": "sgzzlb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fee5d96470bf1f1f94dba4d585d1f683.png"
+        },
+        {
+          "id": "1593",
+          "name": "天地劫：幽城再临",
+          "short_name": "tdj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/cc360806ea57054ece38deb3dd397176.png"
+        },
+        {
+          "id": "1692",
+          "name": "五子棋",
+          "short_name": "wzq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6c33876e7863d2261ea8850f43f2efe0.png"
+        },
+        {
+          "id": "1693",
+          "name": "围棋",
+          "short_name": "wq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ede21c659ac4da96b3d586011fc33a9c.png"
+        },
+        {
+          "id": "1819",
+          "name": "黎明觉醒：生机",
+          "short_name": "lmjx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1832ac6838ad2796368ec695039f8b3d.png"
+        },
+        {
+          "id": "1911",
+          "name": "庆余年",
+          "short_name": "QYN",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f14ef558061c8cf889a6b7694c764935.png"
+        },
+        {
+          "id": "1923",
+          "name": "大话西游手游",
+          "short_name": "dhxysy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e218e0457c96323cdb22dab0a68cf2f7.png"
+        },
+        {
+          "id": "1962",
+          "name": "新剑侠情缘手游",
+          "short_name": "xjxqysy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/20b7a62f83ea25bafc80eebf74d711be.png"
+        },
+        {
+          "id": "1976",
+          "name": "重生细胞",
+          "short_name": "csxb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1b7cc131867ebf39da696ffee4d6fcb0.png"
+        },
+        {
+          "id": "1991",
+          "name": "海岛奇兵",
+          "short_name": "hdqb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f2f7e294d1799529f6da1651f8ffac41.png"
+        },
+        {
+          "id": "2019",
+          "name": "战舰世界闪击战",
+          "short_name": "zjsjsjz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ef7ec942346098c21533273085374e6f.png"
+        },
+        {
+          "id": "2039",
+          "name": "西游女儿国",
+          "short_name": "xyneg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0ea421dbeffccc263e46c94b654e6e57.png"
+        },
+        {
+          "id": "2049",
+          "name": "横扫千军",
+          "short_name": "hsqj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/58e8f9582418b36cd645005580d0e091.png"
+        },
+        {
+          "id": "2108",
+          "name": "阳光传奇",
+          "short_name": "ygcq1",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b696bc1fd49a3e29b30b8e1611e6e467.png"
+        },
+        {
+          "id": "2124",
+          "name": "精灵之境",
+          "short_name": "jlzj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6b7aaa960eec453c125e03b8739d7e09.png"
+        },
+        {
+          "id": "2128",
+          "name": "斗罗大陆：武魂觉醒",
+          "short_name": "dldlwhjx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0acc22b3d2631760213a3a8ec4f8202d.png"
+        },
+        {
+          "id": "2149",
+          "name": "战神觉醒",
+          "short_name": "zsjx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3baf4c67728169d3d387f1ea7847a9d1.png"
+        },
+        {
+          "id": "2172",
+          "name": "攻城掠地",
+          "short_name": "gcld",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/90a6084904d6f87eaad16a746e0342a3.png"
+        },
+        {
+          "id": "2176",
+          "name": "我的帝国H5",
+          "short_name": "wddgh5",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d9fbe89fbf4bbf5d5785d464302edcb9.png"
+        },
+        {
+          "id": "2177",
+          "name": "盗墓笔记",
+          "short_name": "dmbj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0d7369f1c483c6275aff1380a41e87ff.png"
+        },
+        {
+          "id": "2213",
+          "name": "拳魂觉醒",
+          "short_name": "qhjx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/414085fe08c7aa688f854b09ec6dbfc7.png"
+        },
+        {
+          "id": "2276",
+          "name": "斗罗大陆",
+          "short_name": "dldl",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b81073c70c8ff0bf969a380ee2658535.png"
+        },
+        {
+          "id": "2312",
+          "name": "小小突击队",
+          "short_name": "xxtjd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/249e10a0034f267bdb0643840f8b2c13.png"
+        },
+        {
+          "id": "2336",
+          "name": "奥奇传说手游",
+          "short_name": "aqcssy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f22bbe78eec0b3cb6c3c3ac9ac520955.png"
+        },
+        {
+          "id": "2425",
+          "name": "豪杰成长计划",
+          "short_name": "hjczjh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1e52d5859514715810dafe091d534bc7.png"
+        },
+        {
+          "id": "2458",
+          "name": "少女前线",
+          "short_name": "snqx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e077e68b8f20aa185f5cebe0aa369a88.png"
+        },
+        {
+          "id": "2518",
+          "name": "奥拉星",
+          "short_name": "alx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/47c311b115066e4228a4c5ac7529d279.png"
+        },
+        {
+          "id": "2525",
+          "name": "先游云游戏",
+          "short_name": "Gamer",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9e6aad2a30ff4690691e9141e5ece677.png"
+        },
+        {
+          "id": "2618",
+          "name": "第七史诗",
+          "short_name": "dqss",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a346b4821ce90d77d2d733cc587b49be.png"
+        },
+        {
+          "id": "2647",
+          "name": "少女前线2：追放",
+          "short_name": "sq2zf",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3aa33955477ba91104887e85c850834b.png"
+        },
+        {
+          "id": "2651",
+          "name": "下一站江湖Ⅰ",
+          "short_name": "xyzjh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/aeab5e19e08879e2c1eb7d878459397f.png"
+        },
+        {
+          "id": "2667",
+          "name": "植物大战僵尸2",
+          "short_name": "zwdzjs2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/39e7173a76b48515351008a86302cc74.png"
+        },
+        {
+          "id": "2693",
+          "name": "无悔华夏",
+          "short_name": "whrhx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d5da8b5a0557bd1c6142b7bf504ae649.png"
+        },
+        {
+          "id": "2774",
+          "name": "闪烁之光",
+          "short_name": "syzg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/30404e750ae726e4b40a640535cf7a97.png"
+        },
+        {
+          "id": "2828",
+          "name": "剑侠世界3",
+          "short_name": "jxsj3",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/daf07e79111008ed25caff2ab428206c.png"
+        },
+        {
+          "id": "2861",
+          "name": "挨饿荒野",
+          "short_name": "aehy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/30f5be811c1d46cc0c078dff6a9a0be7.png"
+        },
+        {
+          "id": "2884",
+          "name": "诺亚之心",
+          "short_name": "nyzx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/facc242da79c24665ccdab8e59636113.png"
+        },
+        {
+          "id": "2887",
+          "name": "闪耀暖暖",
+          "short_name": "synn",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/439e913beb99923d2c87d61b3db589d6.png"
+        },
+        {
+          "id": "2909",
+          "name": "模拟城市：我是市长",
+          "short_name": "mncswssc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0a39ce988ecafe0f5538543604369626.png"
+        },
+        {
+          "id": "2915",
+          "name": "重返帝国",
+          "short_name": "cfdg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/52ffa5b6b23f9a92837c98ae7b818d4c.png"
+        },
+        {
+          "id": "2923",
+          "name": "长安幻想",
+          "short_name": "cahx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e81bbadbabd9e25282b6dfb2275a8238.png"
+        },
+        {
+          "id": "2925",
+          "name": "火炬之光：无限",
+          "short_name": "hjzgwx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1ca48146310cbc0bd9501cc5366bf5a8.png"
+        },
+        {
+          "id": "2936",
+          "name": "富豪闯三国",
+          "short_name": "fhcsg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/9719cc9d4da1e6ef19c8e119ecdee91b.png"
+        },
+        {
+          "id": "3002",
+          "name": "滚动的天空",
+          "short_name": "gddtk",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/568bf8f9dcbe17d216499b48b5d764b0.png"
+        },
+        {
+          "id": "3027",
+          "name": "荒野乱斗（腾讯版）",
+          "short_name": "hyldtxb",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7257867cf0093b2a88c6a902523d1b00.png"
+        },
+        {
+          "id": "3028",
+          "name": "小小勇者",
+          "short_name": "xxyz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0edbd170ec96c51b240c4d437c6c0ce5.png"
+        },
+        {
+          "id": "3035",
+          "name": "三国战纪2手游",
+          "short_name": "sgzj2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/df51397fb75dd1a51b46570271814a3b.png"
+        },
+        {
+          "id": "3042",
+          "name": "幸存者危城",
+          "short_name": "xczwc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1ded213cdcb549c356481dcf02b2b5ef.png"
+        },
+        {
+          "id": "3057",
+          "name": "纪念碑谷2",
+          "short_name": "jnbg2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/12a6029f549070621ef726c3cb125d19.png"
+        },
+        {
+          "id": "3061",
+          "name": "末日来袭",
+          "short_name": "mrlx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/224478ab34bddd4a393e901fd99e0ed4.png"
+        },
+        {
+          "id": "3089",
+          "name": "王国保卫战4",
+          "short_name": "wgbwz4",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b7a8d8a98e5dc1997934219d79487ddb.png"
+        },
+        {
+          "id": "3090",
+          "name": "半世界之旅",
+          "short_name": "bsjzl",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/680444ada9c5a913427b8066343a020a.png"
+        },
+        {
+          "id": "3134",
+          "name": "无尽寒冬",
+          "short_name": "wjhd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1ccf9290f03a2dfd120464c15d294de1.png"
+        },
+        {
+          "id": "3196",
+          "name": "超级改造家",
+          "short_name": "cjgzj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/909813aa4088b95d222b5841a6fac6ed.png"
+        },
+        {
+          "id": "3254",
+          "name": "钓鱼大对决",
+          "short_name": "dyddj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/55bcb5005279783f1a3f75ed514470be.png"
+        },
+        {
+          "id": "3289",
+          "name": "玄中记",
+          "short_name": "xzj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/00247de9ce8f8f9c9de62cee069b81d3.png"
+        },
+        {
+          "id": "3341",
+          "name": "荣耀新三国",
+          "short_name": "ryxsg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/748e728fc1ae45ac8d5f0aaef5f18de5.png"
+        },
+        {
+          "id": "3352",
+          "name": "巅峰极速",
+          "short_name": "dfjs",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d5fd2a33a54ca8ac30965d0dae91715c.png"
+        },
+        {
+          "id": "3359",
+          "name": "新盗墓笔记",
+          "short_name": "xdmbj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e349e00dd5bbb4905996182ae9b04d1e.png"
+        },
+        {
+          "id": "3362",
+          "name": "轩辕传奇手游",
+          "short_name": "XYCQSY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bc499fbd679e17511b366f46053b5e9a.png"
+        },
+        {
+          "id": "3374",
+          "name": "冰原守卫者",
+          "short_name": "byswz",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bc01e1a7aab3df000f147380799a69d7.jpg"
+        },
+        {
+          "id": "3375",
+          "name": "冒险小分队",
+          "short_name": "mxxfd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e89c72abb447737006b077c510f29fcf.png"
+        },
+        {
+          "id": "3421",
+          "name": "卧龙吟2",
+          "short_name": "wly2",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/7bcf663f924cf80c939b69bff17b4994.png"
+        },
+        {
+          "id": "3422",
+          "name": "爆裂魔女",
+          "short_name": "blmn",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e2901152213a854885d3998649f5f0b9.png"
+        },
+        {
+          "id": "3470",
+          "name": "乱世逐鹿",
+          "short_name": "lszl",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/29520fbefdae6a4a1cafa2d54637c6b5.png"
+        },
+        {
+          "id": "3475",
+          "name": "武林闲侠",
+          "short_name": "wlxx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6dbf70f552de715a6217a2ada265c376.png"
+        },
+        {
+          "id": "3483",
+          "name": "淘米游戏",
+          "short_name": "tmyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d3732aed41b6ed68d8c82c295e211ea3.png"
+        },
+        {
+          "id": "3513",
+          "name": "黑暗与光明手游",
+          "short_name": "haygmsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3c8adfdcc39a1e4ec5bacb0b13b477fd.png"
+        },
+        {
+          "id": "3531",
+          "name": "异能都市",
+          "short_name": "ynds",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/1bc8c079da9dc30ad4f11bd01f559fd8.png"
+        },
+        {
+          "id": "3532",
+          "name": "叫我大掌柜",
+          "short_name": "jwdzg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/077d42455aadfa823696ef4bc827708a.png"
+        },
+        {
+          "id": "3534",
+          "name": "暖雪",
+          "short_name": "warmsnow",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/55c66a620bc6c152d9e9f73123842310.png"
+        },
+        {
+          "id": "3535",
+          "name": "玛娜希斯回响",
+          "short_name": "mnxshx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/35f506f040d8c7f3f4a1e055e7fb5c1e.png"
+        },
+        {
+          "id": "3536",
+          "name": "永劫无间手游",
+          "short_name": "Naraka",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/20414077390b03417f4c2939fac173ec.png"
+        },
+        {
+          "id": "3549",
+          "name": "逆光潜入",
+          "short_name": "ngqr",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6b9b0a21f47722b1c8c1c2234cd8132c.png"
+        },
+        {
+          "id": "178",
+          "name": "CF手游",
+          "short_name": "CFSY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/014cdda9ddc47ee5d1a911ed40b605e6.png"
+        },
+        {
+          "id": "3586",
+          "name": "尘白禁区",
+          "short_name": "cbjq",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/51109d6523e93411fc64390b50e9a100.png"
+        },
+        {
+          "id": "3587",
+          "name": "明日方舟：终末地",
+          "short_name": "mrfzzmd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/0cb809f5af75f885d1ba5e9877502ff5.png"
+        },
+        {
+          "id": "3601",
+          "name": "全民大灌篮",
+          "short_name": "qmdgl",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/289a577cc5aaf483ff5c0d0738b873a3.png"
+        },
+        {
+          "id": "3609",
+          "name": "枪火重生手游",
+          "short_name": "GunfireReborn",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/85372191c0e4b74452a72638eba628a5.png"
+        },
+        {
+          "id": "3614",
+          "name": "火影三国志",
+          "short_name": "g_hysg",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3d2f6950ad83e3a2ba046d62935dc1fe.png"
+        },
+        {
+          "id": "3615",
+          "name": "网易其它组",
+          "short_name": "g_wyqt",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f01f9722c54eb2ff0ce685945c01d57d.png"
+        },
+        {
+          "id": "3635",
+          "name": "三国战纪手游",
+          "short_name": "sgzjsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/bbd6eb1fc2da757c2ac566313dc17c86.png"
+        },
+        {
+          "id": "3670",
+          "name": "染·钟楼谜团",
+          "short_name": "BOTC",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/ff784b4ac10379c296aac126bf1be7ca.png"
+        },
+        {
+          "id": "3671",
+          "name": "绝区零",
+          "short_name": "jql",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6d21bd96900cef169e34ad15781b4abe.png"
+        },
+        {
+          "id": "3688",
+          "name": "重返CODM",
+          "short_name": "RECODM",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8a0fdc06c04d6f44d8e26c8d1175d593.jpg"
+        },
+        {
+          "id": "3690",
+          "name": "综合手游",
+          "short_name": "zhsy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/67d52589db9544fefb80dae3392c2885.png"
+        },
+        {
+          "id": "3694",
+          "name": "IP游戏",
+          "short_name": "ipyx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/35e794eaf695a382ece91e63e4c6cf9a.png"
+        },
+        {
+          "id": "3696",
+          "name": "鸣潮",
+          "short_name": "cm",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/8554bd989466d7e4bbe189c9ada2d196.png"
+        },
+        {
+          "id": "3702",
+          "name": "棋牌游戏",
+          "short_name": "QPYX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/073ec59878a80af73f7d92cd003f3d1a.png"
+        },
+        {
+          "id": "3802",
+          "name": "SLG综合",
+          "short_name": "SLG",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6fa4aee45a0303570fa8689b681e86fb.jpg"
+        },
+        {
+          "id": "3844",
+          "name": "全明星街球派对",
+          "short_name": "hoopheroes",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/083f0e470a442c3e223ecdcc6438de03.png"
+        },
+        {
+          "id": "3865",
+          "name": "白荆回廊",
+          "short_name": "BJHL",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/06554847753087cbb10e131dfd6d7d59.png"
+        },
+        {
+          "id": "3877",
+          "name": "鹅鸭杀手游",
+          "short_name": "GooseDuck",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/80b3115d1720f4e4ba749b8ee6189e95.png"
+        },
+        {
+          "id": "4012",
+          "name": "决胜巅峰",
+          "short_name": "jueshengdianfeng",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/f38e0122bda639097e2ac7552047ad87.png"
+        },
+        {
+          "id": "4074",
+          "name": "决战玛法",
+          "short_name": "jzmf",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a80c1c022a66b1733f7969b4f4fad821.png"
+        },
+        {
+          "id": "4144",
+          "name": "二次元游戏",
+          "short_name": "ECYYX",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/dc4ecd04642b4b732ee4599fad54c5df.png"
+        },
+        {
+          "id": "4150",
+          "name": "剑侠世界：起源",
+          "short_name": "JXSJQY",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/2bc7c5c305dd1900720bb5be8ddefa95.png"
+        },
+        {
+          "id": "4205",
+          "name": "三国：谋定天下",
+          "short_name": "sgmdtx",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/3bc4172dc4e408f6fb3b4e0a8feb3bbb.png"
+        },
+        {
+          "id": "4240",
+          "name": "掌心全民麻将",
+          "short_name": "TERMINALMAHJONG",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/569baec95710e9024c1811e1384e05c1.jpg"
+        },
+        {
+          "id": "4251",
+          "name": "归龙潮",
+          "short_name": "glc",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/5997778192be6e303505fe3c28bc681f.png"
+        },
+        {
+          "id": "4290",
+          "name": "无畏契约：源能行动",
+          "short_name": "wwqyynxd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/17b1e3e21267ab00fe3005a3ae9f1c01.png"
+        },
+        {
+          "id": "4314",
+          "name": "黑子的篮球：街头对决",
+          "short_name": "KNB",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/4dcb7ce1fd81dd9691b7a09906da3261.jpg"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "娱乐天地",
+      "cate2List": [
+        {
+          "id": "311",
+          "name": "颜值（横屏）",
+          "short_name": "XX",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/06d8d4d79ed2f444dd6d88e374c7cd42.png"
+        },
+        {
+          "id": "4208",
+          "name": "竖屏美女",
+          "short_name": "sy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/30c36803b074ac90f5fdda4453cedb6f.png"
+        },
+        {
+          "id": "4315",
+          "name": "新人",
+          "short_name": "XR",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6879ea55f815c24d757a31557fda99d5.jpg"
+        },
+        {
+          "id": "1008",
+          "name": "星秀",
+          "short_name": "xingxiu",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/13054bd5068b08d7716a207efe6e4b01.png"
+        },
+        {
+          "id": "175",
+          "name": "才艺",
+          "short_name": "caiyi",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/05ab98bf4ca86475ad6c10489a019e3f.png"
+        },
+        {
+          "id": "124",
+          "name": "户外",
+          "short_name": "HW",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/b24b716b2a13bc0b758632e5b20e0835.png"
+        },
+        {
+          "id": "1191",
+          "name": "心动FM",
+          "short_name": "dtxs",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/fc75d6139460f578028b6d8ababfa4ba.png"
+        },
+        {
+          "id": "1057",
+          "name": "娱乐推荐",
+          "short_name": "yltj",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/6def7235dc5e010575ec3254425cc2bf.png"
+        },
+        {
+          "id": "194",
+          "name": "美食",
+          "short_name": "ms",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/695949a51d22548a26880235cb6f9c13.png"
+        },
+        {
+          "id": "183",
+          "name": "原创IP",
+          "short_name": "ip",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/1c4f9b3e0db24610879faf1e041d53d5.jpg"
+        },
+        {
+          "id": "1555",
+          "name": "心动派对",
+          "short_name": "xdpd",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/19da1f24bc54c3fc5b5dca9af3993a85.png"
+        },
+        {
+          "id": "174",
+          "name": "二次元",
+          "short_name": "ecy",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/346f48f437946cd2ef2a00bb0314e6f3.jpg"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "name": "颜值",
+      "cate2List": [
+        {
+          "id": "201",
+          "name": "颜值",
+          "short_name": "yz",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/d1546cfd3f7f985719f894496f2a7b2e.png"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "name": "科技文化",
+      "cate2List": [
+        {
+          "id": "134",
+          "name": "数码科技",
+          "short_name": "smkj",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/game_cate/7d14c2a7e7e8c8f773d9d25c18f40ae9.jpg"
+        },
+        {
+          "id": "514",
+          "name": "纪录片",
+          "short_name": "jlp",
+          "icon": "https://cs-op.douyucdn.cn/dycatr/9cacf7ef8722f07008321591e691cb91.jpg"
+        },
+        {
+          "id": "1551",
+          "name": "成年教育",
+          "short_name": "jiaoyu",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/60f1992c7cc6e621e79fd3ebc43ffa7a.png"
+        },
+        {
+          "id": "4137",
+          "name": "人文社科",
+          "short_name": "Humanities",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/a07d053d8379d7d864c0e9eb36d28bbd.jpg"
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "name": "语音互动",
+      "cate2List": [
+        {
+          "id": "1221",
+          "name": "派对",
+          "short_name": "paidui",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/02b572dd6b730b1a6e63750bcd67b9a1.png"
+        },
+        {
+          "id": "1556",
+          "name": "心动FM.",
+          "short_name": "DIANT",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/d8cd4a9bfd0425cba1739a6392c46215.png"
+        },
+        {
+          "id": "1575",
+          "name": "一起玩",
+          "short_name": "yiqiwan",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/347e7f92f8fe24629f7fbedcfce39f7a.png"
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "name": "语音直播",
+      "cate2List": [
+        {
+          "id": "910",
+          "name": "音乐之声",
+          "short_name": "yyzs",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/b2613bb2c1dfef85a6b0459025130cdb.png"
+        },
+        {
+          "id": "1015",
+          "name": "娱乐开黑",
+          "short_name": "ylkh",
+          "icon": "https://sta-op.douyucdn.cn/dycatr/e63ac8fca383de160b333c20848a2f2f.png"
+        }
+      ]
+    }
+  ]
+}

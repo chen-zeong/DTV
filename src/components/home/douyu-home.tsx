@@ -4,13 +4,14 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Loader2, RefreshCw, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { fetchDouyuCategories, fetchDouyuLiveList } from "@/services/douyu";
+import { fetchDouyuLiveList } from "@/services/douyu";
 import { DouyuCate2, DouyuCate3, DouyuStreamer } from "@/types/douyu";
 import { Platform } from "@/types/platform";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { LiveGrid, LiveGridSkeleton, type LiveCardItem } from "@/components/live/live-grid";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useThemeStore } from "@/stores/theme-store";
+import douyuCategories from "@/data/douyu_categories.json";
 
 type CateOption = {
   id: string;
@@ -26,15 +27,44 @@ export function DouyuHome() {
   const theme = useThemeStore((s) => s.getEffectiveTheme());
   const isDark = theme === "dark";
   const [isMobile, setIsMobile] = useState(false);
-  const [cate1List, setCate1List] = useState<Array<{ id: string; name: string }>>([]);
-  const [selectedCate1, setSelectedCate1] = useState<string | null>(null);
-  const [cateOptions, setCateOptions] = useState<CateOption[]>([]);
-  const [selectedCate2, setSelectedCate2] = useState<string | null>(null);
+  const [viewportHeight, setViewportHeight] = useState(() => (typeof window === "undefined" ? 900 : window.innerHeight));
+  const parsedCategories = useMemo(() => {
+    const res = douyuCategories as unknown as {
+      cate1List?: Array<{ id: string; name: string; cate2List?: DouyuCate2[] }>;
+    };
+    const c1s =
+      res?.cate1List?.map((c1) => ({
+        id: String(c1.id),
+        name: c1.name,
+      })) || [];
+    const cate2s: CateOption[] =
+      res?.cate1List?.flatMap((c1) =>
+        (c1.cate2List || []).map((c2: DouyuCate2) => ({
+          id: String(c2.id),
+          name: c2.name,
+          shortName: c2.short_name,
+          cate1Id: String(c1.id),
+          cate3: c2.cate3List || [],
+        }))
+      ) || [];
+    const firstCate1 = c1s[0]?.id ?? null;
+    const firstCate2 = firstCate1 ? cate2s.find((c) => c.cate1Id === firstCate1) : null;
+    return {
+      cate1List: c1s,
+      cate2List: cate2s,
+      firstCate1,
+      firstCate2: firstCate2?.shortName ?? null,
+    };
+  }, []);
+
+  const [cate1List, setCate1List] = useState<Array<{ id: string; name: string }>>(parsedCategories.cate1List);
+  const [selectedCate1, setSelectedCate1] = useState<string | null>(parsedCategories.firstCate1);
+  const [cateOptions, setCateOptions] = useState<CateOption[]>(parsedCategories.cate2List);
+  const [selectedCate2, setSelectedCate2] = useState<string | null>(parsedCategories.firstCate2);
   const [selectedCate3, setSelectedCate3] = useState<string | null>(null);
   const [streamers, setStreamers] = useState<DouyuStreamer[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [loadingCategories, setLoadingCategories] = useState(false);
   const [cate2Expanded, setCate2Expanded] = useState(false);
   const [showCateSheet, setShowCateSheet] = useState<"cate1" | "cate2" | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -51,41 +81,6 @@ export function DouyuHome() {
   const currentCate3List = useMemo(() => {
     return cateOptions.find((c) => c.shortName === selectedCate2)?.cate3 ?? [];
   }, [cateOptions, selectedCate2]);
-
-  const loadCategories = async () => {
-    setLoadingCategories(true);
-    try {
-      const res = await fetchDouyuCategories();
-      const c1s =
-        res?.cate1List?.map((c1) => ({
-          id: c1.id,
-          name: c1.name,
-        })) || [];
-      setCate1List(c1s);
-      const cate2s: CateOption[] =
-        res?.cate1List?.flatMap((c1) =>
-          (c1.cate2List || []).map((c2: DouyuCate2) => ({
-            id: c2.id,
-            name: c2.name,
-            shortName: c2.short_name,
-            cate1Id: c1.id,
-            cate3: c2.cate3List || [],
-          }))
-        ) || [];
-      setCateOptions(cate2s);
-      if (c1s.length > 0) {
-        setSelectedCate1(c1s[0].id);
-        const firstCate2 = cate2s.find((c) => c.cate1Id === c1s[0].id);
-        setSelectedCate2(firstCate2?.shortName || null);
-        setSelectedCate3(null);
-        pageRef.current = 0;
-      }
-    } catch (error) {
-      console.error("[douyu-home] fetch categories failed", error);
-    } finally {
-      setLoadingCategories(false);
-    }
-  };
 
   const fetchList = useCallback(
     async (pageToFetch: number, append = false) => {
@@ -119,14 +114,23 @@ export function DouyuHome() {
   );
 
   useEffect(() => {
-    void loadCategories();
-  }, []);
+    // ensure derived selections are set once categories are initialized
+    if (cate1List.length > 0 && !selectedCate1) {
+      setSelectedCate1(cate1List[0].id);
+      const firstCate2 = cateOptions.find((c) => c.cate1Id === cate1List[0].id);
+      setSelectedCate2(firstCate2?.shortName || null);
+      setSelectedCate3(null);
+      pageRef.current = 0;
+    }
+  }, [cate1List, cateOptions, selectedCate1]);
 
   useEffect(() => {
     const update = () => {
       if (typeof window === "undefined") return;
       const width = window.visualViewport?.width ?? window.innerWidth;
+      const height = window.visualViewport?.height ?? window.innerHeight;
       setIsMobile(width <= 768);
+      setViewportHeight(height || window.innerHeight);
     };
     update();
     window.addEventListener("resize", update);
@@ -189,6 +193,8 @@ export function DouyuHome() {
     ? cateOptions.filter((cate) => (selectedCate1 ? cate.cate1Id === selectedCate1 : true)).slice(0, cate2Limit)
     : cateOptions.filter((cate) => (selectedCate1 ? cate.cate1Id === selectedCate1 : true));
   const cate2CollapsedHeight = 96;
+  const cate2ContainerMaxHeight = Math.max(260, Math.floor(viewportHeight * 0.8));
+  const cate2ExpandedMaxHeight = Math.max(200, cate2ContainerMaxHeight - 60);
   const expandedCate2 = cate2Expanded || visibleCate2.length <= 10;
   const cate2Transition = {
     maxHeight: { duration: expandedCate2 ? 0.6 : 0.38, ease: [0.16, 1, 0.3, 1] },
@@ -202,28 +208,15 @@ export function DouyuHome() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col flex-1 gap-2">
             <div className="flex gap-2 flex-wrap mt-2 mb-2">
-              {loadingCategories && cate1List.length === 0 ? (
-                Array.from({ length: 8 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`px-5 py-2.5 rounded-2xl border animate-pulse ${
-                      isDark ? "border-white/10 bg-white/10" : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="h-3 w-12 rounded bg-gray-200/70 dark:bg-white/20" />
-                  </div>
-                ))
-              ) : (
-                visibleCate1.map((c1) => (
-                  <button
-                    key={c1.id}
-                    onClick={() => setSelectedCate1(c1.id)}
-                    className={categoryChipClass(selectedCate1 === c1.id)}
-                  >
-                    {c1.name}
-                  </button>
-                ))
-              )}
+              {visibleCate1.map((c1) => (
+                <button
+                  key={c1.id}
+                  onClick={() => setSelectedCate1(c1.id)}
+                  className={categoryChipClass(selectedCate1 === c1.id)}
+                >
+                  {c1.name}
+                </button>
+              ))}
               {isMobile && cate1List.length > cate1Limit ? (
                 <button
                   className={`px-3 py-2 rounded-full border text-xs ${
@@ -250,44 +243,38 @@ export function DouyuHome() {
           </button>
         </div>
 
-        <div className="relative mt-1">
+        <div
+          className="relative mt-1 flex flex-col gap-2"
+          style={{ maxHeight: cate2ContainerMaxHeight, overflow: "hidden" }}
+        >
           <motion.div
             layout
             initial={false}
             animate={{
-              maxHeight: expandedCate2 ? 2000 : cate2CollapsedHeight,
+              maxHeight: expandedCate2 ? cate2ExpandedMaxHeight : cate2CollapsedHeight,
               opacity: expandedCate2 ? 1 : 0.97,
               scaleY: expandedCate2 ? 1 : 0.995,
             }}
             transition={cate2Transition}
-            className="flex gap-2 flex-wrap overflow-hidden"
-            style={{ willChange: "transform, max-height, opacity" }}
+            className="flex-1 flex gap-2 flex-wrap overflow-hidden no-scrollbar"
+            style={{
+              willChange: "transform, max-height, opacity",
+              overflowY: expandedCate2 ? "auto" : "hidden",
+              paddingBottom: expandedCate2 ? 8 : 0,
+            }}
           >
-            {loadingCategories && cateOptions.length === 0 ? (
-              Array.from({ length: 12 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`px-4 py-2 rounded-2xl border animate-pulse ${
-                    isDark ? "border-white/10 bg-white/10" : "border-gray-200 bg-white"
-                  }`}
-                >
-                  <div className="h-3 w-16 rounded bg-gray-200/70 dark:bg-white/20" />
-                </div>
-              ))
-            ) : (
-              visibleCate2.map((cate) => (
-                <button
-                  key={cate.shortName}
-                  onClick={() => {
-                    setSelectedCate2(cate.shortName);
-                    setSelectedCate3(null);
-                  }}
-                  className={categoryChipClass(selectedCate2 === cate.shortName)}
-                >
-                  {cate.name}
-                </button>
-              ))
-            )}
+            {visibleCate2.map((cate) => (
+              <button
+                key={cate.shortName}
+                onClick={() => {
+                  setSelectedCate2(cate.shortName);
+                  setSelectedCate3(null);
+                }}
+                className={categoryChipClass(selectedCate2 === cate.shortName)}
+              >
+                {cate.name}
+              </button>
+            ))}
           </motion.div>
           {isMobile && cateOptions.length > cate2Limit ? (
             <div className="flex justify-center mt-2">
