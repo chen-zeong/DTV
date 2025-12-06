@@ -43,7 +43,11 @@ export function PlayerOverlay() {
     <AnimatePresence>
       {canRender ? (
         <motion.div
-          className="fixed inset-0 z-[130] bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
+          className={`fixed inset-0 z-[130] ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
+              : "bg-gradient-to-br from-[#e9f1ff] via-white to-[#f3f6fb] text-gray-900"
+          }`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -63,7 +67,7 @@ export function PlayerOverlay() {
             )}
 
             <motion.div
-              className="flex-1 h-full overflow-auto p-0 md:p-5"
+              className="flex-1 h-full overflow-hidden p-0 md:p-4"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -76,6 +80,7 @@ export function PlayerOverlay() {
                 initialTitle={title || undefined}
                 initialAnchorName={anchorName || undefined}
                 initialAvatar={avatar || undefined}
+                theme={theme}
               />
             </motion.div>
           </div>

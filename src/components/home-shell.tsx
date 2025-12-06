@@ -125,7 +125,7 @@ export function HomeShell({
       <div className="relative flex-1 h-full">
         <BackgroundFeed theme={theme} />
 
-        <div className="relative z-20 h-full overflow-hidden flex flex-col pb-16 md:pb-4">
+        <div className="relative z-20 h-full overflow-hidden flex flex-col pb-0 md:pb-0">
           <div className="pt-4 pb-2 px-4 hidden md:block">
             <div className="grid w-full grid-cols-[auto,1fr,auto] items-center gap-3">
               <div className="flex items-center">
@@ -205,7 +205,7 @@ export function HomeShell({
             </div>
           </div>
 
-          <div className={`flex-1 overflow-hidden p-2 md:p-4 space-y-3 ${contentGradient}`}>
+          <div className={`flex-1 overflow-hidden p-0 md:p-2 space-y-0 ${contentGradient}`}>
             {activePlatform === Platform.DOUYU && <DouyuHome />}
             {activePlatform === Platform.HUYA && <HuyaHome />}
             {activePlatform === Platform.BILIBILI && <BilibiliHome />}
