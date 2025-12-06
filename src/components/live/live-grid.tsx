@@ -27,24 +27,24 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
     <div
       className={cn(
         "grid gap-4 grid-cols-2",
-        "sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]",
+        "sm:grid-cols-[repeat(auto-fit,minmax(240px,240px))] sm:justify-start",
         className
       )}
     >
       {items.map((item) => (
         <div
           key={item.id}
-          className="group rounded-xl border border-white/10 bg-black/40 overflow-hidden hover:border-white/30 transition-colors cursor-pointer"
+          className="group rounded-xl bg-white shadow-[0_10px_30px_-18px_rgba(0,0,0,0.4)] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.45)] cursor-pointer dark:bg-[#0c101a] dark:shadow-[0_12px_34px_-22px_rgba(0,0,0,0.7)] dark:hover:shadow-[0_18px_48px_-22px_rgba(0,0,0,0.8)]"
           onClick={() => onCardClick(item)}
         >
           <div className="relative">
             {item.cover ? (
               <Image src={item.cover} alt={item.title} width={640} height={360} className="w-full aspect-video object-cover" />
             ) : (
-              <div className="w-full aspect-video bg-white/5" />
+              <div className="w-full aspect-video bg-gray-100 dark:bg-white/5" />
             )}
             {item.viewerText ? (
-              <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs bg-black/60 backdrop-blur px-2 py-1 rounded-full">
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs bg-gray-800/55 text-white backdrop-blur px-2 py-1 rounded-full">
                 <Eye className="w-4 h-4" />
                 <span>{item.viewerText}</span>
               </div>
@@ -58,16 +58,16 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
                   alt={item.subtitle || item.title}
                   width={40}
                   height={40}
-                  className="w-10 h-10 rounded-full object-cover border border-white/10"
+                  className="w-10 h-10 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm text-white/70 border border-white/10">
+                <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-white/70 dark:ring-white/10">
                   {(item.subtitle || item.title).slice(0, 1)}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white truncate">{item.title}</div>
-                {item.subtitle ? <div className="text-xs text-gray-400 truncate">{item.subtitle}</div> : null}
+                <div className="text-sm font-semibold text-gray-900 truncate dark:text-white">{item.title}</div>
+                {item.subtitle ? <div className="text-xs text-gray-500 truncate dark:text-gray-400">{item.subtitle}</div> : null}
               </div>
             </div>
             {renderActions ? <div onClick={(e) => e.stopPropagation()}>{renderActions(item)}</div> : null}

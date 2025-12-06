@@ -24,33 +24,39 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
   return (
     <div
       ref={containerRef}
-      className={`w-full md:w-[280px] lg:w-[300px] h-full overflow-y-auto no-scrollbar rounded-xl border p-3 backdrop-blur-xl shadow-lg ${
-        isDark ? "border-white/10 bg-white/5" : "border-gray-200 bg-white"
+      className={`w-full md:w-[200px] lg:w-[220px] h-full overflow-y-auto no-scrollbar rounded-2xl border p-3.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.45)] ${
+        isDark
+          ? "border-white/10 bg-gradient-to-b from-[#0d111a]/90 via-[#0d111a]/70 to-[#0f1625]/80"
+          : "border-gray-200/70 bg-gradient-to-b from-white via-white to-[#f6f8fb]"
       } ${className || ""}`}
       style={style}
     >
-      <div className="flex items-center justify-between mb-2">
-        <div className={`text-[11px] tracking-[0.18em] uppercase ${isDark ? "text-gray-300" : "text-gray-600"}`}>弹幕</div>
-        <div className={`text-[11px] ${isDark ? "text-gray-400" : "text-gray-500"}`}>{messages.length} 条</div>
+      <div className="flex items-center justify-between mb-3">
+        <div
+          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold tracking-[0.16em] uppercase ${
+            isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(52,211,153,0.15)]" />
+          弹幕
+        </div>
+        <div className={`text-[11px] px-2 py-1 rounded-full ${isDark ? "text-gray-300 bg-white/5" : "text-gray-600 bg-gray-100"}`}>
+          {messages.length} 条
+        </div>
       </div>
-      <div className="space-y-2 text-sm">
+      <div className="space-y-2.5 text-sm">
         {messages.slice(-200).map((msg) => (
           <div
             key={msg.id}
-            className={`flex gap-2 items-start rounded-lg px-2 py-2 border ${
-              isDark ? "bg-white/5 border-white/5" : "bg-gray-50 border-gray-200"
-            }`}
+            className={`rounded-xl px-3 py-2.5 ring-1 ${
+              isDark
+                ? "bg-white/5 ring-white/10 hover:ring-white/20 hover:bg-white/10"
+                : "bg-white/80 ring-gray-200 hover:ring-gray-300 hover:bg-white"
+            } transition-colors`}
           >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold uppercase ${
-                isDark ? "bg-gradient-to-br from-white/15 to-white/5 text-white" : "bg-gray-200 text-gray-800"
-              }`}
-            >
-              {msg.nickname?.slice(0, 1) || "?"}
-            </div>
-            <div className="flex-1">
-              <div className={`text-[12px] ${isDark ? "text-gray-300" : "text-gray-600"}`}>{msg.nickname}</div>
-              <div className={`leading-snug break-words ${isDark ? "text-white/90" : "text-gray-900"}`}>{msg.content}</div>
+            <div className="space-y-1">
+              <div className={`text-[12px] font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>{msg.nickname}</div>
+              <div className={`leading-snug break-words ${isDark ? "text-gray-200" : "text-gray-700"}`}>{msg.content}</div>
             </div>
           </div>
         ))}

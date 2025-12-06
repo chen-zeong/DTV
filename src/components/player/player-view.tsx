@@ -6,7 +6,7 @@ import FlvPlugin from "xgplayer-flv";
 import HlsPlugin from "xgplayer-hls.js";
 import "xgplayer/dist/index.min.css";
 import "./player-controls.css";
-import { Loader2, RotateCw, AlertTriangle, ArrowLeft, X } from "lucide-react";
+import { Loader2, RotateCw, AlertTriangle, ArrowLeft, Play } from "lucide-react";
 import DanmuJs from "danmu.js";
 import { Platform } from "@/types/platform";
 import { DanmakuMessage } from "@/types/danmaku";
@@ -74,6 +74,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   const volumeControlRef = useRef<VolumeControl | null>(null);
   const reloadReasonRef = useRef<"auto" | "refresh" | "quality" | "line">("auto");
   const streamOrientationCleanupRef = useRef<(() => void) | null>(null);
+  const rotateObserverRef = useRef<MutationObserver | null>(null);
 
   const [quality, setQuality] = useState<(typeof qualityOptions)[number]>(() => {
     if (typeof window === "undefined") return "原画";
@@ -154,6 +155,41 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     streamOrientationCleanupRef.current = null;
     setIsStreamPortrait(null);
     setIsCssFullscreen(false);
+    setIsPlaying(false);
+    if (rotateObserverRef.current) {
+      rotateObserverRef.current.disconnect();
+      rotateObserverRef.current = null;
+    }
+  };
+
+  const normalizeRotateWrapper = (root: HTMLElement | null) => {
+    if (!root) return;
+    const rotateParent = root.closest(".xgplayer-rotate-parent") as HTMLElement | null;
+    if (rotateParent) {
+      const host = rotateParent.parentElement;
+      if (host) {
+        host.insertBefore(root, rotateParent);
+        rotateParent.remove();
+      }
+    }
+    root.style.position = "relative";
+    root.style.width = "100%";
+    root.style.height = "100%";
+    root.style.left = "0";
+    root.style.top = "0";
+    root.style.transform = "none";
+  };
+
+  const watchAndNormalizeRotateWrapper = (root: HTMLElement | null) => {
+    if (!root || typeof MutationObserver === "undefined") return;
+    const container = root.parentElement;
+    if (!container) return;
+    rotateObserverRef.current?.disconnect();
+    const observer = new MutationObserver(() => {
+      normalizeRotateWrapper(root);
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    rotateObserverRef.current = observer;
   };
 
   const setupPlayer = (config: StreamConfig) => {
@@ -301,6 +337,8 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     lineControlRef.current?.updateLabel(getLineLabel(lineOptionsForPlatform, line));
 
     arrangeControlClusters(player);
+    normalizeRotateWrapper(player.root as HTMLElement | null);
+    watchAndNormalizeRotateWrapper(player.root as HTMLElement | null);
 
     player.on("play", () => setIsPlaying(true));
     player.on("pause", () => setIsPlaying(false));
@@ -309,9 +347,13 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     });
     player.on("ready", () => {
       arrangeControlClusters(player);
+      normalizeRotateWrapper(player.root as HTMLElement | null);
+      watchAndNormalizeRotateWrapper(player.root as HTMLElement | null);
     });
     player.on("cssfullscreenchange", (status: boolean) => setIsCssFullscreen(Boolean(status)));
     playerRef.current = player;
+    normalizeRotateWrapper(player.root as HTMLElement | null);
+    watchAndNormalizeRotateWrapper(player.root as HTMLElement | null);
     setupDanmuOverlay(player);
   };
 
@@ -353,7 +395,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
         },
       });
       overlay.start?.();
-      overlay.setOpacity?.(!isPortrait && isCssFullscreen && danmakuEnabled ? danmakuPanelOpacity : 0);
+      overlay.setOpacity?.(!isPortrait && danmakuEnabled ? danmakuPanelOpacity : 0);
       overlay.setFontSize?.(danmakuFontSize);
       overlay.setArea?.({ start: 0, end: danmakuArea });
       overlay.setAllDuration?.("scroll", danmakuDuration);
@@ -374,6 +416,9 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     setDanmakuMessages([]);
     try {
       const cfg = await getStreamConfig(platform, roomId, quality, line ?? undefined);
+      if (!cfg?.streamUrl) {
+        throw new Error("无法获取直播流，请稍后重试");
+      }
       setStreamMeta(cfg);
       setupPlayer(cfg);
     } catch (e) {
@@ -399,6 +444,28 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   }, [platform, roomId, quality, line]);
 
   const handleRetry = () => void initStream();
+
+  const handleManualPlay = async () => {
+    if (loading) return;
+    const player = playerRef.current as XgMediaPlayer | null;
+    const media = player?.video ?? player?.media;
+    if (!player) {
+      await initStream("refresh");
+      return;
+    }
+    try {
+      await (player.play?.() ?? media?.play?.());
+      setIsPlaying(true);
+    } catch (err) {
+      console.warn("[player] mobile manual play failed", err);
+      try {
+        await media?.play?.();
+        setIsPlaying(true);
+      } catch {
+        await initStream("refresh");
+      }
+    }
+  };
 
   const danmakuPanelOpacity = useMemo(() => {
     return Math.min(1, Math.max(DANMU_OPACITY_MIN, danmakuOpacity));
@@ -453,6 +520,13 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   useEffect(() => {
     qualityControlRef.current?.updateLabel(quality);
   }, [quality]);
+
+  useEffect(() => {
+    const el = (playerRef.current?.root as HTMLElement | null) ?? containerRef.current;
+    if (!el) return;
+    const orientation = isStreamPortrait === false ? "landscape" : "portrait";
+    el.dataset.streamOrientation = orientation;
+  }, [isStreamPortrait, isPortrait]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -567,7 +641,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     newMsgs.forEach((msg) => {
       overlay.sendComment?.({
         id: msg.id,
-        txt: `${msg.nickname}: ${msg.content}`,
+        txt: msg.content,
         duration: danmakuDuration,
         mode: "scroll",
         style: {
@@ -582,8 +656,8 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   useEffect(() => {
     const overlay = danmuOverlayRef.current;
     if (!overlay) return;
-    overlay.setOpacity?.(!isPortrait && isCssFullscreen && danmakuEnabled ? danmakuPanelOpacity : 0);
-  }, [danmakuEnabled, danmakuPanelOpacity, isPortrait, isCssFullscreen]);
+    overlay.setOpacity?.(!isPortrait && danmakuEnabled ? danmakuPanelOpacity : 0);
+  }, [danmakuEnabled, danmakuPanelOpacity, isPortrait]);
 
   useEffect(() => {
     const overlay = danmuOverlayRef.current;
@@ -681,21 +755,6 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
               >
                 {isFollowed(platform, roomId) ? "已关注" : "关注"}
               </button>
-              <button
-                onClick={() => {
-                  if (onClose) onClose();
-                  else router.back();
-                }}
-                className={cn(
-                  "w-9 h-9 rounded-full backdrop-blur border flex items-center justify-center transition-colors",
-                  isDark
-                    ? "bg-black/60 border-white/10 text-white hover:bg-white/10"
-                    : "bg-white border-gray-200 text-gray-900 hover:bg-gray-100"
-                )}
-                title="关闭"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           </div>
         )}
@@ -780,16 +839,6 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
                   >
                     {isFollowed(platform, roomId) ? "已关注" : "关注"}
                   </button>
-                  <button
-                    onClick={() => {
-                      if (onClose) onClose();
-                      else router.back();
-                    }}
-                    className="w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
-                    title="关闭"
-                  >
-                    {isMobile ? <X className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-                  </button>
                 </div>
               </div>
 
@@ -816,6 +865,22 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
                 </div>
               )}
             </>
+          )}
+          {isMobile && !loading && !error && !isPlaying && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/55 backdrop-blur-sm">
+              <button
+                onClick={handleManualPlay}
+                className={cn(
+                  "px-4 py-2 rounded-full border flex items-center gap-2 text-sm font-semibold shadow-lg",
+                  isDark
+                    ? "border-white/30 bg-white/10 text-white hover:bg-white/15"
+                    : "border-gray-300 bg-white/90 text-gray-900 hover:bg-gray-100"
+                )}
+              >
+                <Play className="w-4 h-4" />
+                <span>点击播放</span>
+              </button>
+            </div>
           )}
           {loading && (
             <div
@@ -875,7 +940,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
       </div>
 
       {!isMobile && (
-        <div className="w-full md:w-[280px] lg:w-[300px] flex flex-col h-full md:h-full overflow-hidden">
+        <div className="w-full md:w-[200px] lg:w-[220px] flex flex-col h-full md:h-full overflow-hidden">
           <DanmakuPanel
             messages={danmakuMessages}
             className="transition-opacity flex-1 overflow-hidden"

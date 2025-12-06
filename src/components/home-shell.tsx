@@ -205,7 +205,7 @@ export function HomeShell({
             </div>
           </div>
 
-          <div className={`flex-1 overflow-hidden p-0 md:p-2 space-y-0 ${contentGradient}`}>
+          <div className={`flex-1 overflow-hidden p-0 md:p-2 md:pb-0 space-y-0 ${contentGradient}`}>
             {activePlatform === Platform.DOUYU && <DouyuHome />}
             {activePlatform === Platform.HUYA && <HuyaHome />}
             {activePlatform === Platform.BILIBILI && <BilibiliHome />}

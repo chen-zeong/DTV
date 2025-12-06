@@ -515,3 +515,64 @@
     --sidebar-offset: 0px !important;
   }
 }
+
+.player-view-page.mobile-player .xgplayer {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+}
+
+.player-view-page.mobile-player .xg-video-container {
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.player-view-page.mobile-player .xgplayer video,
+.player-view-page.mobile-player .xgplayer canvas {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+.player-view-page.mobile-player [data-stream-orientation="portrait"] .xg-video-container {
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.player-view-page.mobile-player [data-stream-orientation="portrait"] video,
+.player-view-page.mobile-player [data-stream-orientation="portrait"] canvas {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+/* 强制禁用 xgplayer 自带的 rotate 包裹容器，避免被移出屏幕 */
+.xgplayer-rotate-parent {
+  position: relative !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: none !important;
+}
+
+.xgplayer-rotate-parent .xgplayer,
+.xgplayer-rotate-parent .xgplayer.xgplayer-rotate-fullscreen {
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: none !important;
+}
+
+.xgplayer-rotate-parent .xgplayer-mobile video {
+  z-index: 0 !important;
+}

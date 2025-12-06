@@ -11,6 +11,8 @@ import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { LiveGrid, type LiveCardItem } from "@/components/live/live-grid";
+import { useSidebarStore } from "@/stores/sidebar-store";
+import { useThemeStore } from "@/stores/theme-store";
 
 type CateOption = {
   id: string;
@@ -22,6 +24,9 @@ const PAGE_SIZE = 30;
 
 export function BilibiliHome() {
   const openPlayer = usePlayerOverlayStore((s) => s.open);
+  const isSidebarOpen = useSidebarStore((s) => s.isOpen);
+  const theme = useThemeStore((s) => s.getEffectiveTheme());
+  const isDark = theme === "dark";
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const follow = useFollowStore((s) => s.followStreamer);
   const unfollow = useFollowStore((s) => s.unfollowStreamer);
@@ -217,7 +222,11 @@ export function BilibiliHome() {
               ))}
               {isMobile && cate1List.length > cate1Limit ? (
                 <button
-                  className="px-3 py-2 rounded-full border border-white/15 text-xs text-gray-200"
+                  className={`px-3 py-2 rounded-full border text-xs ${
+                    isDark
+                      ? "border-white/15 text-gray-200 bg-white/5 hover:bg-white/10"
+                      : "border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+                  }`}
                   onClick={() => setShowCateSheet("cate1")}
                 >
                   更多
@@ -259,7 +268,11 @@ export function BilibiliHome() {
           {isMobile && cateOptions.length > cate2Limit ? (
             <div className="flex justify-center mt-2">
               <button
-                className="inline-flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border ${
+                  isDark
+                    ? "text-gray-200 border-white/10 bg-white/5 hover:bg-white/10"
+                    : "text-gray-700 border-gray-200 bg-white hover:bg-gray-50"
+                }`}
                 onClick={() => setShowCateSheet("cate2")}
               >
                 更多
@@ -269,7 +282,11 @@ export function BilibiliHome() {
           {!isMobile && cateOptions.length > 10 && (
             <div className="flex justify-center mt-2">
               <button
-                className="inline-flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
+                  isDark
+                    ? "text-gray-200 border-white/10 bg-white/5 hover:bg-white/10"
+                    : "text-gray-700 border-gray-200 bg-white hover:bg-gray-50"
+                }`}
                 onClick={() => setCate2Expanded((v) => !v)}
               >
                 {cate2Expanded ? "收起" : "展开"}
@@ -311,7 +328,7 @@ export function BilibiliHome() {
                   avatar: item.avatar ?? undefined,
                 })
               }
-              className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+              className={`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isSidebarOpen ? "xl:grid-cols-5" : "xl:grid-cols-6"}`}
             />
             <div ref={loaderRef} className="h-px" />
           </div>
