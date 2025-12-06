@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Player from "xgplayer";
 import FlvPlugin from "xgplayer-flv";
 import HlsPlugin from "xgplayer-hls.js";
 import "xgplayer/dist/index.min.css";
 import "./player-controls.css";
-import { Loader2, RotateCw, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Loader2, RotateCw, AlertTriangle, ArrowLeft, X } from "lucide-react";
 import DanmuJs from "danmu.js";
 import { Platform } from "@/types/platform";
 import { DanmakuMessage } from "@/types/danmaku";
@@ -68,6 +68,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   const danmuSettingsRef = useRef<DanmuSettingsControl | null>(null);
   const volumeControlRef = useRef<VolumeControl | null>(null);
   const reloadReasonRef = useRef<"auto" | "refresh" | "quality" | "line">("auto");
+  const streamOrientationCleanupRef = useRef<(() => void) | null>(null);
 
   const [quality, setQuality] = useState<(typeof qualityOptions)[number]>(() => {
     if (typeof window === "undefined") return "原画";
@@ -89,15 +90,20 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   const [danmakuColor, setDanmakuColor] = useState("#ffffff");
   const [danmakuStrokeColor, setDanmakuStrokeColor] = useState("#444444");
   const [volume, setVolume] = useState(0.7);
+  const [isCssFullscreen, setIsCssFullscreen] = useState(false);
+  const [isStreamPortrait, setIsStreamPortrait] = useState<boolean | null>(null);
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const followStreamer = useFollowStore((s) => s.followStreamer);
   const unfollowStreamer = useFollowStore((s) => s.unfollowStreamer);
   const router = useRouter();
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1024 : window.innerWidth));
+  const [viewportHeight, setViewportHeight] = useState(() => (typeof window === "undefined" ? 1920 : window.innerHeight));
   const isMobile = viewportWidth <= 768;
+  const isPortrait = viewportHeight >= viewportWidth;
+  const isMobileLandscape = isMobile && (!isPortrait || isStreamPortrait === false);
   const sidebarWidth = isMobile ? 0 : isSidebarOpen ? 240 : 80;
-
+  const showBubbleDanmaku = isPortrait || !isCssFullscreen;
   const title = useMemo(() => {
     if (streamMeta?.title) return streamMeta.title;
     if (initialTitle) return initialTitle;
@@ -111,6 +117,14 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   const avatarDisplay = useMemo(() => {
     return streamMeta?.avatar || initialAvatar || "";
   }, [streamMeta?.avatar, initialAvatar]);
+
+  const updateStreamOrientation = useCallback((media?: HTMLVideoElement | null) => {
+    const target =
+      media ??
+      ((playerRef.current as XgMediaPlayer | null)?.video ?? (playerRef.current as XgMediaPlayer | null)?.media ?? null);
+    if (!target || !target.videoWidth || !target.videoHeight) return;
+    setIsStreamPortrait(target.videoHeight >= target.videoWidth);
+  }, []);
 
   const destroyPlayer = () => {
     try {
@@ -131,6 +145,10 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     danmuSettingsRef.current = null;
     qualityControlRef.current = null;
     lineControlRef.current = null;
+    streamOrientationCleanupRef.current?.();
+    streamOrientationCleanupRef.current = null;
+    setIsStreamPortrait(null);
+    setIsCssFullscreen(false);
   };
 
   const setupPlayer = (config: StreamConfig) => {
@@ -140,6 +158,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     destroyPlayer();
 
     const isHls = config.streamType === "hls";
+    const videoFillMode = isMobile && isPortrait ? "cover" : "contain";
     const player = new Player({
       el: containerRef.current,
       url: config.streamUrl,
@@ -149,7 +168,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
       lang: "zh-cn",
       height: "100%",
       width: "100%",
-      videoFillMode: "contain",
+      videoFillMode,
       keyShortcut: true,
       volume: false as unknown as number,
       playbackRate: false,
@@ -186,6 +205,21 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
             },
       }),
     });
+
+    streamOrientationCleanupRef.current?.();
+    const mediaEl = (player as XgMediaPlayer).video ?? (player as XgMediaPlayer).media;
+    const handleMeta = () => updateStreamOrientation(mediaEl ?? null);
+    if (mediaEl) {
+      mediaEl.addEventListener("loadedmetadata", handleMeta);
+      mediaEl.addEventListener("resize", handleMeta);
+      handleMeta();
+      streamOrientationCleanupRef.current = () => {
+        mediaEl.removeEventListener("loadedmetadata", handleMeta);
+        mediaEl.removeEventListener("resize", handleMeta);
+      };
+    } else {
+      streamOrientationCleanupRef.current = null;
+    }
 
     refreshControlRef.current = player.registerPlugin(RefreshControl, {
       onClick: () => {
@@ -271,6 +305,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     player.on("ready", () => {
       arrangeControlClusters(player);
     });
+    player.on("cssfullscreenchange", (status: boolean) => setIsCssFullscreen(Boolean(status)));
     playerRef.current = player;
     setupDanmuOverlay(player);
   };
@@ -313,7 +348,7 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
         },
       });
       overlay.start?.();
-      overlay.setOpacity?.(danmakuEnabled ? danmakuPanelOpacity : 0);
+      overlay.setOpacity?.(!isPortrait && isCssFullscreen && danmakuEnabled ? danmakuPanelOpacity : 0);
       overlay.setFontSize?.(danmakuFontSize);
       overlay.setArea?.({ start: 0, end: danmakuArea });
       overlay.setAllDuration?.("scroll", danmakuDuration);
@@ -397,7 +432,9 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     const update = () => {
       if (typeof window === "undefined") return;
       const width = window.visualViewport?.width ?? window.innerWidth;
+      const height = window.visualViewport?.height ?? window.innerHeight;
       setViewportWidth(width);
+      setViewportHeight(height);
     };
     update();
     window.addEventListener("resize", update);
@@ -447,6 +484,21 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     }
   }, [danmakuFontSize]);
 
+  useEffect(() => {
+    const update = () => {
+      if (typeof window === "undefined") return;
+      const width = window.visualViewport?.width ?? window.innerWidth;
+      setViewportWidth(width);
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, []);
+
   // manage danmaku listener when toggle/platform/room changes
   useEffect(() => {
     let cancelled = false;
@@ -488,14 +540,14 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     };
   }, [danmakuEnabled, platform, roomId]);
 
-  // push new messages into danmu.js overlay
+  // push new messages into danmu.js overlay (landscape only)
   useEffect(() => {
     const overlay = danmuOverlayRef.current;
     if (!overlay) {
       danmakuCountRef.current = danmakuMessages.length;
       return;
     }
-    if (!danmakuEnabled) {
+    if (!danmakuEnabled || isPortrait) {
       overlay.setOpacity?.(0);
       danmakuCountRef.current = danmakuMessages.length;
       return;
@@ -519,14 +571,14 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
         },
       });
     });
-  }, [danmakuMessages, danmakuEnabled, danmakuDuration, danmakuColor, danmakuStrokeColor]);
+  }, [danmakuMessages, danmakuEnabled, danmakuDuration, danmakuColor, danmakuStrokeColor, isPortrait, isCssFullscreen]);
 
   // sync overlay opacity/font size when settings change
   useEffect(() => {
     const overlay = danmuOverlayRef.current;
     if (!overlay) return;
-    overlay.setOpacity?.(danmakuEnabled ? danmakuPanelOpacity : 0);
-  }, [danmakuEnabled, danmakuPanelOpacity]);
+    overlay.setOpacity?.(!isPortrait && isCssFullscreen && danmakuEnabled ? danmakuPanelOpacity : 0);
+  }, [danmakuEnabled, danmakuPanelOpacity, isPortrait, isCssFullscreen]);
 
   useEffect(() => {
     const overlay = danmuOverlayRef.current;
@@ -543,71 +595,157 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
 
   return (
     <div
-      className="player-view-page min-h-screen bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white flex flex-col md:flex-row gap-4 p-4"
+      className={cn(
+        "player-view-page min-h-screen bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white flex flex-col md:flex-row gap-0 md:gap-4 p-0 md:p-4",
+        isMobile && "mobile-player"
+      )}
       style={{ ["--sidebar-offset" as string]: `${sidebarWidth}px` }}
     >
-      <div className="flex-1 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4 min-w-0">
-            <button
-              onClick={() => {
-                if (onClose) onClose();
-                else router.back();
-              }}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-              title="返回"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-full border border-white/10 overflow-hidden bg-white/10 flex-shrink-0">
-                {avatarDisplay ? (
-                  <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-sm text-white/70">
-                    {(anchorDisplay || roomId).slice(0, 1)}
+      <div className={cn("flex-1 flex flex-col gap-0 md:gap-3", isMobileLandscape && "items-center pt-12")}>
+        {!isMobile && (
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4 min-w-0">
+              <button
+                onClick={() => {
+                  if (onClose) onClose();
+                  else router.back();
+                }}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                title="返回"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-full border border-white/10 overflow-hidden bg-white/10 flex-shrink-0">
+                  {avatarDisplay ? (
+                    <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-sm text-white/70">
+                      {(anchorDisplay || roomId).slice(0, 1)}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <h1 className="text-lg md:text-xl font-semibold truncate">{streamMeta?.title || title}</h1>
+                  <div className="text-sm text-gray-400 truncate">
+                    {anchorDisplay} · 房间号 {roomId} · 平台 {platform}
                   </div>
-                )}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <h1 className="text-lg md:text-xl font-semibold truncate">{streamMeta?.title || title}</h1>
-                <div className="text-sm text-gray-400 truncate">
-                  {anchorDisplay} · 房间号 {roomId} · 平台 {platform}
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button
-              className={cn(
-                "px-4 py-2 rounded-full border text-sm transition-colors",
-                isFollowed(platform, roomId)
-                  ? "border-emerald-500/60 text-emerald-100 bg-emerald-500/10 hover:bg-emerald-500/20"
-                  : "border-white/20 text-white hover:bg-white/10"
-              )}
-              onClick={() => {
-                if (isFollowed(platform, roomId)) {
-                  unfollowStreamer(platform, roomId);
-                } else {
-                  followStreamer({
-                    id: roomId,
-                    platform,
-                    nickname: streamMeta?.anchorName || roomId,
-                    avatarUrl: streamMeta?.avatar || "",
-                    displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
-                    isLive: true,
-                  });
-                }
-              }}
-            >
-              {isFollowed(platform, roomId) ? "已关注" : "关注"}
-            </button>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button
+                className={cn(
+                  "px-4 py-2 rounded-full border text-sm transition-colors",
+                  isFollowed(platform, roomId)
+                    ? "border-emerald-500/60 text-emerald-100 bg-emerald-500/10 hover:bg-emerald-500/20"
+                    : "border-white/20 text-white hover:bg-white/10"
+                )}
+                onClick={() => {
+                  if (isFollowed(platform, roomId)) {
+                    unfollowStreamer(platform, roomId);
+                  } else {
+                    followStreamer({
+                      id: roomId,
+                      platform,
+                      nickname: streamMeta?.anchorName || roomId,
+                      avatarUrl: streamMeta?.avatar || "",
+                      displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
+                      isLive: true,
+                    });
+                  }
+                }}
+              >
+                {isFollowed(platform, roomId) ? "已关注" : "关注"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video">
+        <div
+          className={cn(
+            "relative rounded-none md:rounded-2xl overflow-hidden border border-white/10 bg-black",
+            isMobile ? (isMobileLandscape ? "w-full h-auto max-h-[50vh] mx-auto" : "w-full h-[100vh]") : "aspect-video",
+            (!isPortrait || isMobileLandscape) && !isCssFullscreen ? (isMobile ? "pb-12" : "pb-24") : "",
+            isMobileLandscape && "mt-12 mb-3"
+          )}
+          style={{ aspectRatio: isMobileLandscape ? "16 / 9" : undefined }}
+        >
           <div ref={containerRef} className="w-full h-full" />
+          {isMobile && (
+            <>
+              <div
+                className={cn(
+                  "flex items-start justify-between gap-3 pointer-events-none",
+                  isMobileLandscape ? "fixed top-3 left-3 right-3 z-30" : "absolute top-3 left-3 right-3"
+                )}
+              >
+                <div className="flex items-center gap-3 bg-black/55 backdrop-blur-xl rounded-full px-3 py-2 border border-white/10 shadow-lg flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+                    {avatarDisplay ? (
+                      <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm text-white/70">
+                        {(anchorDisplay || roomId).slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-semibold truncate">{streamMeta?.title || title}</span>
+                    <span className="text-[12px] text-gray-200 truncate">
+                      @{anchorDisplay} · {streamMeta?.viewer ?? "Live"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pointer-events-auto">
+                  <button
+                    onClick={() => {
+                      if (isFollowed(platform, roomId)) {
+                        unfollowStreamer(platform, roomId);
+                      } else {
+                        followStreamer({
+                          id: roomId,
+                          platform,
+                          nickname: streamMeta?.anchorName || roomId,
+                          avatarUrl: streamMeta?.avatar || "",
+                          displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
+                          isLive: true,
+                        });
+                      }
+                    }}
+                    className="px-4 py-2 rounded-full bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900 font-semibold text-sm shadow-lg"
+                  >
+                    {isFollowed(platform, roomId) ? "Following" : "Follow"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (onClose) onClose();
+                      else router.back();
+                    }}
+                    className="w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center text-white"
+                    title="关闭"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {showBubbleDanmaku && !isMobileLandscape && (
+                <div className="absolute bottom-16 left-3 right-[25%] flex flex-col items-start gap-1 pointer-events-none">
+                  {danmakuMessages.slice(-5).map((msg) => (
+                    <div
+                      key={msg.id}
+                      className="inline-grid w-auto max-w-full grid-cols-[auto_1fr] items-start gap-x-2 text-sm leading-5 text-white drop-shadow bg-gray-900/55 rounded-2xl px-3 py-1.5 border border-white/10 pointer-events-none"
+                    >
+                      <span className="font-semibold whitespace-nowrap">@{msg.nickname}</span>
+                      <span className="text-white/90 whitespace-normal break-words min-w-0">{msg.content}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 backdrop-blur-sm">
               <Loader2 className="w-7 h-7 animate-spin" />
@@ -627,17 +765,33 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
             </div>
           )}
         </div>
+
+        {isMobileLandscape && showBubbleDanmaku && (
+          <div className="mt-2 px-3 space-y-1">
+            {danmakuMessages.slice(-6).map((msg) => (
+              <div
+                key={msg.id}
+                className="inline-grid w-auto max-w-full grid-cols-[auto_1fr] items-start gap-x-2 text-sm leading-5 text-white drop-shadow bg-gray-900/55 rounded-2xl px-3 py-1.5 border border-white/10"
+              >
+                <span className="font-semibold whitespace-nowrap">@{msg.nickname}</span>
+                <span className="text-white/90 whitespace-normal break-words min-w-0">{msg.content}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="w-full md:w-[360px] flex flex-col gap-3">
-        <div className="space-y-2">
-          <DanmakuPanel
-            messages={danmakuMessages}
-            className="transition-opacity"
-            style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
-          />
+      {!isMobile && (
+        <div className="w-full md:w-[360px] flex flex-col gap-3">
+          <div className="space-y-2">
+            <DanmakuPanel
+              messages={danmakuMessages}
+              className="transition-opacity"
+              style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

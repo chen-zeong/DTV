@@ -468,6 +468,33 @@
   }
 }
 
+.player-view-page.mobile-player .xgplayer:not(.xgplayer-is-cssfullscreen) .xgplayer-controls {
+  display: none !important;
+}
+
+.player-view-page.mobile-player .xgplayer.xgplayer-is-cssfullscreen .xgplayer-controls .xgplayer-play,
+.player-view-page.mobile-player .xgplayer.xgplayer-is-cssfullscreen .xgplayer-controls .xgplayer-volume {
+  display: none !important;
+}
+
+.player-view-page.mobile-player .xgplayer-danmu-settings-panel {
+  left: auto !important;
+  right: 12px !important;
+  bottom: 80px !important;
+  width: 260px !important;
+  border-radius: 16px !important;
+}
+
+.player-view-page.mobile-player .xgplayer .xgplayer-danmu-settings {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 280px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
 /* Keep layout when css fullscreen on player page but leave sidebar visible */
 .player-view-page {
   --sidebar-offset: 0px;

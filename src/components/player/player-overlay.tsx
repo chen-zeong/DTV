@@ -63,7 +63,7 @@ export function PlayerOverlay() {
             )}
 
             <motion.div
-              className="flex-1 h-full overflow-auto p-3 md:p-5"
+              className="flex-1 h-full overflow-auto p-0 md:p-5"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
