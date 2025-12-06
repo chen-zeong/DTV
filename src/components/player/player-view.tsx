@@ -28,6 +28,7 @@ import {
   type DanmuUserSettings,
 } from "./controls/constants";
 import { useSidebarStore } from "@/stores/sidebar-store";
+import { useThemeStore, type ThemeResolved } from "@/stores/theme-store";
 
 type PlayerViewProps = {
   platform: Platform;
@@ -36,6 +37,7 @@ type PlayerViewProps = {
   initialTitle?: string;
   initialAnchorName?: string;
   initialAvatar?: string;
+  theme?: ThemeResolved;
 };
 
 type DanmuOverlayInstance = {
@@ -55,7 +57,10 @@ type XgMediaPlayer = Player & {
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
 
-export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnchorName, initialAvatar }: PlayerViewProps) {
+export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnchorName, initialAvatar, theme }: PlayerViewProps) {
+  const storeTheme = useThemeStore((s) => s.getEffectiveTheme());
+  const effectiveTheme = theme ?? storeTheme ?? "dark";
+  const isDark = effectiveTheme === "dark";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<Player | null>(null);
   const danmakuUnlistenRef = useRef<(() => void) | undefined>();
@@ -596,52 +601,63 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
   return (
     <div
       className={cn(
-        "player-view-page min-h-screen bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white flex flex-col md:flex-row gap-0 md:gap-4 p-0 md:p-4",
-        isMobile && "mobile-player"
+        "player-view-page min-h-screen md:h-screen flex flex-col md:flex-row items-start gap-2 md:gap-2 px-2 py-2 md:px-2 md:py-0 md:overflow-hidden",
+        isMobile && "mobile-player",
+        isDark
+          ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
+          : "bg-gradient-to-br from-[#e9f1ff] via-white to-[#f3f6fb] text-gray-900"
       )}
       style={{ ["--sidebar-offset" as string]: `${sidebarWidth}px` }}
     >
-      <div className={cn("flex-1 flex flex-col gap-0 md:gap-3", isMobileLandscape && "items-center pt-12")}>
+      <div className={cn("flex-1 flex flex-col gap-2 min-h-0", isMobileLandscape && "items-center pt-12")}>
         {!isMobile && (
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center justify-between gap-3 flex-wrap px-1">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => {
                   if (onClose) onClose();
                   else router.back();
                 }}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                className={cn(
+                  "inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
+                  isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-white hover:bg-gray-100"
+                )}
                 title="返回"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4" />
               </button>
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-full border border-white/10 overflow-hidden bg-white/10 flex-shrink-0">
+                <div
+                  className={cn(
+                    "w-12 h-12 rounded-full overflow-hidden flex-shrink-0",
+                    isDark ? "border border-white/10 bg-white/10" : "border border-gray-200 bg-white"
+                  )}
+                >
                   {avatarDisplay ? (
                     <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-sm text-white/70">
+                    <div
+                      className={cn(
+                        "w-full h-full flex items-center justify-center text-sm",
+                        isDark ? "text-white/70" : "text-gray-700"
+                      )}
+                    >
                       {(anchorDisplay || roomId).slice(0, 1)}
                     </div>
                   )}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h1 className="text-lg md:text-xl font-semibold truncate">{streamMeta?.title || title}</h1>
-                  <div className="text-sm text-gray-400 truncate">
-                    {anchorDisplay} · 房间号 {roomId} · 平台 {platform}
-                  </div>
+                  <span className={cn("text-base font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
+                    {streamMeta?.title || title}
+                  </span>
+                  <span className={cn("text-sm truncate", isDark ? "text-gray-400" : "text-gray-600")}>
+                    @{anchorDisplay} · {streamMeta?.viewer ?? "Live"} · 房间 {roomId}
+                  </span>
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
-                className={cn(
-                  "px-4 py-2 rounded-full border text-sm transition-colors",
-                  isFollowed(platform, roomId)
-                    ? "border-emerald-500/60 text-emerald-100 bg-emerald-500/10 hover:bg-emerald-500/20"
-                    : "border-white/20 text-white hover:bg-white/10"
-                )}
                 onClick={() => {
                   if (isFollowed(platform, roomId)) {
                     unfollowStreamer(platform, roomId);
@@ -656,45 +672,86 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
                     });
                   }
                 }}
+                className={cn(
+                  "px-4 py-2 rounded-full text-sm font-semibold shadow-lg",
+                  isFollowed(platform, roomId)
+                    ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/50"
+                    : "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
+                )}
               >
                 {isFollowed(platform, roomId) ? "已关注" : "关注"}
+              </button>
+              <button
+                onClick={() => {
+                  if (onClose) onClose();
+                  else router.back();
+                }}
+                className={cn(
+                  "w-9 h-9 rounded-full backdrop-blur border flex items-center justify-center transition-colors",
+                  isDark
+                    ? "bg-black/60 border-white/10 text-white hover:bg-white/10"
+                    : "bg-white border-gray-200 text-gray-900 hover:bg-gray-100"
+                )}
+                title="关闭"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
-
         <div
           className={cn(
-            "relative rounded-none md:rounded-2xl overflow-hidden border border-white/10 bg-black",
+            "relative rounded-xl overflow-hidden shadow-lg",
+            isDark ? "border border-white/10 bg-black" : "border border-gray-200 bg-white",
             isMobile ? (isMobileLandscape ? "w-full h-auto max-h-[50vh] mx-auto" : "w-full h-[100vh]") : "aspect-video",
-            (!isPortrait || isMobileLandscape) && !isCssFullscreen ? (isMobile ? "pb-12" : "pb-24") : "",
+            (!isPortrait || isMobileLandscape) && !isCssFullscreen ? (isMobile ? "pb-12" : "pb-16") : "",
             isMobileLandscape && "mt-12 mb-3"
           )}
           style={{ aspectRatio: isMobileLandscape ? "16 / 9" : undefined }}
         >
           <div ref={containerRef} className="w-full h-full" />
-          {isMobile && (
+          {isMobile && !error && (
             <>
               <div
                 className={cn(
                   "flex items-start justify-between gap-3 pointer-events-none",
-                  isMobileLandscape ? "fixed top-3 left-3 right-3 z-30" : "absolute top-3 left-3 right-3"
+                  isMobileLandscape
+                    ? "fixed top-3 left-3 right-3 z-30"
+                    : "absolute top-3 left-3 right-3 md:left-4 md:right-4"
                 )}
               >
-                <div className="flex items-center gap-3 bg-black/55 backdrop-blur-xl rounded-full px-3 py-2 border border-white/10 shadow-lg flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+                <div
+                  className={cn(
+                    "flex items-center gap-3 backdrop-blur-xl rounded-full px-3 py-2 border shadow-lg flex-1 min-w-0",
+                    !isMobile && "md:max-w-[60%]",
+                    isDark ? "bg-black/60 border-white/10" : "bg-white/85 border-gray-200"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-full overflow-hidden flex-shrink-0",
+                      isDark ? "border border-white/10 bg-white/5" : "border border-gray-200 bg-white"
+                    )}
+                  >
                     {avatarDisplay ? (
                       <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-sm text-white/70">
+                      <div
+                        className={cn(
+                          "w-full h-full flex items-center justify-center text-sm",
+                          isDark ? "text-white/70" : "text-gray-700"
+                        )}
+                      >
                         {(anchorDisplay || roomId).slice(0, 1)}
                       </div>
                     )}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-semibold truncate">{streamMeta?.title || title}</span>
-                    <span className="text-[12px] text-gray-200 truncate">
-                      @{anchorDisplay} · {streamMeta?.viewer ?? "Live"}
+                    <span className={cn("text-sm font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
+                      {streamMeta?.title || title}
+                    </span>
+                    <span className={cn("text-[12px] truncate", isDark ? "text-gray-200" : "text-gray-600")}>
+                      @{anchorDisplay} · {streamMeta?.viewer ?? "Live"} · 房间 {roomId}
                     </span>
                   </div>
                 </div>
@@ -714,32 +771,46 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
                         });
                       }
                     }}
-                    className="px-4 py-2 rounded-full bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900 font-semibold text-sm shadow-lg"
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-semibold shadow-lg",
+                      isFollowed(platform, roomId)
+                        ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/50"
+                        : "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
+                    )}
                   >
-                    {isFollowed(platform, roomId) ? "Following" : "Follow"}
+                    {isFollowed(platform, roomId) ? "已关注" : "关注"}
                   </button>
                   <button
                     onClick={() => {
                       if (onClose) onClose();
                       else router.back();
                     }}
-                    className="w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center text-white"
+                    className="w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
                     title="关闭"
                   >
-                    <X className="w-4 h-4" />
+                    {isMobile ? <X className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
               {showBubbleDanmaku && !isMobileLandscape && (
-                <div className="absolute bottom-16 left-3 right-[25%] flex flex-col items-start gap-1 pointer-events-none">
+                <div className="absolute bottom-14 left-3 right-[18%] flex flex-col items-start gap-1 pointer-events-none">
                   {danmakuMessages.slice(-5).map((msg) => (
                     <div
                       key={msg.id}
-                      className="inline-grid w-auto max-w-full grid-cols-[auto_1fr] items-start gap-x-2 text-sm leading-5 text-white drop-shadow bg-gray-900/55 rounded-2xl px-3 py-1.5 border border-white/10 pointer-events-none"
+                      className={cn(
+                        "inline-grid w-auto max-w-full grid-cols-[auto_1fr] items-start gap-x-2 text-sm leading-5 drop-shadow rounded-2xl px-3 py-1.5 border pointer-events-none",
+                        isDark
+                          ? "text-white bg-gray-900/65 border-white/10"
+                          : "text-gray-900 bg-white/90 border-gray-200 shadow"
+                      )}
                     >
-                      <span className="font-semibold whitespace-nowrap">@{msg.nickname}</span>
-                      <span className="text-white/90 whitespace-normal break-words min-w-0">{msg.content}</span>
+                      <span className={cn("font-semibold whitespace-nowrap", isDark ? "text-white" : "text-gray-900")}>
+                        @{msg.nickname}
+                      </span>
+                      <span className={cn("whitespace-normal break-words min-w-0", isDark ? "text-white/90" : "text-gray-800")}>
+                        {msg.content}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -747,18 +818,33 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
             </>
           )}
           {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 backdrop-blur-sm">
+            <div
+              className={cn(
+                "absolute inset-0 flex flex-col items-center justify-center gap-3 backdrop-blur-sm",
+                isDark ? "bg-black/60" : "bg-white/80"
+              )}
+            >
               <Loader2 className="w-7 h-7 animate-spin" />
-              <p className="text-sm text-gray-300">加载直播流...</p>
+              <p className={cn("text-sm", isDark ? "text-gray-300" : "text-gray-700")}>加载直播流...</p>
             </div>
           )}
           {error && !loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm text-center px-4">
-              <AlertTriangle className="w-8 h-8 text-amber-400" />
-              <p className="text-sm text-gray-200">{error}</p>
+            <div
+              className={cn(
+                "absolute inset-0 flex flex-col items-center justify-center gap-3 backdrop-blur-sm text-center px-4",
+                isDark ? "bg-black/70" : "bg-white/85"
+              )}
+            >
+              <AlertTriangle className={cn("w-8 h-8", isDark ? "text-amber-400" : "text-amber-500")} />
+              <p className={cn("text-sm", isDark ? "text-gray-200" : "text-gray-700")}>{error}</p>
               <button
                 onClick={handleRetry}
-                className="px-4 py-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 transition-colors text-sm flex items-center gap-2"
+                className={cn(
+                  "px-4 py-2 rounded-full border transition-colors text-sm flex items-center gap-2",
+                  isDark
+                    ? "border-white/20 bg-white/10 hover:bg-white/20 text-white"
+                    : "border-gray-200 bg-white hover:bg-gray-100 text-gray-900"
+                )}
               >
                 <RotateCw className="w-4 h-4" /> 再试一次
               </button>
@@ -771,10 +857,17 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
             {danmakuMessages.slice(-6).map((msg) => (
               <div
                 key={msg.id}
-                className="inline-grid w-auto max-w-full grid-cols-[auto_1fr] items-start gap-x-2 text-sm leading-5 text-white drop-shadow bg-gray-900/55 rounded-2xl px-3 py-1.5 border border-white/10"
+                className={cn(
+                  "inline-grid w-auto max-w-full grid-cols-[auto_1fr] items-start gap-x-2 text-sm leading-5 drop-shadow rounded-2xl px-3 py-1.5 border",
+                  isDark ? "text-white bg-gray-900/55 border-white/10" : "text-gray-900 bg-white/90 border-gray-200 shadow"
+                )}
               >
-                <span className="font-semibold whitespace-nowrap">@{msg.nickname}</span>
-                <span className="text-white/90 whitespace-normal break-words min-w-0">{msg.content}</span>
+                <span className={cn("font-semibold whitespace-nowrap", isDark ? "text-white" : "text-gray-900")}>
+                  @{msg.nickname}
+                </span>
+                <span className={cn("whitespace-normal break-words min-w-0", isDark ? "text-white/90" : "text-gray-800")}>
+                  {msg.content}
+                </span>
               </div>
             ))}
           </div>
@@ -782,14 +875,13 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
       </div>
 
       {!isMobile && (
-        <div className="w-full md:w-[360px] flex flex-col gap-3">
-          <div className="space-y-2">
-            <DanmakuPanel
-              messages={danmakuMessages}
-              className="transition-opacity"
-              style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
-            />
-          </div>
+        <div className="w-full md:w-[280px] lg:w-[300px] flex flex-col h-full md:h-full overflow-hidden">
+          <DanmakuPanel
+            messages={danmakuMessages}
+            className="transition-opacity flex-1 overflow-hidden"
+            style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
+            theme={isDark ? "dark" : "light"}
+          />
         </div>
       )}
     </div>
