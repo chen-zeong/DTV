@@ -21,6 +21,11 @@ type LiveGridProps = {
   className?: string;
 };
 
+type LiveGridSkeletonProps = {
+  count?: number;
+  className?: string;
+};
+
 export function LiveGrid({ items, onCardClick, renderActions, className }: LiveGridProps) {
   if (!items.length) return null;
   return (
@@ -71,6 +76,37 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
               </div>
             </div>
             {renderActions ? <div onClick={(e) => e.stopPropagation()}>{renderActions(item)}</div> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function LiveGridSkeleton({ count = 18, className }: LiveGridSkeletonProps) {
+  return (
+    <div
+      className={cn(
+        "grid gap-4 grid-cols-2",
+        "sm:grid-cols-[repeat(auto-fit,minmax(240px,240px))] sm:justify-start",
+        className
+      )}
+    >
+      {Array.from({ length: count }).map((_, idx) => (
+        <div
+          key={idx}
+          className="rounded-xl bg-white shadow-[0_10px_30px_-18px_rgba(0,0,0,0.4)] overflow-hidden dark:bg-[#0c101a] dark:shadow-[0_12px_34px_-22px_rgba(0,0,0,0.7)] animate-pulse"
+        >
+          <div className="w-full aspect-video bg-gray-200/70 dark:bg-white/10" />
+          <div className="p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-gray-200/80 dark:bg-white/10" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3.5 rounded bg-gray-200/80 dark:bg-white/10 w-3/4" />
+                <div className="h-3 rounded bg-gray-200/70 dark:bg-white/10 w-2/3" />
+              </div>
+            </div>
+            <div className="h-3 rounded bg-gray-200/70 dark:bg-white/10 w-1/2" />
           </div>
         </div>
       ))}

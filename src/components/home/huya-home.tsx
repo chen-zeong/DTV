@@ -10,7 +10,7 @@ import { HuyaCategory, HuyaStreamer } from "@/types/huya";
 import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
-import { LiveGrid, type LiveCardItem } from "@/components/live/live-grid";
+import { LiveGrid, LiveGridSkeleton, type LiveCardItem } from "@/components/live/live-grid";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useThemeStore } from "@/stores/theme-store";
 
@@ -172,6 +172,13 @@ export function HuyaHome() {
   const visibleCate2 = isMobile
     ? cate2Options.filter((cate) => (selectedCate1 ? cate.parent === selectedCate1 : true)).slice(0, cate2Limit)
     : cate2Options.filter((cate) => (selectedCate1 ? cate.parent === selectedCate1 : true));
+  const cate2CollapsedHeight = 96;
+  const expandedCate2 = cate2Expanded || visibleCate2.length <= 10;
+  const cate2Transition = {
+    maxHeight: { duration: expandedCate2 ? 0.6 : 0.38, ease: [0.16, 1, 0.3, 1] },
+    opacity: { duration: 0.25 },
+    scaleY: { type: "spring", stiffness: 200, damping: expandedCate2 ? 26 : 28, mass: 1.05 },
+  };
 
   return (
     <div className="h-full flex flex-col space-y-3">
@@ -215,10 +222,14 @@ export function HuyaHome() {
           <motion.div
             layout
             initial={false}
-            animate={{ height: cate2Expanded ? "auto" : "6rem" }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            animate={{
+              maxHeight: expandedCate2 ? 2000 : cate2CollapsedHeight,
+              opacity: expandedCate2 ? 1 : 0.97,
+              scaleY: expandedCate2 ? 1 : 0.995,
+            }}
+            transition={cate2Transition}
             className="flex gap-2 flex-wrap overflow-hidden"
-            style={{ height: cate2Expanded ? "auto" : "6rem" }}
+            style={{ willChange: "transform, max-height, opacity" }}
           >
             {visibleCate2.map((c) => (
               <button
@@ -247,7 +258,7 @@ export function HuyaHome() {
               </button>
             </div>
           ) : null}
-          {!isMobile && cate2Options.length > 10 && (
+          {!isMobile && cate2Options.length > 10 && visibleCate2.length > 10 && (
             <div className="flex justify-center mt-2">
               <button
                 className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
@@ -269,9 +280,7 @@ export function HuyaHome() {
 
       <div className="flex-1 bg-transparent overflow-hidden">
         {loading && streamers.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 text-gray-300 text-sm">
-            <Loader2 className="w-5 h-5 animate-spin" /> 加载直播列表...
-          </div>
+          <LiveGridSkeleton className={`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isSidebarOpen ? "xl:grid-cols-5" : "xl:grid-cols-6"}`} />
         ) : streamers.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-10">暂无直播</div>
         ) : (
