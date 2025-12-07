@@ -10,6 +10,7 @@ import { cn } from "@/utils/cn";
 import { platformLabelMap } from "@/utils/platform";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { createPortal } from "react-dom";
+import { normalizeAvatarUrl } from "@/utils/image";
 
 type FollowListProps = {
   theme: ThemeMode;
@@ -486,7 +487,7 @@ export function FollowList({ theme }: FollowListProps) {
                                 >
                                   <div className="flex items-center gap-2">
                                     <Image
-                                      src={item.avatarUrl || ""}
+                                      src={normalizeAvatarUrl(item.platform, item.avatarUrl) || ""}
                                       alt={item.nickname}
                                       width={32}
                                       height={32}
@@ -598,7 +599,7 @@ export function FollowList({ theme }: FollowListProps) {
                     roomId: item.id,
                     title: item.roomTitle,
                     anchorName: item.nickname,
-                    avatar: item.avatarUrl,
+                    avatar: normalizeAvatarUrl(item.platform, item.avatarUrl),
                   });
                 }}
                 draggable
@@ -619,9 +620,9 @@ export function FollowList({ theme }: FollowListProps) {
               >
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        {item.avatarUrl ? (
+                        {normalizeAvatarUrl(item.platform, item.avatarUrl) ? (
                           <Image
-                            src={item.avatarUrl}
+                            src={normalizeAvatarUrl(item.platform, item.avatarUrl) || ""}
                             alt={item.nickname}
                             width={40}
                             height={40}

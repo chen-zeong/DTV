@@ -6,6 +6,7 @@ import { Search, Loader2, UserPlus, UserMinus, AlertTriangle } from "lucide-reac
 import { tauriInvoke } from "@/lib/tauri";
 import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
+import { proxyBilibiliImage } from "@/utils/image";
 
 type SearchResult = {
   id: string;
@@ -100,8 +101,8 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
       return [];
     }
     const arr = data as Array<Record<string, unknown>>;
-    const mapped: SearchResult[] = [];
-    for (const item of arr) {
+      const mapped: SearchResult[] = [];
+      for (const item of arr) {
       // Huya structure: room_id, user_name, title, avatar
       // Bilibili structure: room_id, anchor, avatar, cover
       const id =
@@ -117,11 +118,12 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
         (item.user_name as string) ||
         (item.anchor as string);
       if (!id || !nickname) continue;
+      const rawAvatar = (item.avatar as string) || (item.face as string) || (item.avatarUrl as string) || "";
       mapped.push({
         id: String(id),
         nickname: String(nickname),
         title: (item.title as string) || (item.roomName as string) || "",
-        avatarUrl: (item.avatar as string) || (item.face as string) || (item.avatarUrl as string) || "",
+        avatarUrl: platform === Platform.BILIBILI ? proxyBilibiliImage(rawAvatar) || rawAvatar : rawAvatar,
         platform,
       });
     }
@@ -210,7 +212,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                   >
                     <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden flex-shrink-0">
                       {r.avatarUrl ? (
-                        <Image src={r.avatarUrl} alt={r.nickname} width={32} height={32} className="w-full h-full object-cover" />
+                        <Image src={proxyBilibiliImage(r.avatarUrl) || r.avatarUrl} alt={r.nickname} width={32} height={32} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-white/10 flex items-center justify-center text-xs font-semibold">
                           {r.nickname.slice(0, 1)}
@@ -238,7 +240,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                               id: r.id,
                               platform: r.platform,
                               nickname: r.nickname,
-                              avatarUrl: r.avatarUrl || "",
+                              avatarUrl: r.platform === Platform.BILIBILI ? proxyBilibiliImage(r.avatarUrl) || "" : r.avatarUrl || "",
                               displayName: r.title || r.nickname,
                               isLive: true,
                             });

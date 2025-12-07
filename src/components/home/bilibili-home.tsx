@@ -13,6 +13,7 @@ import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { LiveGrid, LiveGridSkeleton, type LiveCardItem } from "@/components/live/live-grid";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { proxyBilibiliImage } from "@/utils/image";
 
 type CateOption = {
   id: string;
@@ -335,8 +336,8 @@ export function BilibiliHome() {
                   id: s.room_id || "",
                   title: s.title || s.uname || s.nickname || s.room_id || "",
                   subtitle: s.nickname || s.uname || "",
-                  cover: s.room_cover || "https://via.placeholder.com/320x180.png?text=No+Image",
-                  avatar: s.avatar || "https://via.placeholder.com/40.png?text=?",
+                  cover: proxyBilibiliImage(s.room_cover) || "https://via.placeholder.com/320x180.png?text=No+Image",
+                  avatar: proxyBilibiliImage(s.avatar) || "https://via.placeholder.com/40.png?text=?",
                   viewerText: s.viewer_count_str || undefined,
                 })
               )}
@@ -346,7 +347,7 @@ export function BilibiliHome() {
                   roomId: item.id,
                   title: item.title,
                   anchorName: item.subtitle ?? undefined,
-                  avatar: item.avatar ?? undefined,
+                  avatar: proxyBilibiliImage(item.avatar) ?? undefined,
                 })
               }
               className={`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isSidebarOpen ? "xl:grid-cols-5" : "xl:grid-cols-6"}`}
