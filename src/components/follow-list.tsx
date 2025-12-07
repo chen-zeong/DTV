@@ -3,7 +3,6 @@
 import { ChevronDown, Plus, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { ThemeMode } from "@/types/follow-list";
-import { Platform } from "@/types/platform";
 import { type FollowListItem, useFollowStore } from "@/stores/follow-store";
 import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,6 +28,7 @@ export function FollowList({ theme }: FollowListProps) {
   const deleteFolder = useFollowStore((s) => s.deleteFolder);
   const listOrder = useFollowStore((s) => s.listOrder);
   const updateListOrder = useFollowStore((s) => s.updateListOrder);
+  const updateStreamerDetails = useFollowStore((s) => s.updateStreamerDetails);
   const openPlayer = usePlayerOverlayStore((s) => s.open);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dragReadyKey, setDragReadyKey] = useState<string | null>(null);
@@ -139,6 +139,36 @@ export function FollowList({ theme }: FollowListProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const refreshFollowStatus = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/follow/status", { method: "GET" });
+      const data = await resp.json();
+      const list: Array<Partial<typeof follows[number]> & { platform: Platform; id: string }> =
+        Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      list.forEach((item) => {
+        if (!item.platform || !item.id) return;
+        updateStreamerDetails({
+          platform: item.platform,
+          id: item.id,
+          nickname: item.nickname,
+          displayName: item.displayName,
+          roomTitle: item.roomTitle,
+          avatarUrl: item.avatarUrl,
+          isLive: item.isLive,
+        });
+      });
+      console.log("[follow-list] refreshed status", { count: list.length });
+    } catch (error) {
+      console.error("[follow-list] refresh status failed", error);
+    }
+  }, [updateStreamerDetails, follows]);
+
+  useEffect(() => {
+    void refreshFollowStatus();
+    const timer = window.setInterval(() => void refreshFollowStatus(), 60000);
+    return () => window.clearInterval(timer);
+  }, [refreshFollowStatus]);
 
   const resetDragState = () => {
     setDraggingKey(null);

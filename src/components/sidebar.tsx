@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, PanelLeftClose, PanelLeftOpen, Plus, ChevronDown } from "lucide-react";
 import { ThemeMode } from "@/types/follow-list";
+import type { FollowedStreamer } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { platformLabelMap } from "@/utils/platform";
 import { useSidebarStore } from "@/stores/sidebar-store";
-import { Reorder } from "framer-motion";
+import { Reorder, motion, useDragControls } from "framer-motion";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 
@@ -37,7 +38,18 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
   const [folderMenu, setFolderMenu] = useState<{ id: string; x: number; y: number; renameDraft?: string } | null>(
     null
   );
+  const [folderPreview, setFolderPreview] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [collapsedHover, setCollapsedHover] = useState<{
+    key: string;
+    x: number;
+    y: number;
+    name: string;
+    title: string;
+    avatar?: string;
+  } | null>(null);
   const [mounted, setMounted] = useState(false);
+  const folderPreviewTimer = useRef<number | null>(null);
+  const collapsedPreviewTimer = useRef<number | null>(null);
   const orderedFollows = useMemo(() => {
     const map = new Map<string, (typeof followedStreamers)[number]>();
     followedStreamers.forEach((s) => map.set(`${s.platform}:${s.id}`, s));
@@ -99,6 +111,42 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
       }
     }
     return null;
+  };
+
+  const getClientPoint = (e: MouseEvent | PointerEvent | TouchEvent) => {
+    if ("touches" in e && e.touches?.[0]) {
+      const t = e.touches[0];
+      return { x: t.clientX, y: t.clientY };
+    }
+    if ("changedTouches" in e && e.changedTouches?.[0]) {
+      const t = e.changedTouches[0];
+      return { x: t.clientX, y: t.clientY };
+    }
+    return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
+  };
+
+  const clearFolderPreviewTimer = () => {
+    if (folderPreviewTimer.current) {
+      window.clearTimeout(folderPreviewTimer.current);
+      folderPreviewTimer.current = null;
+    }
+  };
+
+  const scheduleHideFolderPreview = (delay = 120) => {
+    clearFolderPreviewTimer();
+    folderPreviewTimer.current = window.setTimeout(() => setFolderPreview(null), delay);
+  };
+
+  const clearCollapsedPreviewTimer = () => {
+    if (collapsedPreviewTimer.current) {
+      window.clearTimeout(collapsedPreviewTimer.current);
+      collapsedPreviewTimer.current = null;
+    }
+  };
+
+  const scheduleHideCollapsedPreview = (delay = 80) => {
+    clearCollapsedPreviewTimer();
+    collapsedPreviewTimer.current = window.setTimeout(() => setCollapsedHover(null), delay);
   };
 
   const statusDot = (live?: boolean) => (
@@ -177,6 +225,13 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     };
   }, [hydrate]);
 
+  useEffect(() => {
+    return () => {
+      clearFolderPreviewTimer();
+      clearCollapsedPreviewTimer();
+    };
+  }, []);
+
   return (
     <aside
       className={`flex flex-col items-center py-4 w-full max-w-[240px] h-full border-r backdrop-blur-xl transition-all duration-300 overflow-y-auto no-scrollbar ${containerClass} ${className}`}
@@ -241,6 +296,20 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                         avatar: s.avatarUrl,
                       })
                     }
+                    onMouseEnter={(e) => {
+                      if (isLeaderboardOpen) return;
+                      clearCollapsedPreviewTimer();
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setCollapsedHover({
+                        key: `${s.platform}:${s.id}`,
+                        x: rect.right + 10,
+                        y: rect.top,
+                        name: s.nickname || s.displayName || s.id,
+                        title: s.roomTitle || s.displayName || s.nickname || "",
+                        avatar: s.avatarUrl,
+                      });
+                    }}
+                    onMouseLeave={() => scheduleHideCollapsedPreview()}
                     className={`relative w-10 h-10 rounded-full border shadow-sm transition-all duration-200 ${
                       isDark
                         ? "border-white/10 hover:border-white/25 hover:scale-105"
@@ -272,6 +341,14 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
               }
               const folder = folders.find((f) => f.id === item.data.id);
               if (!folder) return null;
+              const items = (folder.streamerIds || [])
+                .map((id) => {
+                  const [p, i] = (id || "").split(":");
+                  return followedStreamers.find(
+                    (s) => String(s.platform).toUpperCase() === String(p || "").toUpperCase() && s.id === i
+                  );
+                })
+                .filter((v): v is (typeof followedStreamers)[number] => Boolean(v));
               const label = (folder.name || "F").slice(0, 1);
               return (
                 <div
@@ -282,6 +359,13 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                       : "border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-300"
                   }`}
                   title={folder.name}
+                  onMouseEnter={(e) => {
+                    if (isLeaderboardOpen) return;
+                    clearFolderPreviewTimer();
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setFolderPreview({ id: folder.id, x: rect.right + 10, y: rect.top });
+                  }}
+                  onMouseLeave={() => scheduleHideFolderPreview()}
                 >
                   {label}
                 </div>
@@ -441,92 +525,22 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
           </div>
           {orderedIds.length > 0 && reorderValues.length > 0 ? (
             <Reorder.Group axis="y" values={reorderValues} onReorder={handleReorderList} className="space-y-1">
-              {reorderItems.map((item) => {
-                const itemKey = item.key;
-                const data = item.data;
-                return (
-                  <Reorder.Item
-                    key={itemKey}
-                    value={itemKey}
-                    dragListener
-                    as="div"
-                    layout
-                    transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.9 }}
-                    whileDrag={{ scale: 0.98, opacity: 0.9 }}
-                    className="flex"
-                    onDragStart={(e) => {
-                      setDraggingKey(itemKey);
-                      setHoverFolderId(null);
-                      const hit = getHoverFolderId(e.clientX, e.clientY);
-                      if (hit) setHoverFolderId(hit);
-                    }}
-                    onDrag={(e) => {
-                      const hit = getHoverFolderId(e.clientX, e.clientY);
-                      setHoverFolderId(hit);
-                    }}
-                    onDragEnd={(e) => {
-                      const hit = getHoverFolderId(e.clientX, e.clientY) || hoverFolderId;
-                      if (hit) {
-                        moveToFolder(itemKey, hit);
-                      }
-                      setDraggingKey(null);
-                      setHoverFolderId(null);
-                    }}
-                  >
-                    <button
-                      draggable
-                      onDragStart={(e) => {
-                        setDraggingKey(itemKey);
-                        e.dataTransfer?.setData("text/plain", itemKey);
-                      }}
-                      onDragEnd={() => {
-                        setDraggingKey(null);
-                        setHoverFolderId(null);
-                      }}
-                      onClick={() =>
-                        openPlayer({
-                          platform: data.platform,
-                          roomId: data.id,
-                          title: data.roomTitle,
-                          anchorName: data.nickname,
-                          avatar: data.avatarUrl,
-                        })
-                      }
-                      className={`group w-full flex items-center gap-2 p-1.5 rounded-xl transition-all ${
-                        isDark ? "hover:bg-white/10" : "hover:bg-black/5"
-                      }`}
-                    >
-                      <div className="relative flex-shrink-0">
-                        {data.avatarUrl ? (
-                          <Image
-                            src={data.avatarUrl}
-                            alt={data.nickname || data.displayName || data.id}
-                            width={32}
-                            height={32}
-                            sizes="32px"
-                            className="w-8 h-8 rounded-full object-cover border border-white/10"
-                          />
-                        ) : (
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold ${
-                              isDark ? "bg-white/10 text-white" : "bg-black/5 text-slate-800"
-                            }`}
-                          >
-                            {(data.nickname || data.displayName || data.id).slice(0, 1)}
-                          </div>
-                        )}
-                        {statusDot(data.isLive)}
-                      </div>
-                      <div className="flex flex-col min-w-0 text-left">
-                        <span className="text-[13px] font-semibold truncate">{data.nickname || data.displayName}</span>
-                        <span className="text-[11px] text-gray-400 truncate">
-                          {data.roomTitle || data.displayName || platformLabelMap[data.platform]}
-                        </span>
-                      </div>
-                    </button>
-                  </Reorder.Item>
-                );
-              })}
+              {reorderItems.map((item) => (
+                <ReorderableStreamer
+                  key={item.key}
+                  itemKey={item.key}
+                  data={item.data}
+                  isDark={isDark}
+                  getHoverFolderId={getHoverFolderId}
+                  getClientPoint={getClientPoint}
+                  setDraggingKey={setDraggingKey}
+                  setHoverFolderId={setHoverFolderId}
+                  hoverFolderId={hoverFolderId}
+                  moveToFolder={moveToFolder}
+                  openPlayer={openPlayer}
+                  statusDot={statusDot}
+                />
+              ))}
             </Reorder.Group>
           ) : null}
           {mounted && folderMenu
@@ -628,7 +642,330 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
               )
             : null}
         </div>
-      ) : null}
+        ) : null}
+
+      {mounted && !isLeaderboardOpen && folderPreview
+        ? createPortal(
+            <div className="fixed inset-0 z-[9999] pointer-events-none">
+              <motion.div
+                className={`absolute w-60 max-w-[270px] rounded-xl border shadow-xl p-3 pointer-events-auto ${
+                  isDark ? "bg-slate-900 text-white border-white/10" : "bg-white text-slate-900 border-gray-200"
+                }`}
+                style={{ top: folderPreview.y, left: folderPreview.x }}
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 260, damping: 22, mass: 0.6 }}
+                onMouseEnter={clearFolderPreviewTimer}
+                onMouseLeave={() => scheduleHideFolderPreview()}
+              >
+                {(() => {
+                  const folder = folders.find((f) => f.id === folderPreview.id);
+                  if (!folder) return <div className="text-xs text-gray-400">未找到内容</div>;
+                  const items = (folder.streamerIds || [])
+                    .map((id) => {
+                      const [p, i] = (id || "").split(":");
+                      return followedStreamers.find(
+                        (s) => String(s.platform).toUpperCase() === String(p || "").toUpperCase() && s.id === i
+                      );
+                    })
+                    .filter((v): v is (typeof followedStreamers)[number] => Boolean(v));
+                  if (items.length === 0) return <div className="text-xs text-gray-400">暂无主播</div>;
+                  const maxVisible = 8;
+                  const listMaxHeight = `${Math.min(items.length, maxVisible) * 56}px`;
+                  return (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold truncate">{folder.name}</div>
+                      <div
+                        className="space-y-1 overflow-y-auto pr-1 no-scrollbar"
+                        style={{ maxHeight: listMaxHeight }}
+                      >
+                        {items.map((item) => {
+                          const displayTitle =
+                            item.roomTitle || item.displayName || item.nickname || platformLabelMap[item.platform];
+                          return (
+                          <button
+                            key={`${item.platform}:${item.id}`}
+                            className={`w-full flex items-center gap-2 text-sm rounded-lg px-1.5 py-1 transition-colors ${
+                              isDark ? "hover:bg-white/10" : "hover:bg-black/5"
+                            }`}
+                            onClick={() =>
+                              openPlayer({
+                                platform: item.platform,
+                                roomId: item.id,
+                                title: item.roomTitle,
+                                anchorName: item.nickname,
+                                avatar: item.avatarUrl,
+                              })
+                            }
+                          >
+                            <div className="relative w-7 h-7">
+                              {item.avatarUrl ? (
+                                <Image
+                                  src={item.avatarUrl}
+                                  alt={item.nickname || item.displayName || item.id}
+                                  width={28}
+                                  height={28}
+                                  sizes="28px"
+                                  className="w-7 h-7 rounded-full object-cover border border-white/10"
+                                />
+                              ) : (
+                                <div
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ${
+                                    isDark ? "bg-white/10 text-white" : "bg-black/5 text-slate-800"
+                                  }`}
+                                >
+                                  {(item.nickname || item.displayName || item.id).slice(0, 1)}
+                                </div>
+                              )}
+                              {statusDot(item.isLive)}
+                            </div>
+                            <div className="flex flex-col min-w-0 text-left">
+                              <span className="text-[12px] font-semibold truncate">
+                                {item.nickname || item.displayName}
+                              </span>
+                              <span className="text-[11px] text-gray-400 truncate" title={displayTitle}>
+                                {displayTitle}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            </div>,
+            document.body
+          )
+        : null}
+
+      {mounted && !isLeaderboardOpen && collapsedHover
+        ? createPortal(
+            <motion.div
+              className="fixed z-[9998] pointer-events-none"
+              style={{ top: collapsedHover.y, left: collapsedHover.x }}
+              initial={{ opacity: 0, y: -4, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 280, damping: 18, mass: 0.6 }}
+            >
+              <div
+                className={`rounded-xl border px-3 py-2 shadow-lg max-w-[240px] ${
+                  isDark
+                    ? "bg-slate-900/95 text-white border-white/10 backdrop-blur-md"
+                    : "bg-white text-slate-900 border-gray-200 backdrop-blur-md"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="relative w-8 h-8">
+                    {collapsedHover.avatar ? (
+                      <Image
+                        src={collapsedHover.avatar}
+                        alt={collapsedHover.name}
+                        width={32}
+                        height={32}
+                        sizes="32px"
+                        className="w-8 h-8 rounded-full object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                          isDark ? "bg-white/10 text-white" : "bg-black/5 text-slate-800"
+                        }`}
+                      >
+                        {collapsedHover.name.slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-semibold truncate">{collapsedHover.name}</span>
+                    <span className="text-[11px] text-gray-400 truncate">{collapsedHover.title}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>,
+            document.body
+          )
+        : null}
     </aside>
+  );
+}
+
+type ReorderableStreamerProps = {
+  itemKey: string;
+  data: FollowedStreamer;
+  isDark: boolean;
+  getHoverFolderId: (x: number, y: number) => string | null;
+  getClientPoint: (e: MouseEvent | PointerEvent | TouchEvent) => { x: number; y: number };
+  setDraggingKey: (key: string | null) => void;
+  setHoverFolderId: (id: string | null) => void;
+  hoverFolderId: string | null;
+  moveToFolder: (key: string, folderId: string) => void;
+  openPlayer: ReturnType<typeof usePlayerOverlayStore>["open"];
+  statusDot: (live?: boolean) => JSX.Element;
+};
+
+function ReorderableStreamer({
+  itemKey,
+  data,
+  isDark,
+  getHoverFolderId,
+  getClientPoint,
+  setDraggingKey,
+  setHoverFolderId,
+  hoverFolderId,
+  moveToFolder,
+  openPlayer,
+  statusDot,
+}: ReorderableStreamerProps) {
+  const controls = useDragControls();
+  const pressTimer = useRef<number | null>(null);
+  const dragStarted = useRef(false);
+  const lastPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const wasDragging = useRef(false);
+  const pointerActive = useRef(false);
+
+  const clearTimer = () => {
+    if (pressTimer.current) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  };
+
+  const startDrag = (e: React.PointerEvent) => {
+    if (dragStarted.current) return;
+    dragStarted.current = true;
+    wasDragging.current = true;
+    setDraggingKey(itemKey);
+    setHoverFolderId(null);
+    controls.start(e);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    wasDragging.current = false;
+    dragStarted.current = false;
+    pointerActive.current = true;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    clearTimer();
+    pressTimer.current = window.setTimeout(() => startDrag(e), 220);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointerActive.current || dragStarted.current) return;
+    if (!(e.buttons & 1)) {
+      pointerActive.current = false;
+      clearTimer();
+      return;
+    }
+    const dx = Math.abs(e.clientX - lastPos.current.x);
+    const dy = Math.abs(e.clientY - lastPos.current.y);
+    if (dx + dy > 6) {
+      clearTimer();
+      startDrag(e);
+    }
+  };
+
+  const handlePointerUp = () => {
+    clearTimer();
+    dragStarted.current = false;
+    pointerActive.current = false;
+    setTimeout(() => {
+      wasDragging.current = false;
+    }, 50);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimer();
+    };
+  }, []);
+
+  return (
+    <Reorder.Item
+      value={itemKey}
+      dragListener={false}
+      dragControls={controls}
+      as="div"
+      layout
+      transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.9 }}
+      whileDrag={{ scale: 0.98, opacity: 0.9 }}
+      className="flex"
+      onDragStart={(e) => {
+        setDraggingKey(itemKey);
+        setHoverFolderId(null);
+        const { x, y } = getClientPoint(e as unknown as MouseEvent | PointerEvent | TouchEvent);
+        const hit = getHoverFolderId(x, y);
+        if (hit) setHoverFolderId(hit);
+      }}
+      onDrag={(e) => {
+        const { x, y } = getClientPoint(e as unknown as MouseEvent | PointerEvent | TouchEvent);
+        const hit = getHoverFolderId(x, y);
+        setHoverFolderId(hit);
+      }}
+      onDragEnd={(e) => {
+        const { x, y } = getClientPoint(e as unknown as MouseEvent | PointerEvent | TouchEvent);
+        const hit = getHoverFolderId(x, y) || hoverFolderId;
+        if (hit) {
+          moveToFolder(itemKey, hit);
+        }
+        setDraggingKey(null);
+        setHoverFolderId(null);
+        wasDragging.current = true;
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+    >
+      <button
+        onClick={() => {
+          if (wasDragging.current) {
+            wasDragging.current = false;
+            return;
+          }
+          openPlayer({
+            platform: data.platform,
+            roomId: data.id,
+            title: data.roomTitle,
+            anchorName: data.nickname,
+            avatar: data.avatarUrl,
+          });
+        }}
+        className={`group w-full flex items-center gap-2 p-1.5 rounded-xl transition-all ${
+          isDark ? "hover:bg-white/10" : "hover:bg-black/5"
+        }`}
+      >
+        <div className="relative flex-shrink-0">
+          {data.avatarUrl ? (
+            <Image
+              src={data.avatarUrl}
+              alt={data.nickname || data.displayName || data.id}
+              width={32}
+              height={32}
+              sizes="32px"
+              className="w-8 h-8 rounded-full object-cover border border-white/10"
+            />
+          ) : (
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold ${
+                isDark ? "bg-white/10 text-white" : "bg-black/5 text-slate-800"
+              }`}
+            >
+              {(data.nickname || data.displayName || data.id).slice(0, 1)}
+            </div>
+          )}
+          {statusDot(data.isLive)}
+        </div>
+        <div className="flex flex-col min-w-0 text-left">
+          <span className="text-[13px] font-semibold truncate">{data.nickname || data.displayName}</span>
+          <span className="text-[11px] text-gray-400 truncate">
+            {data.roomTitle || data.displayName || platformLabelMap[data.platform]}
+          </span>
+        </div>
+      </button>
+    </Reorder.Item>
   );
 }
