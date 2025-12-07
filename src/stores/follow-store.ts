@@ -256,9 +256,18 @@ export const useFollowStore = create<FollowStore>()(
       },
 
       toggleFolderExpanded(folderId) {
-        set((state) => ({
-          folders: state.folders.map((f) => (f.id === folderId ? { ...f, expanded: !f.expanded } : f)),
-        }));
+        set((state) => {
+          const target = state.folders.find((f) => f.id === folderId);
+          if (!target) return state;
+          const nextExpanded = !(target.expanded ?? true);
+          const folders = state.folders.map((f) => (f.id === folderId ? { ...f, expanded: nextExpanded } : f));
+          const listOrder = state.listOrder.map((item) =>
+            item.type === "folder" && item.data.id === folderId
+              ? { ...item, data: { ...item.data, expanded: nextExpanded } }
+              : item
+          );
+          return { folders, listOrder };
+        });
       },
 
       moveStreamerToFolder(streamerKey, folderId) {
@@ -282,7 +291,7 @@ export const useFollowStore = create<FollowStore>()(
               })
             );
             nextIds.add(normKey);
-            return { ...folder, streamerIds: Array.from(nextIds) };
+            return { ...folder, streamerIds: Array.from(nextIds), expanded: true };
           });
 
           const listOrder = state.listOrder.filter((item) => {
@@ -291,7 +300,18 @@ export const useFollowStore = create<FollowStore>()(
               return key !== normKey;
             }
             return true;
-          });
+          }).map((item) =>
+            item.type === "folder" && item.data.id === folderId
+              ? {
+                  ...item,
+                  data: {
+                    ...item.data,
+                    streamerIds: folders.find((f) => f.id === folderId)?.streamerIds || item.data.streamerIds,
+                    expanded: true,
+                  },
+                }
+              : item
+          );
 
           return { folders, listOrder };
         });
@@ -308,7 +328,11 @@ export const useFollowStore = create<FollowStore>()(
           });
 
           const folderIndex = state.listOrder.findIndex((item) => item.type === "folder" && item.data.id === folderId);
-          const listOrder = [...state.listOrder];
+          const listOrder = state.listOrder.map((item) =>
+            item.type === "folder" && item.data.id === folderId
+              ? { ...item, data: { ...item.data, streamerIds: folders.find((f) => f.id === folderId)?.streamerIds || [] } }
+              : item
+          );
 
           if (folderIndex !== -1) {
             const platformUpper = String(rawPlatform || "").toUpperCase();

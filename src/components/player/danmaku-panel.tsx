@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { DanmakuMessage } from "@/types/danmaku";
 import { type ThemeResolved } from "@/stores/theme-store";
+import { cn } from "@/utils/cn";
 
 type DanmakuPanelProps = {
   messages: DanmakuMessage[];
@@ -14,12 +15,24 @@ type DanmakuPanelProps = {
 export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isDark = theme === "dark";
+  const namePaletteDark = ["text-emerald-300", "text-sky-300", "text-amber-300", "text-pink-300", "text-indigo-300", "text-lime-300"];
+  const namePaletteLight = ["text-emerald-700", "text-sky-700", "text-amber-700", "text-pink-600", "text-indigo-700", "text-lime-700"];
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  const pickNameColor = (msg: DanmakuMessage, index: number) => {
+    const colors = isDark ? namePaletteDark : namePaletteLight;
+    let hash = index;
+    const key = msg.id || msg.nickname || "";
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    }
+    return colors[hash % colors.length];
+  };
 
   return (
     <div
@@ -45,7 +58,7 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
         </div>
       </div>
       <div className="space-y-2.5 text-sm">
-        {messages.slice(-200).map((msg) => (
+        {messages.slice(-200).map((msg, idx) => (
           <div
             key={msg.id}
             className={`rounded-xl px-3 py-2.5 ring-1 ${
@@ -55,7 +68,23 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
             } transition-colors`}
           >
             <div className="space-y-1">
-              <div className={`text-[12px] font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>{msg.nickname}</div>
+              <div className="flex items-center gap-2 text-[12px] font-semibold">
+                {msg.level ? (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                      isDark ? "bg-white/10 text-gray-200" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    Lv.{msg.level}
+                  </span>
+                ) : null}
+                <span
+                  className={cn("truncate", pickNameColor(msg, idx))}
+                  title={msg.nickname}
+                >
+                  {msg.nickname}
+                </span>
+              </div>
               <div className={`leading-snug break-words ${isDark ? "text-gray-200" : "text-gray-700"}`}>{msg.content}</div>
             </div>
           </div>

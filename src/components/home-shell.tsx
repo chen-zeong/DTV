@@ -126,19 +126,7 @@ export function HomeShell({
 
         <div className="relative z-20 h-full overflow-hidden flex flex-col pb-0 md:pb-0">
           <div className="pt-4 pb-2 px-4 hidden md:block">
-            <div className="grid w-full grid-cols-[auto,1fr,auto] items-center gap-3">
-              <div className="flex items-center">
-                <button
-                  onClick={toggleLeaderboard}
-                  className={`p-2 rounded-full border transition-colors ${
-                    theme === "dark" ? "border-white/10 bg-white/10 hover:bg-white/15" : "border-gray-200 bg-white hover:bg-gray-100"
-                  }`}
-                  title="展开/收起关注列表"
-                >
-                  {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
-                </button>
-              </div>
-
+            <div className="grid w-full grid-cols-[1fr,auto] items-center gap-3">
               <div className="flex justify-center">
                 <div
                   className={`flex items-center gap-2 rounded-full border px-2.5 py-1.5 shadow-lg backdrop-blur-xl ${

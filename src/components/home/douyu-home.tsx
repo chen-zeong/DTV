@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Loader2, RefreshCw, ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type Transition } from "framer-motion";
 import { fetchDouyuLiveList } from "@/services/douyu";
 import { DouyuCate2, DouyuCate3, DouyuStreamer } from "@/types/douyu";
 import { Platform } from "@/types/platform";
@@ -196,7 +196,7 @@ export function DouyuHome() {
   const cate2ContainerMaxHeight = Math.max(260, Math.floor(viewportHeight * 0.8));
   const cate2ExpandedMaxHeight = Math.max(200, cate2ContainerMaxHeight - 60);
   const expandedCate2 = cate2Expanded || visibleCate2.length <= 10;
-  const cate2Transition = {
+  const cate2Transition: Transition = {
     maxHeight: { duration: expandedCate2 ? 0.6 : 0.38, ease: [0.16, 1, 0.3, 1] },
     opacity: { duration: 0.25 },
     scaleY: { type: "spring", stiffness: 200, damping: expandedCate2 ? 26 : 28, mass: 1.05 },
