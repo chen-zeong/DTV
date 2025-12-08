@@ -8,7 +8,7 @@ import { useFollowStore } from "@/stores/follow-store";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { platformLabelMap } from "@/utils/platform";
 import { useSidebarStore } from "@/stores/sidebar-store";
-import { Reorder, motion, useDragControls } from "framer-motion";
+import { Reorder, motion, useDragControls, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { tauriInvoke } from "@/lib/tauri";
@@ -38,6 +38,12 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
   const updateStreamerDetails = useFollowStore((s) => s.updateStreamerDetails);
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const normalizeAvatar = (platform: string, url?: string | null) => normalizeAvatarGlobal(platform, url);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const hoverHighlightKey = useRef<string | null>(null);
+  const [hoverHighlight, setHoverHighlight] = useState<{
+    key: string;
+    rect: { left: number; top: number; width: number; height: number };
+  } | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [hoverFolderId, setHoverFolderId] = useState<string | null>(null);
   const [folderMenu, setFolderMenu] = useState<{ id: string; x: number; y: number; renameDraft?: string } | null>(
@@ -160,6 +166,44 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     }
     return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
   };
+
+  const applyHoverHighlight = useCallback(
+    (el: HTMLElement | null, key: string) => {
+      if (!el || !sidebarRef.current) return;
+      const parentRect = sidebarRef.current.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      hoverHighlightKey.current = key;
+      setHoverHighlight({
+        key,
+        rect: {
+          left: rect.left - parentRect.left,
+          top: rect.top - parentRect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+      });
+    },
+    [sidebarRef]
+  );
+
+  const clearHoverHighlight = useCallback(
+    (key?: string) => {
+      if (key && hoverHighlightKey.current && key !== hoverHighlightKey.current) return;
+      hoverHighlightKey.current = null;
+      setHoverHighlight(null);
+    },
+    []
+  );
+
+  const recomputeHoverHighlight = useCallback(() => {
+    if (!hoverHighlightKey.current || typeof document === "undefined") return;
+    const el = document.querySelector<HTMLElement>(`[data-follow-item-key="${hoverHighlightKey.current}"]`);
+    if (!el) {
+      clearHoverHighlight();
+      return;
+    }
+    applyHoverHighlight(el, hoverHighlightKey.current);
+  }, [applyHoverHighlight, clearHoverHighlight]);
 
   const refreshFollowStatus = useCallback(async () => {
     if (refreshLock.current) return;
@@ -336,10 +380,45 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => recomputeHoverHighlight();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [recomputeHoverHighlight]);
+
+  useEffect(() => {
+    recomputeHoverHighlight();
+  }, [isLeaderboardOpen, recomputeHoverHighlight]);
+
   return (
     <aside
-      className={`flex flex-col items-center py-4 w-full max-w-[240px] h-full border-r backdrop-blur-xl transition-all duration-300 overflow-y-auto no-scrollbar ${containerClass} ${className}`}
+      ref={sidebarRef}
+      onMouseLeave={() => clearHoverHighlight()}
+      onScroll={recomputeHoverHighlight}
+      className={`relative flex flex-col items-center py-4 w-full max-w-[240px] h-full border-r backdrop-blur-xl transition-all duration-300 overflow-y-auto no-scrollbar ${containerClass} ${className}`}
     >
+      <AnimatePresence>
+        {hoverHighlight ? (
+          <motion.div
+            key="nav-hover"
+            layoutId="nav-hover"
+            className={`absolute rounded-2xl ${
+              isDark ? "bg-emerald-400/10 ring-1 ring-emerald-400/60" : "bg-emerald-500/10 ring-1 ring-emerald-400/60"
+            }`}
+            style={{ pointerEvents: "none" }}
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              left: hoverHighlight.rect.left,
+              top: hoverHighlight.rect.top,
+              width: hoverHighlight.rect.width,
+              height: hoverHighlight.rect.height,
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          />
+        ) : null}
+      </AnimatePresence>
       <div className={`w-full flex flex-col ${isLeaderboardOpen ? "items-start" : "items-center"} gap-4 px-3`}>
         <div className="flex items-center gap-2">
           {isLeaderboardOpen ? (
@@ -412,10 +491,12 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
               if (item.type === "streamer") {
                 const s = orderedFollows.find((f) => f.platform === item.data.platform && f.id === item.data.id);
                 if (!s) return null;
+                const key = toKey(s.platform, s.id);
                 return (
                   <button
-                    key={`${s.platform}:${s.id}`}
+                    key={key}
                     type="button"
+                    data-follow-item-key={key}
                     onClick={() =>
                       openPlayer({
                         platform: s.platform,
@@ -427,18 +508,22 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                     }
                     onMouseEnter={(e) => {
                       if (isLeaderboardOpen) return;
-                    clearCollapsedPreviewTimer();
-                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    setCollapsedHover({
-                      key: `${s.platform}:${s.id}`,
-                      x: rect.right + 10,
-                      y: rect.top,
-                      name: s.nickname || s.displayName || s.id,
-                      title: s.roomTitle || s.displayName || s.nickname || "",
-                      avatar: normalizeAvatar(s.platform, s.avatarUrl),
-                    });
-                  }}
-                    onMouseLeave={() => scheduleHideCollapsedPreview()}
+                      clearCollapsedPreviewTimer();
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setCollapsedHover({
+                        key: `${s.platform}:${s.id}`,
+                        x: rect.right + 10,
+                        y: rect.top,
+                        name: s.nickname || s.displayName || s.id,
+                        title: s.roomTitle || s.displayName || s.nickname || "",
+                        avatar: normalizeAvatar(s.platform, s.avatarUrl),
+                      });
+                      applyHoverHighlight(e.currentTarget, key);
+                    }}
+                    onMouseLeave={() => {
+                      scheduleHideCollapsedPreview();
+                      clearHoverHighlight(key);
+                    }}
                     className={`relative w-10 h-10 rounded-full border shadow-sm transition-all duration-200 ${
                       isDark
                         ? "border-white/10 hover:border-white/25 hover:scale-105"
@@ -575,54 +660,61 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                       {items.length === 0 ? (
                         <div className="text-[11px] text-gray-400">暂无主播，拖动加入</div>
                       ) : (
-                        items.map((item) => (
-                          <button
-                            key={`${item.platform}:${item.id}`}
-                            type="button"
-                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
-                              isDark ? "hover:bg-white/10" : "hover:bg-black/5"
-                            }`}
-                            onClick={() =>
-                              openPlayer({
-                                platform: item.platform,
-                                roomId: item.id,
-                                title: item.roomTitle,
-                                anchorName: item.nickname,
-                                avatar: normalizeAvatar(item.platform, item.avatarUrl),
-                              })
-                            }
-                          >
-                            <div className="relative flex-shrink-0">
-                        {normalizeAvatar(item.platform, item.avatarUrl) ? (
-                          <Image
-                            src={normalizeAvatar(item.platform, item.avatarUrl) || ""}
-                            alt={item.nickname || item.displayName || item.id}
-                            width={28}
-                            height={28}
-                            sizes="28px"
-                            className="w-7 h-7 rounded-full object-cover border border-white/10"
-                                />
-                              ) : (
-                                <div
-                                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ${
-                                    isDark ? "bg-white/10 text-white" : "bg-black/5 text-slate-800"
-                                  }`}
-                                >
-                                  {(item.nickname || item.displayName || item.id).slice(0, 1)}
-                                </div>
-                              )}
-                              {statusDot(item.isLive)}
-                            </div>
-                            <div className="flex flex-col min-w-0 text-left">
-                              <span className="text-[12px] font-semibold truncate">
-                                {item.nickname || item.displayName}
-                              </span>
-                              <span className="text-[11px] text-gray-400 truncate">
-                                {item.roomTitle || item.displayName || platformLabelMap[item.platform]}
-                              </span>
-                            </div>
-                          </button>
-                        ))
+                        items.map((item) => {
+                          const itemKey = toKey(item.platform, item.id);
+                          const avatar = normalizeAvatar(item.platform, item.avatarUrl);
+                          return (
+                            <button
+                              key={`${item.platform}:${item.id}`}
+                              type="button"
+                              data-follow-item-key={itemKey}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
+                                isDark ? "hover:bg-white/10" : "hover:bg-black/5"
+                              }`}
+                              onPointerEnter={(e) => applyHoverHighlight(e.currentTarget, itemKey)}
+                              onPointerLeave={() => clearHoverHighlight(itemKey)}
+                              onClick={() =>
+                                openPlayer({
+                                  platform: item.platform,
+                                  roomId: item.id,
+                                  title: item.roomTitle,
+                                  anchorName: item.nickname,
+                                  avatar,
+                                })
+                              }
+                            >
+                              <div className="relative flex-shrink-0">
+                                {avatar ? (
+                                  <Image
+                                    src={avatar}
+                                    alt={item.nickname || item.displayName || item.id}
+                                    width={28}
+                                    height={28}
+                                    sizes="28px"
+                                    className="w-7 h-7 rounded-full object-cover border border-white/10"
+                                  />
+                                ) : (
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ${
+                                      isDark ? "bg-white/10 text-white" : "bg-black/5 text-slate-800"
+                                    }`}
+                                  >
+                                    {(item.nickname || item.displayName || item.id).slice(0, 1)}
+                                  </div>
+                                )}
+                                {statusDot(item.isLive)}
+                              </div>
+                              <div className="flex flex-col min-w-0 text-left">
+                                <span className="text-[12px] font-semibold truncate">
+                                  {item.nickname || item.displayName}
+                                </span>
+                                <span className="text-[11px] text-gray-400 truncate">
+                                  {item.roomTitle || item.displayName || platformLabelMap[item.platform]}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   ) : null}
@@ -646,6 +738,8 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                   moveToFolder={moveToFolder}
                   openPlayer={openPlayer}
                   statusDot={statusDot}
+                  onHoverHighlight={applyHoverHighlight}
+                  onClearHighlight={clearHoverHighlight}
                 />
               ))}
             </Reorder.Group>
@@ -912,6 +1006,8 @@ type ReorderableStreamerProps = {
   moveToFolder: (key: string, folderId: string) => void;
   openPlayer: ReturnType<typeof usePlayerOverlayStore>["open"];
   statusDot: (live?: boolean) => JSX.Element;
+  onHoverHighlight: (el: HTMLElement | null, key: string) => void;
+  onClearHighlight: (key?: string) => void;
 };
 
 function ReorderableStreamer({
@@ -926,6 +1022,8 @@ function ReorderableStreamer({
   moveToFolder,
   openPlayer,
   statusDot,
+  onHoverHighlight,
+  onClearHighlight,
 }: ReorderableStreamerProps) {
   const controls = useDragControls();
   const pressTimer = useRef<number | null>(null);
@@ -1002,6 +1100,7 @@ function ReorderableStreamer({
       whileDrag={{ scale: 0.98, opacity: 0.9 }}
       className="flex"
       onDragStart={(e) => {
+        onClearHighlight(itemKey);
         setDraggingKey(itemKey);
         setHoverFolderId(null);
         const { x, y } = getClientPoint(e as unknown as MouseEvent | PointerEvent | TouchEvent);
@@ -1030,6 +1129,9 @@ function ReorderableStreamer({
       onPointerLeave={handlePointerUp}
     >
       <button
+        data-follow-item-key={itemKey}
+        onPointerEnter={(e) => onHoverHighlight(e.currentTarget, itemKey)}
+        onPointerLeave={() => onClearHighlight(itemKey)}
         onClick={() => {
           if (wasDragging.current) {
             wasDragging.current = false;

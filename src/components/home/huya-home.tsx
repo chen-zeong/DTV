@@ -257,7 +257,7 @@ export function HuyaHome() {
             ))}
           </motion.div>
           {isMobile && cate2Options.length > cate2Limit ? (
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center">
               <button
                 className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border ${
                   isDark
@@ -271,7 +271,7 @@ export function HuyaHome() {
             </div>
           ) : null}
           {!isMobile && cate2Options.length > 10 && visibleCate2.length > 10 && (
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center">
               <button
                 className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
                   isDark

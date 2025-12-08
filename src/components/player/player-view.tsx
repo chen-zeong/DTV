@@ -38,6 +38,7 @@ type PlayerViewProps = {
   initialAnchorName?: string;
   initialAvatar?: string;
   theme?: ThemeResolved;
+  onFullscreenChange?: (isFs: boolean) => void;
 };
 
 type DanmuOverlayInstance = {
@@ -57,7 +58,16 @@ type XgMediaPlayer = Player & {
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
 
-export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnchorName, initialAvatar, theme }: PlayerViewProps) {
+export function PlayerView({
+  platform,
+  roomId,
+  onClose,
+  initialTitle,
+  initialAnchorName,
+  initialAvatar,
+  theme,
+  onFullscreenChange,
+}: PlayerViewProps) {
   const storeTheme = useThemeStore((s) => s.getEffectiveTheme());
   const effectiveTheme = theme ?? storeTheme ?? "dark";
   const isDark = effectiveTheme === "dark";
@@ -131,6 +141,17 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     if (!target || !target.videoWidth || !target.videoHeight) return;
     setIsStreamPortrait(target.videoHeight >= target.videoWidth);
   }, []);
+
+  // keep overlay in sync when browser fullscreen changes (not only css fullscreen)
+  useEffect(() => {
+    const handleFsChange = () => {
+      const fs = Boolean(document.fullscreenElement);
+      setIsCssFullscreen(fs);
+      onFullscreenChange?.(fs);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, [onFullscreenChange]);
 
   const destroyPlayer = () => {
     try {
@@ -350,7 +371,16 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
       normalizeRotateWrapper(player.root as HTMLElement | null);
       watchAndNormalizeRotateWrapper(player.root as HTMLElement | null);
     });
-    player.on("cssfullscreenchange", (status: boolean) => setIsCssFullscreen(Boolean(status)));
+    player.on("cssfullscreenchange", (status: boolean) => {
+      const next = Boolean(status);
+      setIsCssFullscreen(next);
+      onFullscreenChange?.(next);
+    });
+    player.on("fullscreenchange", (status: boolean) => {
+      const next = Boolean(status);
+      setIsCssFullscreen(next);
+      onFullscreenChange?.(next);
+    });
     playerRef.current = player;
     normalizeRotateWrapper(player.root as HTMLElement | null);
     watchAndNormalizeRotateWrapper(player.root as HTMLElement | null);
@@ -672,10 +702,14 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
     overlay.setAllDuration?.("scroll", danmakuDuration);
   }, [danmakuArea, danmakuDuration]);
 
+  useEffect(() => {
+    onFullscreenChange?.(isCssFullscreen);
+  }, [isCssFullscreen, onFullscreenChange]);
+
   return (
     <div
       className={cn(
-        "player-view-page min-h-screen md:h-screen flex flex-col md:flex-row items-start gap-2 md:gap-2 px-2 py-2 md:px-2 md:py-0 md:overflow-hidden",
+        "player-view-page min-h-screen md:h-screen flex justify-center px-2 md:px-4 py-2 md:py-4",
         isMobile && "mobile-player",
         isDark
           ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
@@ -683,81 +717,87 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
       )}
       style={{ ["--sidebar-offset" as string]: `${sidebarWidth}px` }}
     >
-      <div className={cn("flex-1 flex flex-col gap-2 min-h-0", isMobileLandscape && "items-center pt-12")}>
-        {!isMobile && (
-          <div className="flex items-center justify-between gap-3 flex-wrap px-1">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                onClick={() => {
-                  if (onClose) onClose();
-                  else router.back();
-                }}
-                className={cn(
-                  "inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
-                  isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-white hover:bg-gray-100"
-                )}
-                title="返回"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={cn(
-                    "w-12 h-12 rounded-full overflow-hidden flex-shrink-0",
-                    isDark ? "border border-white/10 bg-white/10" : "border border-gray-200 bg-white"
-                  )}
-                >
-                  {avatarDisplay ? (
-                    <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
-                  ) : (
+      <div className="w-full max-w-[1400px] flex-1">
+        <div
+          className={cn(
+            "rounded-3xl border shadow-2xl backdrop-blur-xl overflow-hidden",
+            isDark ? "bg-slate-950/70 border-white/10 shadow-black/40" : "bg-white/85 border-gray-200 shadow-gray-300/60"
+          )}
+        >
+          <div className="flex flex-col md:flex-row items-start gap-2 md:gap-2 px-2 py-2 md:px-2 md:py-0 md:overflow-hidden">
+            <div className={cn("flex-1 flex flex-col gap-2 min-h-0", isMobileLandscape && "items-center pt-12")}>
+              <div className={cn("flex items-center justify-between gap-3 flex-wrap px-1", isMobile && "pt-1")}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    onClick={() => {
+                      if (onClose) onClose();
+                      else router.back();
+                    }}
+                    className={cn(
+                      "inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
+                      isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-white hover:bg-gray-100"
+                    )}
+                    title="返回"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={cn(
-                        "w-full h-full flex items-center justify-center text-sm",
-                        isDark ? "text-white/70" : "text-gray-700"
+                        "w-12 h-12 rounded-full overflow-hidden flex-shrink-0",
+                        isDark ? "border border-white/10 bg-white/10" : "border border-gray-200 bg-white"
                       )}
                     >
-                      {(anchorDisplay || roomId).slice(0, 1)}
+                      {avatarDisplay ? (
+                        <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
+                      ) : (
+                        <div
+                          className={cn(
+                            "w-full h-full flex items-center justify-center text-sm",
+                            isDark ? "text-white/70" : "text-gray-700"
+                          )}
+                        >
+                          {(anchorDisplay || roomId).slice(0, 1)}
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <div className="flex flex-col min-w-0">
+                      <span className={cn("text-base font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
+                        {streamMeta?.title || title}
+                      </span>
+                      <span className={cn("text-sm truncate", isDark ? "text-gray-400" : "text-gray-600")}>
+                        @{anchorDisplay} · {streamMeta?.viewer ?? "Live"} · 房间 {roomId}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className={cn("text-base font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
-                    {streamMeta?.title || title}
-                  </span>
-                  <span className={cn("text-sm truncate", isDark ? "text-gray-400" : "text-gray-600")}>
-                    @{anchorDisplay} · {streamMeta?.viewer ?? "Live"} · 房间 {roomId}
-                  </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      if (isFollowed(platform, roomId)) {
+                        unfollowStreamer(platform, roomId);
+                      } else {
+                        followStreamer({
+                          id: roomId,
+                          platform,
+                          nickname: streamMeta?.anchorName || roomId,
+                          avatarUrl: streamMeta?.avatar || "",
+                          displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
+                          isLive: true,
+                        });
+                      }
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-semibold shadow-lg",
+                      isFollowed(platform, roomId)
+                        ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/50"
+                        : "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
+                    )}
+                  >
+                    {isFollowed(platform, roomId) ? "已关注" : "关注"}
+                  </button>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                onClick={() => {
-                  if (isFollowed(platform, roomId)) {
-                    unfollowStreamer(platform, roomId);
-                  } else {
-                    followStreamer({
-                      id: roomId,
-                      platform,
-                      nickname: streamMeta?.anchorName || roomId,
-                      avatarUrl: streamMeta?.avatar || "",
-                      displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
-                      isLive: true,
-                    });
-                  }
-                }}
-                className={cn(
-                  "px-4 py-2 rounded-full text-sm font-semibold shadow-lg",
-                  isFollowed(platform, roomId)
-                    ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/50"
-                    : "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
-                )}
-              >
-                {isFollowed(platform, roomId) ? "已关注" : "关注"}
-              </button>
-            </div>
-          </div>
-        )}
         <div
           className={cn(
             "relative rounded-xl overflow-hidden shadow-lg",
@@ -939,16 +979,49 @@ export function PlayerView({ platform, roomId, onClose, initialTitle, initialAnc
         )}
       </div>
 
-      {!isMobile && (
-        <div className="w-full md:w-[200px] lg:w-[220px] flex flex-col h-full md:h-full overflow-hidden">
-          <DanmakuPanel
-            messages={danmakuMessages}
-            className="transition-opacity flex-1 overflow-hidden"
-            style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
-            theme={isDark ? "dark" : "light"}
-          />
+            {!isMobile && (
+              <div
+                className={cn(
+                  "w-full md:w-[240px] lg:w-[260px] flex flex-col h-full border-l",
+                  isDark ? "border-white/5 bg-white/5" : "border-gray-200/70 bg-gray-50/80"
+                )}
+              >
+                <div
+                  className={cn(
+                    "px-4 pt-4 pb-2 text-sm font-semibold tracking-wide uppercase flex items-center gap-2",
+                    isDark ? "text-gray-100" : "text-gray-700"
+                  )}
+                >
+                  弹幕
+                  <span
+                    className={cn(
+                      "text-[11px] font-normal px-2 py-0.5 rounded-full",
+                      isDark ? "bg-white/10 text-gray-200" : "bg-gray-200/80 text-gray-700"
+                    )}
+                  >
+                    实时
+                  </span>
+                </div>
+                <div className="flex-1 min-h-0 px-3 pb-3">
+                  <div
+                    className={cn(
+                      "h-full rounded-2xl border shadow-inner overflow-hidden",
+                      isDark ? "border-white/10 bg-black/40" : "border-gray-200 bg-white/90"
+                    )}
+                  >
+                    <DanmakuPanel
+                      messages={danmakuMessages}
+                      className="transition-opacity flex-1 overflow-hidden"
+                      style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
+                      theme={isDark ? "dark" : "light"}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

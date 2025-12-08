@@ -290,7 +290,7 @@ export function BilibiliHome() {
             ))}
           </motion.div>
           {isMobile && cateOptions.length > cate2Limit ? (
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center">
               <button
                 className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border ${
                   isDark
@@ -304,7 +304,7 @@ export function BilibiliHome() {
             </div>
           ) : null}
           {!isMobile && cateOptions.length > 10 && visibleCate2.length > 10 && (
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center">
               <button
                 className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
                   isDark

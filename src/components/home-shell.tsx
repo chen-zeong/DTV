@@ -13,13 +13,13 @@ import { platformLabelMap } from "@/utils/platform";
 import { PlayerOverlay } from "@/components/player/player-overlay";
 import { motion } from "framer-motion";
 import { SearchPanel } from "@/components/search/search-panel";
-import { Github, Moon, Sun, PanelLeftOpen, PanelLeftClose, Heart } from "lucide-react";
-import { openLink } from "@/lib/tauri";
+import { Moon, Sun, PanelLeftOpen, PanelLeftClose, Heart } from "lucide-react";
 import { DouyuHome } from "@/components/home/douyu-home";
 import { HuyaHome } from "@/components/home/huya-home";
 import { BilibiliHome } from "@/components/home/bilibili-home";
 import { DouyinHome } from "@/components/home/douyin-home";
 import { FollowList } from "@/components/follow-list";
+import { HomeTopNav } from "@/components/home/top-nav";
 
 type HomeShellProps = {
   initialPlatform?: Platform | "ALL";
@@ -85,6 +85,12 @@ export function HomeShell({
     }
   }, [isMobile, isSidebarOpen, setSidebarOpen]);
 
+  useEffect(() => {
+    const handler = () => toggleTheme();
+    window.addEventListener("toggle-theme", handler);
+    return () => window.removeEventListener("toggle-theme", handler);
+  }, [toggleTheme]);
+
   if (!mounted) {
     return null;
   }
@@ -124,71 +130,13 @@ export function HomeShell({
         <BackgroundFeed theme={theme} />
 
         <div className="relative z-20 h-full overflow-hidden flex flex-col pb-0 md:pb-0">
-          <div className="pt-4 pb-2 px-4 hidden md:block">
-            <div className="grid w-full grid-cols-[1fr,auto] items-center gap-3">
-              <div className="flex justify-center">
-                <div
-                  className={`flex items-center gap-2 rounded-full border px-2.5 py-1.5 shadow-lg backdrop-blur-xl ${
-                    theme === "dark"
-                      ? "bg-white/10 border-white/10 shadow-black/40"
-                      : "bg-white border-gray-200 shadow-gray-300/60"
-                  }`}
-                >
-                  {[Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN].map((p) => {
-                    const isActive = activePlatform === p;
-                    const label = platformLabelMap[p];
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => {
-                          setActivePlatform(p);
-                        }}
-                        className={`px-3 py-1.5 text-sm font-semibold rounded-full transition-all ${
-                          isActive
-                            ? theme === "dark"
-                              ? "bg-white text-gray-900 shadow-[0_10px_30px_-12px_rgba(255,255,255,0.8)]"
-                              : "bg-gray-900 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)]"
-                            : theme === "dark"
-                              ? "text-gray-200 hover:text-white hover:bg-white/10"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
-                <SearchPanel platform={activePlatform === "ALL" ? Platform.DOUYU : activePlatform} />
-                <a
-                  href="https://github.com/chen-zeong/DTV"
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => void openLink("https://github.com/chen-zeong/DTV")}
-                  className={`p-2 rounded-full border transition-colors ${
-                    theme === "dark"
-                      ? "border-white/10 bg-white/10 hover:bg-white/15"
-                      : "border-gray-200 bg-white hover:bg-gray-100"
-                  }`}
-                  title="打开 GitHub"
-                >
-                  <Github className="w-5 h-5" />
-                </a>
-                <button
-                  onClick={toggleTheme}
-                  className={`p-2 rounded-full border transition-colors ${
-                    theme === "dark"
-                      ? "border-white/10 bg-white/10 hover:bg-white/15"
-                      : "border-gray-200 bg-white hover:bg-gray-100"
-                  }`}
-                  title="切换主题"
-                >
-                  {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
+          <div className="pt-4 px-4 pb-0 hidden md:block">
+            <HomeTopNav
+              theme={theme}
+              activePlatform={activePlatform}
+              onPlatformChange={setActivePlatform}
+              showSearch
+            />
           </div>
 
           <div className={`flex-1 overflow-hidden p-0 md:p-2 md:pb-0 space-y-0 ${contentGradient}`}>

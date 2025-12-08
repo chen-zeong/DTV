@@ -7,6 +7,8 @@ import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { Sidebar } from "@/components/sidebar";
 import { useThemeStore } from "@/stores/theme-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
+import { HomeTopNav } from "@/components/home/top-nav";
+import { Platform } from "@/types/platform";
 
 export function PlayerOverlay() {
   const { isOpen, platform, roomId, title, anchorName, avatar, close } = usePlayerOverlayStore();
@@ -23,6 +25,9 @@ export function PlayerOverlay() {
   };
 
   const canRender = isOpen && platform && roomId;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const navHidden = isFullscreen;
 
   useEffect(() => {
     const update = () => {
@@ -33,9 +38,12 @@ export function PlayerOverlay() {
     update();
     window.addEventListener("resize", update);
     window.visualViewport?.addEventListener("resize", update);
+    const handleToggleTheme = () => useThemeStore.getState().toggleTheme();
+    window.addEventListener("toggle-theme", handleToggleTheme);
     return () => {
       window.removeEventListener("resize", update);
       window.visualViewport?.removeEventListener("resize", update);
+      window.removeEventListener("toggle-theme", handleToggleTheme);
     };
   }, []);
 
@@ -48,10 +56,10 @@ export function PlayerOverlay() {
               ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
               : "bg-gradient-to-br from-[#e9f1ff] via-white to-[#f3f6fb] text-gray-900"
           }`}
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 1 }}
+          transition={{ duration: 0 }}
         >
           <div className="relative w-full h-full flex">
             {!isMobile && (
@@ -67,21 +75,33 @@ export function PlayerOverlay() {
             )}
 
             <motion.div
-              className="flex-1 h-full overflow-hidden p-0 md:p-4"
-              initial={{ opacity: 0, x: 20 }}
+              className="flex-1 h-full overflow-hidden flex flex-col"
+              initial={false}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             >
-              <PlayerView
-                platform={platform}
-                roomId={roomId}
-                onClose={close}
-                initialTitle={title || undefined}
-                initialAnchorName={anchorName || undefined}
-                initialAvatar={avatar || undefined}
-                theme={theme}
-              />
+              {!navHidden && (
+                <div className="pt-4 px-4 pb-0 hidden md:block">
+                  <HomeTopNav
+                    theme={theme}
+                    activePlatform={platform ?? Platform.DOUYU}
+                    onPlatformChange={() => {}}
+                    showSearch
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-h-0 overflow-hidden p-0 md:p-4">
+                <PlayerView
+                  platform={platform}
+                  roomId={roomId}
+                  onClose={close}
+                  initialTitle={title || undefined}
+                  initialAnchorName={anchorName || undefined}
+                  initialAvatar={avatar || undefined}
+                  theme={theme}
+                  onFullscreenChange={setIsFullscreen}
+                />
+              </div>
             </motion.div>
           </div>
         </motion.div>

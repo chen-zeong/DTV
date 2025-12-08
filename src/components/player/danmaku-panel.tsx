@@ -37,7 +37,7 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
   return (
     <div
       ref={containerRef}
-      className={`w-full md:w-[200px] lg:w-[220px] h-full overflow-y-auto no-scrollbar rounded-2xl border p-3.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.45)] ${
+      className={`w-full md:w-[200px] lg:w-[220px] h-full max-h-[70vh] md:max-h-[80vh] overflow-y-auto no-scrollbar rounded-2xl border p-3.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.45)] ${
         isDark
           ? "border-white/10 bg-gradient-to-b from-[#0d111a]/90 via-[#0d111a]/70 to-[#0f1625]/80"
           : "border-gray-200/70 bg-gradient-to-b from-white via-white to-[#f6f8fb]"
@@ -58,37 +58,47 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
         </div>
       </div>
       <div className="space-y-2.5 text-sm">
-        {messages.slice(-200).map((msg, idx) => (
-          <div
-            key={msg.id}
-            className={`rounded-xl px-3 py-2.5 ring-1 ${
-              isDark
-                ? "bg-white/5 ring-white/10 hover:ring-white/20 hover:bg-white/10"
-                : "bg-white/80 ring-gray-200 hover:ring-gray-300 hover:bg-white"
-            } transition-colors`}
-          >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[12px] font-semibold">
+        {messages.slice(-200).map((msg, idx) => {
+          const accent = msg.color || (isDark ? "#9ae6b4" : "#2563eb");
+          return (
+            <div key={msg.id} className="space-y-1">
+              <div className="flex items-center gap-2 min-w-0">
                 {msg.level ? (
                   <span
-                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
-                      isDark ? "bg-white/10 text-gray-200" : "bg-gray-100 text-gray-600"
-                    }`}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide shrink-0",
+                      isDark ? "bg-white/12 text-gray-200" : "bg-gray-200 text-gray-700"
+                    )}
                   >
                     Lv.{msg.level}
                   </span>
                 ) : null}
                 <span
-                  className={cn("truncate", pickNameColor(msg, idx))}
+                  className={cn("text-[13px] font-semibold truncate", pickNameColor(msg, idx))}
+                  style={{ color: accent }}
                   title={msg.nickname}
                 >
                   {msg.nickname}
                 </span>
               </div>
-              <div className={`leading-snug break-words ${isDark ? "text-gray-200" : "text-gray-700"}`}>{msg.content}</div>
+              <div className="flex">
+                <div
+                  className={cn(
+                    "inline-flex max-w-full rounded-2xl px-3 py-2.5 text-sm shadow-lg ring-1",
+                    isDark
+                      ? "bg-[#1c2331] ring-white/5 text-white shadow-black/35"
+                      : "bg-gradient-to-b from-white to-gray-50 ring-gray-200 text-gray-900 shadow-gray-300/60"
+                  )}
+                  style={{ color: msg.color || undefined }}
+                >
+                  <span className={cn("leading-snug break-words min-w-0", isDark ? "text-white/90" : "text-gray-800")}>
+                    {msg.content}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {messages.length === 0 && (
           <div className={`text-xs ${isDark ? "text-gray-500" : "text-gray-500"}`}>等待弹幕...</div>
         )}
