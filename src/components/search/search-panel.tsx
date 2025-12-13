@@ -7,6 +7,8 @@ import { tauriInvoke } from "@/lib/tauri";
 import { Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
 import { proxyBilibiliImage } from "@/utils/image";
+import { motion } from "framer-motion";
+import { useThemeStore } from "@/stores/theme-store";
 
 type SearchResult = {
   id: string;
@@ -14,6 +16,7 @@ type SearchResult = {
   title?: string;
   avatarUrl?: string;
   platform: Platform;
+  isLive?: boolean;
 };
 
 export function SearchPanel({ platform: currentPlatform }: { platform?: Platform }) {
@@ -23,25 +26,46 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const follow = useFollowStore((s) => s.followStreamer);
   const unfollow = useFollowStore((s) => s.unfollowStreamer);
+  const theme = useThemeStore((s) => s.resolvedTheme);
+  const isDark = theme === "dark";
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (currentPlatform) setPlatform(currentPlatform);
   }, [currentPlatform]);
 
+  const toLiveFlag = (val: unknown): boolean | undefined => {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val === "boolean") return val;
+    if (typeof val === "number") return val === 1;
+    if (typeof val === "string") {
+      const lower = val.toLowerCase();
+      if (["1", "true", "live", "living", "online"].includes(lower)) return true;
+      if (["0", "false", "offline"].includes(lower)) return false;
+    }
+    return undefined;
+  };
+
   useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (!containerRef.current) return;
+      const target = event.target as Node;
+      if (!containerRef.current.contains(target)) {
         setOpen(false);
+        setResults([]);
+        setError(null);
       }
     };
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [open]);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   const parseResult = (payload: unknown): SearchResult[] => {
     if (!payload) return [];
@@ -65,6 +89,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
             const info = (item as Record<string, unknown>).anchorInfo || {};
             const id = info.rid || info.roomId || info.userId;
             const nickname = info.nickName || info.nickname || info.userName;
+            const live = toLiveFlag(info.isLive ?? info.is_live ?? info.liveStatus ?? info.live_status);
             if (!id || !nickname) return null;
             return {
               id: String(id),
@@ -72,6 +97,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
               title: info.description || info.title || "",
               avatarUrl: info.avatar || "",
               platform: Platform.DOUYU,
+              isLive: live,
             } as SearchResult;
           })
           .filter(Boolean) as SearchResult[];
@@ -100,7 +126,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
       }
       return [];
     }
-    const arr = data as Array<Record<string, unknown>>;
+  const arr = data as Array<Record<string, unknown>>;
       const mapped: SearchResult[] = [];
       for (const item of arr) {
       // Huya structure: room_id, user_name, title, avatar
@@ -119,20 +145,35 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
         (item.anchor as string);
       if (!id || !nickname) continue;
       const rawAvatar = (item.avatar as string) || (item.face as string) || (item.avatarUrl as string) || "";
+      const live = toLiveFlag(
+        (item.is_live as unknown) ??
+          (item.isLive as unknown) ??
+          (item.live_status as unknown) ??
+          (item.liveStatus as unknown) ??
+          (item.status as unknown) ??
+          (item.online as unknown) ??
+          (item.live as unknown) ??
+          (item.is_on as unknown)
+      );
       mapped.push({
         id: String(id),
         nickname: String(nickname),
         title: (item.title as string) || (item.roomName as string) || "",
         avatarUrl: platform === Platform.BILIBILI ? proxyBilibiliImage(rawAvatar) || rawAvatar : rawAvatar,
         platform,
+        isLive: live,
       });
     }
     return mapped;
   };
 
   const doSearch = async () => {
-    if (!keyword.trim()) return;
+    if (!keyword.trim()) {
+      setOpen(false);
+      return;
+    }
     setLoading(true);
+    setOpen(true);
     setError(null);
     setResults([]);
     try {
@@ -163,56 +204,92 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
   };
 
   return (
-    <div className="relative" ref={containerRef}>
-      <button
-        onClick={() => setOpen((prev) => !prev)}
-        disabled={loading}
-        className="px-3 py-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 transition-colors inline-flex items-center gap-2 text-sm"
-        title="搜索主播或房间"
-      >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-        <span className="hidden sm:inline">搜索</span>
-      </button>
+    <motion.div
+      ref={containerRef}
+      className="relative w-[160px] md:w-[180px] lg:w-[190px]"
+      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 260, damping: 24, mass: 0.8 }}
+    >
+      <div className="relative">
+        <input
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") doSearch();
+          }}
+          placeholder="搜索主播或房间..."
+          className={`w-full min-w-[140px] rounded-xl px-3 pr-11 py-2 text-sm focus:outline-none transition-all ${
+            isDark
+              ? "bg-white/10 border border-white/18 focus:border-white/45 focus:ring-2 focus:ring-white/20 text-white placeholder:text-white/55"
+              : "bg-white border border-gray-200 focus:border-gray-400 text-gray-900 placeholder:text-gray-400"
+          }`}
+        />
+        <motion.button
+          onClick={() => void doSearch()}
+          disabled={loading}
+          className={`absolute top-1/2 -translate-y-1/2 right-2 h-8 w-8 inline-flex items-center justify-center text-sm transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 ${
+            isDark
+              ? "text-white/75 hover:text-white focus-visible:ring-white/25 focus-visible:bg-white/8 rounded-full"
+              : "text-gray-500 hover:text-gray-800 focus-visible:ring-gray-300 focus-visible:bg-gray-100 rounded-full"
+          }`}
+          type="button"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+        </motion.button>
+      </div>
 
-      {open ? (
-        <div className="absolute right-0 mt-2 z-[120] w-[320px] rounded-2xl border border-white/10 bg-black/85 backdrop-blur-2xl p-3 shadow-2xl space-y-3">
-          <div className="flex items-center gap-2">
-            <input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") doSearch();
-              }}
-              placeholder="搜索主播或房间..."
-              className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white/40"
-            />
-            <button
-              onClick={() => void doSearch()}
-              disabled={loading}
-              className="h-10 px-3 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-black font-semibold shadow-lg hover:from-emerald-300 hover:to-cyan-400 transition-all disabled:opacity-60"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            </button>
-          </div>
-
+      {open && (results.length > 0 || error) && (
+        <motion.div
+          initial={{ opacity: 0, y: -6, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 240, damping: 22, mass: 0.7 }}
+          className={`absolute right-0 mt-2 z-[200] w-[320px] max-w-[90vw] rounded-2xl p-3 shadow-2xl space-y-3 ${
+            isDark
+              ? "border border-white/10 bg-black shadow-black/50"
+              : "border border-gray-200 bg-white shadow-gray-400/30"
+          }`}
+        >
           {error && (
-            <div className="text-xs text-amber-300 flex items-center gap-2">
+            <div className={`text-xs flex items-center gap-2 ${isDark ? "text-amber-200" : "text-amber-600"}`}>
               <AlertTriangle className="w-4 h-4" /> {error}
             </div>
           )}
 
           {results.length > 0 && (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-2 max-h-[60vh] overflow-y-auto space-y-1">
+            <div className={`rounded-xl p-1 max-h-[60vh] overflow-y-auto space-y-1 ${isDark ? "bg-white/5" : "bg-gray-50"}`}>
               {results.map((r) => {
                 const followed = isFollowed(r.platform, r.id);
+                const liveState = r.isLive;
+                const liveBadge =
+                  liveState === undefined
+                    ? { label: "未知", className: isDark ? "bg-gray-700 text-gray-200" : "bg-gray-200 text-gray-700" }
+                    : liveState
+                      ? { label: "直播中", className: "bg-red-500 text-white" }
+                      : { label: "未开播", className: isDark ? "bg-white/10 text-white" : "bg-gray-200 text-gray-700" };
                 return (
                   <div
                     key={`${r.platform}-${r.id}`}
-                    className="rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 flex items-center gap-2 hover:border-white/25 transition-all"
+                    className={`rounded-lg px-2 py-1.5 flex items-center gap-2 transition-all ${
+                      isDark
+                        ? "hover:bg-white/10 text-white"
+                        : "hover:bg-white border border-transparent hover:border-gray-200 bg-transparent text-gray-900"
+                    }`}
                   >
-                    <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden flex-shrink-0">
+                    <div
+                      className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${
+                        isDark ? "border border-white/10" : "border border-gray-200"
+                      }`}
+                    >
                       {r.avatarUrl ? (
-                        <Image src={proxyBilibiliImage(r.avatarUrl) || r.avatarUrl} alt={r.nickname} width={32} height={32} className="w-full h-full object-cover" />
+                        <Image
+                          src={proxyBilibiliImage(r.avatarUrl) || r.avatarUrl}
+                          alt={r.nickname}
+                          width={32}
+                          height={32}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full bg-white/10 flex items-center justify-center text-xs font-semibold">
                           {r.nickname.slice(0, 1)}
@@ -221,17 +298,30 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1">
-                        <span className="text-[13px] font-semibold text-white truncate max-w-[8rem]">{r.nickname}</span>
+                        <span className={`text-[13px] font-semibold truncate max-w-[8rem] ${isDark ? "text-white" : "text-gray-900"}`}>
+                          {r.nickname}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${liveBadge.className}`}>
+                          {liveBadge.label}
+                        </span>
                       </div>
-                      {r.title ? <div className="text-[10px] text-gray-400 line-clamp-1">{r.title}</div> : null}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        className={`text-[11px] px-2 py-1 rounded-full border inline-flex items-center gap-1 ${
-                          followed
+                    {r.title ? (
+                      <div className={`text-[10px] line-clamp-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                        {r.title}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      className={`text-[11px] px-2 py-1 rounded-full border inline-flex items-center gap-1 ${
+                        followed
+                          ? isDark
                             ? "border-emerald-400/60 text-emerald-100 bg-emerald-500/10"
-                            : "border-white/20 text-white hover:bg-white/10"
-                        }`}
+                            : "border-emerald-500/70 text-emerald-700 bg-emerald-50"
+                          : isDark
+                            ? "border-white/20 text-white hover:bg-white/10"
+                            : "border-gray-200 text-gray-800 hover:bg-gray-100 bg-white"
+                      }`}
                         onClick={() => {
                           if (followed) {
                             unfollow(r.platform, r.id);
@@ -240,7 +330,8 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                               id: r.id,
                               platform: r.platform,
                               nickname: r.nickname,
-                              avatarUrl: r.platform === Platform.BILIBILI ? proxyBilibiliImage(r.avatarUrl) || "" : r.avatarUrl || "",
+                              avatarUrl:
+                                r.platform === Platform.BILIBILI ? proxyBilibiliImage(r.avatarUrl) || "" : r.avatarUrl || "",
                               displayName: r.title || r.nickname,
                               isLive: true,
                             });
@@ -255,8 +346,8 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
               })}
             </div>
           )}
-        </div>
-      ) : null}
-    </div>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

@@ -12,7 +12,8 @@ import { Platform } from "@/types/platform";
 
 export function PlayerOverlay() {
   const { isOpen, platform, roomId, title, anchorName, avatar, close } = usePlayerOverlayStore();
-  const theme = useThemeStore((s) => s.getEffectiveTheme());
+  const theme = useThemeStore((s) => s.resolvedTheme);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1024 : window.innerWidth));
   const isMobile = viewportWidth <= 768;
@@ -86,6 +87,7 @@ export function PlayerOverlay() {
                     theme={theme}
                     activePlatform={platform ?? Platform.DOUYU}
                     onPlatformChange={() => {}}
+                    onToggleTheme={toggleTheme}
                     showSearch
                   />
                 </div>

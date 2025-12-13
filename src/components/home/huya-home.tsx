@@ -13,6 +13,8 @@ import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { LiveGrid, LiveGridSkeleton, type LiveCardItem } from "@/components/live/live-grid";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { CategoryPill } from "@/components/category/category-pill";
+import { CategorySheet } from "@/components/category/category-sheet";
 
 const PAGE_SIZE = 120;
 
@@ -26,7 +28,7 @@ type CateOption = {
 export function HuyaHome() {
   const openPlayer = usePlayerOverlayStore((s) => s.open);
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
-  const theme = useThemeStore((s) => s.getEffectiveTheme());
+  const theme = useThemeStore((s) => s.resolvedTheme);
   const isDark = theme === "dark";
   const [viewportHeight, setViewportHeight] = useState(() => (typeof window === "undefined" ? 900 : window.innerHeight));
   const isFollowed = useFollowStore((s) => s.isFollowed);
@@ -60,13 +62,6 @@ export function HuyaHome() {
   const [showCateSheet, setShowCateSheet] = useState<"cate1" | "cate2" | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const loaderRef = useRef<HTMLDivElement | null>(null);
-
-  const categoryChipClass = (active: boolean) =>
-    `flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm whitespace-nowrap transition-all duration-300 backdrop-blur-md ${
-      active
-        ? "font-bold bg-slate-800 text-white shadow-lg shadow-slate-300 dark:bg-white dark:text-slate-900 dark:shadow-white/10"
-        : "font-semibold bg-white/60 text-slate-600 hover:bg-white hover:shadow-sm dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
-    }`;
 
   const loadList = useCallback(
     async (page: number, append = false) => {
@@ -192,25 +187,16 @@ export function HuyaHome() {
           <div className="flex flex-col flex-1 gap-2">
             <div className="flex gap-2 flex-wrap mt-2 mb-2">
               {visibleCate1.map((c1) => (
-                <button
+                <CategoryPill
                   key={c1.title}
+                  label={c1.title}
+                  isDark={isDark}
+                  active={selectedCate1 === c1.title}
                   onClick={() => setSelectedCate1(c1.title)}
-                  className={categoryChipClass(selectedCate1 === c1.title)}
-                >
-                  {c1.title}
-                </button>
+                />
               ))}
               {isMobile && categories.length > cate1Limit ? (
-                <button
-                  className={`px-3 py-2 rounded-full border text-xs ${
-                    isDark
-                      ? "border-white/15 text-gray-200 bg-white/5 hover:bg-white/10"
-                      : "border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
-                  }`}
-                  onClick={() => setShowCateSheet("cate1")}
-                >
-                  更多
-                </button>
+                <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate1")} />
               ) : null}
             </div>
           </div>
@@ -244,47 +230,31 @@ export function HuyaHome() {
             }}
           >
             {visibleCate2.map((c) => (
-              <button
+              <CategoryPill
                 key={c.id}
+                label={c.title}
+                isDark={isDark}
+                active={selectedCateId === c.id}
                 onClick={() => {
                   setSelectedCateId(c.id);
                   setPageNo(1);
                 }}
-                className={categoryChipClass(selectedCateId === c.id)}
-              >
-                {c.title}
-              </button>
+              />
             ))}
           </motion.div>
           {isMobile && cate2Options.length > cate2Limit ? (
             <div className="flex justify-center">
-              <button
-                className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border ${
-                  isDark
-                    ? "text-gray-200 border-white/10 bg-white/5 hover:bg-white/10"
-                    : "text-gray-700 border-gray-200 bg-white hover:bg-gray-50"
-                }`}
-                onClick={() => setShowCateSheet("cate2")}
-              >
-                更多
-              </button>
+              <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate2")} />
             </div>
           ) : null}
           {!isMobile && cate2Options.length > 10 && visibleCate2.length > 10 && (
             <div className="flex justify-center">
-              <button
-                className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
-                  isDark
-                    ? "text-gray-200 border-white/10 bg-white/5 hover:bg-white/10"
-                    : "text-gray-700 border-gray-200 bg-white hover:bg-gray-50"
-                }`}
-                onClick={() => setCate2Expanded((v) => !v)}
-              >
-                {cate2Expanded ? "收起" : "展开"}
+              <CategoryPill isDark={isDark} size="sm" onClick={() => setCate2Expanded((v) => !v)} className="px-3">
+                <span className="text-xs">{cate2Expanded ? "收起" : "展开"}</span>
                 <motion.span animate={{ rotate: cate2Expanded ? 180 : 0 }} transition={{ duration: 0.2, ease: "easeInOut" }}>
                   <ChevronDown className="w-4 h-4" />
                 </motion.span>
-              </button>
+              </CategoryPill>
             </div>
           )}
         </div>
@@ -324,54 +294,37 @@ export function HuyaHome() {
         )}
       </div>
 
-      {isMobile && showCateSheet ? (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end justify-center">
-          <div className="w-full max-h-[80vh] bg-[#0f111a] text-white rounded-t-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">{showCateSheet === "cate1" ? "选择一级分类" : "选择二级分类"}</div>
-              <button
-                onClick={() => setShowCateSheet(null)}
-                className="text-xs px-3 py-1 rounded-full border border-white/15 hover:bg-white/10"
-              >
-                关闭
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 overflow-y-auto no-scrollbar max-h-[65vh]">
-              {(showCateSheet === "cate1" ? categories : cate2Options).map((item) => {
-                const active =
-                  showCateSheet === "cate1"
-                    ? selectedCate1 === item.title
-                    : selectedCateId === (item as CateOption).id;
-                return (
-                  <button
-                    key={showCateSheet === "cate1" ? item.title : (item as CateOption).id}
-                    onClick={() => {
-                      if (showCateSheet === "cate1") {
-                        const cate1 = item as HuyaCategory;
-                        setSelectedCate1(cate1.title);
-                        const firstCate2 = cate2Options.find((c) => c.parent === cate1.title);
-                        if (firstCate2) {
-                          setSelectedCateId(firstCate2.id);
-                          setPageNo(1);
-                        }
-                      } else {
-                        const cate2 = item as CateOption;
-                        setSelectedCateId(cate2.id);
-                        setPageNo(1);
-                      }
-                      setShowCateSheet(null);
-                    }}
-                    className={`px-3 py-2 rounded-xl text-sm text-left ${
-                      active ? "bg-white text-gray-900 font-semibold" : "bg-white/10 text-white hover:bg-white/15"
-                    }`}
-                  >
-                    {"title" in item ? item.title : (item as CateOption).title}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {isMobile && showCateSheet === "cate1" ? (
+        <CategorySheet
+          title="选择一级分类"
+          isDark={isDark}
+          items={categories.map((c1) => ({ id: c1.title, label: c1.title }))}
+          activeId={selectedCate1}
+          onClose={() => setShowCateSheet(null)}
+          onSelect={(id) => {
+            setSelectedCate1(id);
+            const firstCate2 = cate2Options.find((c) => c.parent === id);
+            if (firstCate2) {
+              setSelectedCateId(firstCate2.id);
+              setPageNo(1);
+            }
+            setShowCateSheet(null);
+          }}
+        />
+      ) : null}
+      {isMobile && showCateSheet === "cate2" ? (
+        <CategorySheet
+          title="选择二级分类"
+          isDark={isDark}
+          items={cate2Options.map((c2) => ({ id: c2.id, label: c2.title }))}
+          activeId={selectedCateId}
+          onClose={() => setShowCateSheet(null)}
+          onSelect={(id) => {
+            setSelectedCateId(id);
+            setPageNo(1);
+            setShowCateSheet(null);
+          }}
+        />
       ) : null}
     </div>
   );

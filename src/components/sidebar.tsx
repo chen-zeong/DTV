@@ -114,7 +114,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
   const orderedIds = useMemo(() => orderedAvailable.map((s) => toKey(s.platform, s.id)), [orderedAvailable]);
 
   const collapsedItems = useMemo(() => {
-    // 折叠态也按直播优先再按用户排序。
+    // 折叠态：文件夹优先，再按直播优先和用户顺序显示主播。
     let items: typeof listOrder;
     if (listOrder.length) {
       const streamerMap = new Map<string, (typeof orderedAvailable)[number]>();
@@ -129,13 +129,16 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     } else {
       items = orderedAvailable.map((s) => ({ type: "streamer", data: s })) as typeof listOrder;
     }
-    return items
+    const foldersFirst = items.filter((i) => i.type === "folder");
+    const streamerItems = items
       .map((item, idx) => ({ item, idx, live: item.type === "streamer" && Boolean(item.data.isLive) }))
+      .filter((v) => v.item.type === "streamer")
       .sort((a, b) => {
         if (a.live !== b.live) return a.live ? -1 : 1;
         return a.idx - b.idx;
       })
       .map((v) => v.item);
+    return [...foldersFirst, ...streamerItems];
   }, [listOrder, orderedAvailable]);
 
   const containerClass = isDark
@@ -403,7 +406,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
             key="nav-hover"
             layoutId="nav-hover"
             className={`absolute rounded-2xl ${
-              isDark ? "bg-emerald-400/10 ring-1 ring-emerald-400/60" : "bg-emerald-500/10 ring-1 ring-emerald-400/60"
+              isDark ? "bg-white/10" : "bg-black/5"
             }`}
             style={{ pointerEvents: "none" }}
             initial={{ opacity: 0 }}
@@ -425,10 +428,8 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
             <>
               <button
                 onClick={toggleSidebar}
-                className={`h-11 w-11 inline-flex items-center justify-center rounded-2xl border text-sm font-semibold transition-all ${
-                  isDark
-                    ? "border-white/12 bg-white/5 hover:bg-white/12 text-white"
-                    : "border-gray-200 bg-white hover:bg-gray-50 text-gray-900"
+                className={`h-11 w-11 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+                  isDark ? "bg-white/6 hover:bg-white/12 text-white" : "bg-white hover:bg-gray-50 text-gray-900"
                 }`}
                 title={isLeaderboardOpen ? "Collapse follows" : "Expand follows"}
               >
@@ -446,10 +447,8 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                     setIsRefreshing(false);
                   }
                 }}
-                className={`h-11 w-11 inline-flex items-center justify-center rounded-2xl border text-sm font-semibold transition-all ${
-                  isDark
-                    ? "border-white/12 bg-white/5 hover:bg-white/12 text-white"
-                    : "border-gray-200 bg-white hover:bg-gray-50 text-gray-900"
+                className={`h-11 w-11 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+                  isDark ? "bg-white/6 hover:bg-white/12 text-white" : "bg-white hover:bg-gray-50 text-gray-900"
                 }`}
                 title="刷新关注状态"
               >
@@ -458,10 +457,8 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
               <button
                 type="button"
                 onClick={handleCreateFolder}
-                className={`h-11 w-11 inline-flex items-center justify-center rounded-2xl border text-sm font-semibold transition-all ${
-                  isDark
-                    ? "border-white/12 bg-white/5 hover:bg-white/12 text-white"
-                    : "border-gray-200 bg-white hover:bg-gray-50 text-gray-900"
+                className={`h-11 w-11 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+                  isDark ? "bg-white/6 hover:bg-white/12 text-white" : "bg-white hover:bg-gray-50 text-gray-900"
                 }`}
                 title="新建文件夹"
               >
@@ -471,8 +468,8 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
           ) : (
             <button
               onClick={toggleSidebar}
-              className={`w-11 h-11 inline-flex items-center justify-center rounded-2xl border transition-colors ${
-                isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-white hover:bg-gray-100"
+              className={`w-11 h-11 inline-flex items-center justify-center rounded-2xl transition-colors ${
+                isDark ? "bg-white/6 hover:bg-white/12" : "bg-white hover:bg-gray-100"
               }`}
               title={isLeaderboardOpen ? "Collapse follows" : "Expand follows"}
             >
@@ -594,12 +591,21 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
           {orderedIds.length === 0 && <div className="text-xs text-center text-gray-400">No followed streamers</div>}
           <div className="flex flex-col gap-2">
             {folders.map((folder) => {
-              const items = (folder.streamerIds || []).map((id) => {
-                const [p, i] = (id || "").split(":");
-                return followedStreamers.find(
-                  (s) => String(s.platform).toUpperCase() === String(p || "").toUpperCase() && s.id === i
-                );
-              }).filter((v): v is (typeof followedStreamers)[number] => Boolean(v));
+              const items = (folder.streamerIds || [])
+                .map((id) => {
+                  const [p, i] = (id || "").split(":");
+                  return followedStreamers.find(
+                    (s) => String(s.platform).toUpperCase() === String(p || "").toUpperCase() && s.id === i
+                  );
+                })
+                .filter((v): v is (typeof followedStreamers)[number] => Boolean(v));
+              const sortedItems = items
+                .map((item, idx) => ({ item, idx }))
+                .sort((a, b) => {
+                  if (Boolean(a.item.isLive) !== Boolean(b.item.isLive)) return a.item.isLive ? -1 : 1;
+                  return a.idx - b.idx;
+                })
+                .map((v) => v.item);
               const expanded = folder.expanded ?? true;
               const isHover = hoverFolderId === folder.id;
               return (
@@ -657,10 +663,10 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                   </button>
                   {expanded ? (
                     <div className="px-3 pb-2 space-y-1.5">
-                      {items.length === 0 ? (
+                      {sortedItems.length === 0 ? (
                         <div className="text-[11px] text-gray-400">暂无主播，拖动加入</div>
                       ) : (
-                        items.map((item) => {
+                        sortedItems.map((item) => {
                           const itemKey = toKey(item.platform, item.id);
                           const avatar = normalizeAvatar(item.platform, item.avatarUrl);
                           return (
@@ -872,8 +878,15 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                     })
                     .filter((v): v is (typeof followedStreamers)[number] => Boolean(v));
                   if (items.length === 0) return <div className="text-xs text-gray-400">暂无主播</div>;
+                  const sortedItems = items
+                    .map((item, idx) => ({ item, idx }))
+                    .sort((a, b) => {
+                      if (Boolean(a.item.isLive) !== Boolean(b.item.isLive)) return a.item.isLive ? -1 : 1;
+                      return a.idx - b.idx;
+                    })
+                    .map((v) => v.item);
                   const maxVisible = 8;
-                  const listMaxHeight = `${Math.min(items.length, maxVisible) * 56}px`;
+                  const listMaxHeight = `${Math.min(sortedItems.length, maxVisible) * 56}px`;
                   return (
                     <div className="space-y-2">
                       <div className="text-xs font-semibold truncate">{folder.name}</div>
@@ -881,7 +894,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                         className="space-y-1 overflow-y-auto pr-1 no-scrollbar"
                         style={{ maxHeight: listMaxHeight }}
                       >
-                        {items.map((item) => {
+                        {sortedItems.map((item) => {
                           const displayTitle =
                             item.roomTitle || item.displayName || item.nickname || platformLabelMap[item.platform];
                           return (

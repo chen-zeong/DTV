@@ -68,7 +68,7 @@ export function PlayerView({
   theme,
   onFullscreenChange,
 }: PlayerViewProps) {
-  const storeTheme = useThemeStore((s) => s.getEffectiveTheme());
+  const storeTheme = useThemeStore((s) => s.resolvedTheme);
   const effectiveTheme = theme ?? storeTheme ?? "dark";
   const isDark = effectiveTheme === "dark";
   const containerRef = useRef<HTMLDivElement | null>(null);

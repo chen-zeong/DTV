@@ -9,6 +9,7 @@ export type ThemeResolved = "light" | "dark";
 type ThemeState = {
   userPreference: ThemePreference;
   currentSystemTheme: ThemeResolved;
+  resolvedTheme: ThemeResolved;
   _initialized: boolean;
 };
 
@@ -22,6 +23,8 @@ type ThemeActions = {
 export type ThemeStore = ThemeState & ThemeActions;
 
 const storage = createJSONStorage<ThemeState>(() => (typeof window !== "undefined" ? localStorage : undefined));
+const resolveTheme = (preference: ThemePreference, system: ThemeResolved): ThemeResolved =>
+  preference === "system" ? system : preference;
 
 const applyTheme = async (theme: ThemeResolved) => {
   if (typeof document !== "undefined") {
@@ -46,36 +49,40 @@ export const useThemeStore = create<ThemeStore>()(
     (set, get) => ({
       userPreference: "system",
       currentSystemTheme: "light",
+      resolvedTheme: "light",
       _initialized: false,
 
       initTheme() {
         if (get()._initialized || typeof window === "undefined") return;
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
         const systemTheme: ThemeResolved = mediaQuery.matches ? "dark" : "light";
-        set({ currentSystemTheme: systemTheme, _initialized: true });
-        applyTheme(get().getEffectiveTheme());
+        const resolved = resolveTheme(get().userPreference, systemTheme);
+        set({ currentSystemTheme: systemTheme, resolvedTheme: resolved, _initialized: true });
+        applyTheme(resolved);
 
         const listener = (e: MediaQueryListEvent) => {
-          set({ currentSystemTheme: e.matches ? "dark" : "light" });
-          applyTheme(get().getEffectiveTheme());
+          const nextSystemTheme = e.matches ? "dark" : "light";
+          const resolvedNext = resolveTheme(get().userPreference, nextSystemTheme);
+          set({ currentSystemTheme: nextSystemTheme, resolvedTheme: resolvedNext });
+          applyTheme(resolvedNext);
         };
         mediaQuery.addEventListener("change", listener);
       },
 
       setUserPreference(preference) {
-        set({ userPreference: preference });
-        applyTheme(get().getEffectiveTheme());
+        const resolved = resolveTheme(preference, get().currentSystemTheme);
+        set({ userPreference: preference, resolvedTheme: resolved });
+        applyTheme(resolved);
       },
 
       toggleTheme() {
-        const next = get().getEffectiveTheme() === "dark" ? "light" : "dark";
-        set({ userPreference: next });
+        const next = get().resolvedTheme === "dark" ? "light" : "dark";
+        set({ userPreference: next, resolvedTheme: next });
         applyTheme(next);
       },
 
       getEffectiveTheme() {
-        const { userPreference, currentSystemTheme } = get();
-        return userPreference === "system" ? currentSystemTheme : userPreference;
+        return get().resolvedTheme;
       },
     }),
     {
@@ -84,7 +91,12 @@ export const useThemeStore = create<ThemeStore>()(
       partialize: (state) => ({
         userPreference: state.userPreference,
         currentSystemTheme: state.currentSystemTheme,
+        resolvedTheme: state.resolvedTheme,
       }),
+      onRehydrateStorage: () => (state) => {
+        const resolved = state?.resolvedTheme ?? resolveTheme(state?.userPreference ?? "system", state?.currentSystemTheme ?? "light");
+        applyTheme(resolved);
+      },
     }
   )
 );
