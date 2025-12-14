@@ -45,7 +45,9 @@ export function HomeTopNav({
             layout
             className={cn(
               "flex items-center gap-2 rounded-full border px-2 py-1.5 backdrop-blur-xl relative",
-              isDark ? "bg-black/30 border-white/10" : "bg-white/60 border-white/50 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.25)]"
+              isDark
+                ? "bg-white/60 border-white/50 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.25)]"
+                : "bg-black/30 border-white/10"
             )}
           >
             {[Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN].map((p) => {
@@ -59,8 +61,8 @@ export function HomeTopNav({
                       className={cn(
                         "absolute inset-0 rounded-full",
                         isDark
-                          ? "bg-white text-gray-900 shadow-[0_10px_30px_-12px_rgba(255,255,255,0.7)]"
-                          : "bg-gray-900 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)]"
+                          ? "bg-gray-900 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)]"
+                          : "bg-white text-gray-900 shadow-[0_10px_30px_-12px_rgba(255,255,255,0.7)]"
                       )}
                       transition={pillSpring}
                       layout
@@ -73,11 +75,11 @@ export function HomeTopNav({
                       "relative px-4 py-2 text-sm font-semibold rounded-full transition-colors",
                       isActive
                         ? isDark
-                          ? "bg-white/90 text-gray-900 shadow-[0_0_15px_rgba(255,255,255,0.15)]"
-                          : "bg-white text-gray-900 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.2)]"
+                          ? "bg-white text-gray-900 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.2)]"
+                          : "bg-white/90 text-gray-900 shadow-[0_0_15px_rgba(255,255,255,0.15)]"
                         : isDark
-                          ? "text-slate-300 hover:text-white"
-                          : "text-gray-700 hover:text-gray-900"
+                          ? "text-gray-700 hover:text-gray-900"
+                          : "text-slate-300 hover:text-white"
                     )}
                     whileTap={{ scale: 0.99 }}
                     whileHover={{ y: -1, scale: 1.01 }}

@@ -4,8 +4,12 @@
 use reqwest;
 use std::collections::HashMap;
 use std::env;
+use std::io::Write;
 use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
+use log::LevelFilter;
+use serde::Deserialize;
+use tauri::Wry;
 mod platforms;
 mod proxy;
 use platforms::common::{DouyinDanmakuState, FollowHttpClient, HuyaDanmakuState};
@@ -144,8 +148,65 @@ async fn search_anchor(keyword: String) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
+#[derive(Deserialize)]
+struct LogConfig {
+    #[serde(default)]
+    level: Option<String>,
+}
+
+fn parse_level_filter(level: &str) -> Option<LevelFilter> {
+    match level.to_lowercase().as_str() {
+        "error" => Some(LevelFilter::Error),
+        "warn" | "warning" => Some(LevelFilter::Warn),
+        "info" => Some(LevelFilter::Info),
+        "debug" | "dev" => Some(LevelFilter::Debug),
+        "trace" => Some(LevelFilter::Trace),
+        _ => None,
+    }
+}
+
+fn resolve_log_level(
+    context: &tauri::Context<Wry>,
+) -> LevelFilter {
+    if let Ok(env_level) = env::var("LOG_LEVEL") {
+        if let Some(level) = parse_level_filter(&env_level) {
+            return level;
+        }
+    }
+
+    if let Some(value) = context.config().plugins.0.get("dtv-log") {
+        if let Ok(config) = serde_json::from_value::<LogConfig>(value.clone()) {
+            if let Some(level) = config.level.and_then(|l| parse_level_filter(&l)) {
+                return level;
+            }
+        }
+    }
+
+    LevelFilter::Info
+}
+
+fn init_logger(level: LevelFilter) {
+    let mut builder = env_logger::Builder::new();
+    builder.filter_level(level);
+    builder.target(env_logger::Target::Stdout);
+    builder.format(|buf, record| {
+        writeln!(
+            buf,
+            "[{}][{}] {}",
+            buf.timestamp_millis(),
+            record.level(),
+            record.args()
+        )
+    });
+    let _ = builder.try_init();
+}
+
 // Main function corrected
 fn main() {
+    let context = tauri::generate_context!();
+    let log_level = resolve_log_level(&context);
+    init_logger(log_level);
+
     // Create a new HTTP client instance to be managed by Tauri
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -203,6 +264,6 @@ fn main() {
             platforms::bilibili::search::search_bilibili_rooms,
             platforms::huya::search::search_huya_anchors,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }

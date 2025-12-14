@@ -213,26 +213,45 @@ export function DouyinHome() {
     opacity: { duration: 0.25 },
     scaleY: { type: "spring", stiffness: 200, damping: expandedCate2 ? 26 : 28, mass: 1.05 },
   };
+  const gridColsClass = isMobile ? "grid-cols-2" : `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isSidebarOpen ? "xl:grid-cols-5" : "xl:grid-cols-6"}`;
 
   return (
     <div className="h-full flex flex-col space-y-3">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col flex-1 gap-2">
-            <div className="flex gap-2 flex-wrap mt-2 mb-2">
-              {visibleCate1.map((c1) => (
-                <CategoryPill
-                  key={c1.title}
-                  label={c1.title}
-                  isDark={isDark}
-                  active={selectedCate1 === c1.title}
-                  onClick={() => setSelectedCate1(c1.title)}
-                />
-              ))}
-              {isMobile && categories.length > cate1Limit ? (
-                <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate1")} />
-              ) : null}
-            </div>
+            {isMobile ? (
+              <div className="flex gap-4 overflow-x-auto no-scrollbar mt-1 mb-1 -mx-1 px-1">
+                {visibleCate1.map((c1) => (
+                  <CategoryPill
+                    key={c1.title}
+                    label={c1.title}
+                    isDark={isDark}
+                    active={selectedCate1 === c1.title}
+                    onClick={() => setSelectedCate1(c1.title)}
+                    variant="tab"
+                  />
+                ))}
+                {categories.length > cate1Limit ? (
+                  <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate1")} variant="tab" />
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex gap-2 flex-wrap mt-2 mb-2">
+                {visibleCate1.map((c1) => (
+                  <CategoryPill
+                    key={c1.title}
+                    label={c1.title}
+                    isDark={isDark}
+                    active={selectedCate1 === c1.title}
+                    onClick={() => setSelectedCate1(c1.title)}
+                  />
+                ))}
+                {isMobile && categories.length > cate1Limit ? (
+                  <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate1")} />
+                ) : null}
+              </div>
+            )}
           </div>
           <button
             onClick={() => selectedCate && fetchRooms(0, false)}
@@ -243,60 +262,83 @@ export function DouyinHome() {
           </button>
         </div>
 
-        <div
-          className="relative mt-1 flex flex-col gap-2"
-          style={{ maxHeight: cate2ContainerMaxHeight, overflow: "hidden" }}
-        >
-          <motion.div
-            layout
-            initial={false}
-            animate={{
-              maxHeight: expandedCate2 ? cate2ExpandedMaxHeight : cate2CollapsedHeight,
-              opacity: expandedCate2 ? 1 : 0.97,
-              scaleY: expandedCate2 ? 1 : 0.995,
-            }}
-            transition={cate2Transition}
-            className="flex-1 flex gap-2 flex-wrap overflow-hidden no-scrollbar"
-            style={{
-              willChange: "transform, max-height, opacity",
-              overflowY: expandedCate2 ? "auto" : "hidden",
-              paddingBottom: expandedCate2 ? 8 : 0,
-            }}
+        {isMobile ? (
+          <div className="mt-1">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-1 px-1 py-1">
+              {visibleCate2.map((c) => (
+                <CategoryPill
+                  key={c.cate2Href}
+                  label={c.cate2Name}
+                  isDark={isDark}
+                  active={selectedCate?.cate2Href === c.cate2Href}
+                  onClick={() => {
+                    setSelectedCate(c);
+                    setOffset(0);
+                  }}
+                  variant="tab"
+                />
+              ))}
+              {cateOptions.length > cate2Limit ? (
+                <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate2")} variant="tab" />
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <div
+            className="relative mt-1 flex flex-col gap-2"
+            style={{ maxHeight: cate2ContainerMaxHeight, overflow: "hidden" }}
           >
-            {visibleCate2.map((c) => (
-              <CategoryPill
-                key={c.cate2Href}
-                label={c.cate2Name}
-                isDark={isDark}
-                active={selectedCate?.cate2Href === c.cate2Href}
-                onClick={() => {
-                  setSelectedCate(c);
-                  setOffset(0);
-                }}
-              />
-            ))}
-          </motion.div>
-          {isMobile && cateOptions.length > cate2Limit ? (
-            <div className="flex justify-center">
-              <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate2")} />
-            </div>
-          ) : null}
-          {!isMobile && cateOptions.length > 10 && visibleCate2.length > 10 && (
-            <div className="flex justify-center">
-              <CategoryPill isDark={isDark} size="sm" onClick={() => setCate2Expanded((v) => !v)} className="px-3">
-                <span className="text-xs">{cate2Expanded ? "收起" : "展开"}</span>
-                <motion.span animate={{ rotate: cate2Expanded ? 180 : 0 }} transition={{ duration: 0.2, ease: "easeInOut" }}>
-                  <ChevronDown className="w-4 h-4" />
-                </motion.span>
-              </CategoryPill>
-            </div>
-          )}
-        </div>
+            <motion.div
+              layout
+              initial={false}
+              animate={{
+                maxHeight: expandedCate2 ? cate2ExpandedMaxHeight : cate2CollapsedHeight,
+                opacity: expandedCate2 ? 1 : 0.97,
+                scaleY: expandedCate2 ? 1 : 0.995,
+              }}
+              transition={cate2Transition}
+              className="flex-1 flex gap-2 flex-wrap overflow-hidden no-scrollbar"
+              style={{
+                willChange: "transform, max-height, opacity",
+                overflowY: expandedCate2 ? "auto" : "hidden",
+                paddingBottom: expandedCate2 ? 8 : 0,
+              }}
+            >
+              {visibleCate2.map((c) => (
+                <CategoryPill
+                  key={c.cate2Href}
+                  label={c.cate2Name}
+                  isDark={isDark}
+                  active={selectedCate?.cate2Href === c.cate2Href}
+                  onClick={() => {
+                    setSelectedCate(c);
+                    setOffset(0);
+                  }}
+                />
+              ))}
+            </motion.div>
+            {isMobile && cateOptions.length > cate2Limit ? (
+              <div className="flex justify-center">
+                <CategoryPill label="更多" isDark={isDark} size="sm" onClick={() => setShowCateSheet("cate2")} />
+              </div>
+            ) : null}
+            {!isMobile && cateOptions.length > 10 && visibleCate2.length > 10 && (
+              <div className="flex justify-center">
+                <CategoryPill isDark={isDark} size="sm" onClick={() => setCate2Expanded((v) => !v)} className="px-3">
+                  <span className="text-xs">{cate2Expanded ? "收起" : "展开"}</span>
+                  <motion.span animate={{ rotate: cate2Expanded ? 180 : 0 }} transition={{ duration: 0.2, ease: "easeInOut" }}>
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.span>
+                </CategoryPill>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
           <div className="flex-1 bg-transparent overflow-hidden">
         {loading && rooms.length === 0 ? (
-          <LiveGridSkeleton className={`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isSidebarOpen ? "xl:grid-cols-5" : "xl:grid-cols-6"}`} />
+          <LiveGridSkeleton className={gridColsClass} />
         ) : rooms.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-10">暂无直播</div>
         ) : (
@@ -321,7 +363,7 @@ export function DouyinHome() {
                   avatar: item.avatar ?? undefined,
                 })
               }
-              className={`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${isSidebarOpen ? "xl:grid-cols-5" : "xl:grid-cols-6"}`}
+              className={gridColsClass}
             />
             <div ref={loaderRef} className="h-px" />
           </div>

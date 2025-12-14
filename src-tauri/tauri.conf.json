@@ -9,6 +9,11 @@
     "beforeBuildCommand": "npm run build:tauri",
     "frontendDist": "out"
   },
+  "plugins": {
+    "dtv-log": {
+      "level": "info"
+    }
+  },
   "app": {
     "macOSPrivateApi": true,
     "windows": [
