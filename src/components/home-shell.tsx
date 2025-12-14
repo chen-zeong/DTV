@@ -72,8 +72,8 @@ export function HomeShell({
 
   const contentGradient =
     theme === "dark"
-      ? "bg-gradient-to-br from-[#0c101a] via-[#0d111c] to-[#0b0f18]"
-      : "bg-gradient-to-br from-[#e9f1ff] via-[#f7faff] to-white";
+      ? "bg-[#0b1120]" // deep night blue like newui dark
+      : "bg-[#5c6b7f]"; // slate-blue like newui light
 
   useEffect(() => {
     setActivePlatform(initialPlatform);
@@ -127,8 +127,6 @@ export function HomeShell({
       )}
 
       <div className="relative flex-1 h-full">
-        <BackgroundFeed theme={theme} />
-
         <div className="relative z-20 h-full overflow-hidden flex flex-col pb-0 md:pb-0">
           <div className="pt-4 px-4 pb-0 hidden md:block">
             <HomeTopNav

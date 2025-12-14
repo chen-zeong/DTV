@@ -44,8 +44,8 @@ export function HomeTopNav({
           <motion.div
             layout
             className={cn(
-              "flex items-center gap-2 rounded-full border px-2.5 py-1.5 shadow-lg backdrop-blur-xl relative",
-              isDark ? "bg-white/10 border-white/10 shadow-black/40" : "bg-white border-gray-200 shadow-gray-300/60"
+              "flex items-center gap-2 rounded-full border px-2 py-1.5 backdrop-blur-xl relative",
+              isDark ? "bg-black/30 border-white/10" : "bg-white/60 border-white/50 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.25)]"
             )}
           >
             {[Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN].map((p) => {
@@ -70,17 +70,17 @@ export function HomeTopNav({
                     layout
                     onClick={() => onPlatformChange?.(p)}
                     className={cn(
-                      "relative px-3 py-1.5 text-sm font-semibold rounded-full transition-colors",
+                      "relative px-4 py-2 text-sm font-semibold rounded-full transition-colors",
                       isActive
                         ? isDark
-                          ? "text-gray-900"
-                          : "text-white"
+                          ? "bg-white/90 text-gray-900 shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                          : "bg-white text-gray-900 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.2)]"
                         : isDark
-                        ? "text-gray-200 hover:text-white"
-                        : "text-gray-600 hover:text-gray-900"
+                          ? "text-slate-300 hover:text-white"
+                          : "text-gray-700 hover:text-gray-900"
                     )}
-                    whileTap={{ scale: 0.97 }}
-                    whileHover={{ y: -1.5, scale: 1.015 }}
+                    whileTap={{ scale: 0.99 }}
+                    whileHover={{ y: -1, scale: 1.01 }}
                     transition={spring}
                   >
                     <span className="relative z-10">{label}</span>
@@ -102,7 +102,7 @@ export function HomeTopNav({
             onClick={() => void openLink("https://github.com/chen-zeong/DTV")}
             className={cn(
               "p-2 rounded-full border transition-colors",
-              isDark ? "border-white/10 bg-white/10 hover:bg-white/15" : "border-gray-200 bg-white hover:bg-gray-100"
+              isDark ? "border-white/10 bg-white/10 hover:bg-white/15" : "border-gray-200 bg-white/90 hover:bg-white"
             )}
             title="打开 GitHub"
           >
@@ -114,7 +114,7 @@ export function HomeTopNav({
             }}
             className={cn(
               "p-2 rounded-full border transition-colors",
-              isDark ? "border-white/10 bg-white/10 hover:bg-white/15" : "border-gray-200 bg-white hover:bg-gray-100"
+              isDark ? "border-white/10 bg-white/10 hover:bg-white/15" : "border-gray-200 bg-white/90 hover:bg-white"
             )}
             title="切换主题"
           >
