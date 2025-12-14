@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { RotateCw, PanelLeftClose, PanelLeftOpen, Plus, ChevronDown, FolderPlus } from "lucide-react";
 import { ThemeMode } from "@/types/follow-list";
-import type { FollowedStreamer } from "@/types/platform";
+import type { FollowedStreamer, Platform } from "@/types/platform";
 import { useFollowStore } from "@/stores/follow-store";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { platformLabelMap } from "@/utils/platform";
@@ -300,7 +300,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     collapsedPreviewTimer.current = window.setTimeout(() => setCollapsedHover(null), delay);
   };
 
-  const statusDot = (live?: boolean) => (
+  const statusDot = (live?: boolean | null) => (
     <span
       className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border ${
         isDark ? "border-slate-900" : "border-white"
@@ -1017,8 +1017,14 @@ type ReorderableStreamerProps = {
   setHoverFolderId: (id: string | null) => void;
   hoverFolderId: string | null;
   moveToFolder: (key: string, folderId: string) => void;
-  openPlayer: ReturnType<typeof usePlayerOverlayStore>["open"];
-  statusDot: (live?: boolean) => JSX.Element;
+  openPlayer: (payload: {
+    platform: Platform;
+    roomId: string;
+    title?: string | null;
+    anchorName?: string | null;
+    avatar?: string | null;
+  }) => void;
+  statusDot: (live?: boolean | null) => React.ReactElement;
   onHoverHighlight: (el: HTMLElement | null, key: string) => void;
   onClearHighlight: (key?: string) => void;
 };

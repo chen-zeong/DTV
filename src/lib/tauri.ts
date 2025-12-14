@@ -16,9 +16,9 @@ export async function openLink(url: string) {
 
   try {
     const mod = await import("@tauri-apps/plugin-opener");
-    const openFn = (mod as { open?: (u: string) => Promise<void>; default?: (u: string) => Promise<void> }).open || mod.default;
-    if (typeof openFn === "function") {
-      await openFn(url);
+    const open = (mod as { open?: (u: string) => Promise<void> }).open;
+    if (typeof open === "function") {
+      await open(url);
       return;
     }
   } catch {

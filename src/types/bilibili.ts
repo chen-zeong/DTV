@@ -15,6 +15,7 @@ export type BiliLiveRoom = {
   room_id: string;
   title: string;
   nickname: string;
+  uname?: string;
   avatar: string;
   room_cover: string;
   viewer_count_str: string;

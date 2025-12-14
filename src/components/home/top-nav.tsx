@@ -5,7 +5,7 @@ import { Github, Moon, Sun } from "lucide-react";
 import { openLink } from "@/lib/tauri";
 import { cn } from "@/utils/cn";
 import type { ThemeResolved } from "@/stores/theme-store";
-import { motion, MotionConfig } from "framer-motion";
+import { motion, MotionConfig, type Transition } from "framer-motion";
 
 type NavPlatform = Platform | "ALL" | "FOLLOW";
 
@@ -25,8 +25,8 @@ export function HomeTopNav({
   onToggleTheme,
 }: HomeTopNavProps) {
   const isDark = theme === "dark";
-  const spring = { type: "spring", stiffness: 240, damping: 28, mass: 1.05 };
-  const pillSpring = { type: "spring", stiffness: 200, damping: 30, mass: 1.1 };
+  const spring: Transition = { type: "spring", stiffness: 240, damping: 28, mass: 1.05 };
+  const pillSpring: Transition = { type: "spring", stiffness: 200, damping: 30, mass: 1.1 };
   return (
     <MotionConfig transition={spring}>
       <div className="grid w-full grid-cols-[auto,1fr,auto] items-center gap-3">

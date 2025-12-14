@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { BackgroundFeed } from "@/components/background-feed";
 import { InputArea } from "@/components/input-area";
@@ -10,7 +10,6 @@ import { useCategoryStore } from "@/stores/category-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { Platform } from "@/types/platform";
 import { platformLabelMap } from "@/utils/platform";
-import { PlayerOverlay } from "@/components/player/player-overlay";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchPanel } from "@/components/search/search-panel";
 import { Moon, Sun, PanelLeftOpen, PanelLeftClose, Heart } from "lucide-react";
@@ -20,17 +19,27 @@ import { BilibiliHome } from "@/components/home/bilibili-home";
 import { DouyinHome } from "@/components/home/douyin-home";
 import { FollowList } from "@/components/follow-list";
 import { HomeTopNav } from "@/components/home/top-nav";
+import dynamic from "next/dynamic";
+
+const PlayerOverlay = dynamic(async () => {
+  const mod = await import("@/components/player/player-overlay");
+  return mod.PlayerOverlay;
+}, { ssr: false });
 
 type HomeShellProps = {
   initialPlatform?: Platform | "ALL";
   initialLeaderboardOpen?: boolean;
   showInput?: boolean;
+  showSearch?: boolean;
+  children?: ReactNode;
 };
 
 export function HomeShell({
   initialPlatform = "ALL",
   initialLeaderboardOpen = true,
   showInput = true,
+  showSearch = true,
+  children,
 }: HomeShellProps) {
   const theme = useThemeStore((s) => s.resolvedTheme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
@@ -134,28 +143,32 @@ export function HomeShell({
               activePlatform={activePlatform}
               onPlatformChange={setActivePlatform}
               onToggleTheme={toggleTheme}
-              showSearch
+              showSearch={showSearch}
             />
           </div>
 
           <div className="flex-1 overflow-hidden p-0 md:p-2 md:pb-0 space-y-0">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={activePlatform}
-                className="h-full"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              >
-                {activePlatform === Platform.DOUYU && <DouyuHome />}
-                {activePlatform === Platform.HUYA && <HuyaHome />}
-                {activePlatform === Platform.BILIBILI && <BilibiliHome />}
-                {activePlatform === Platform.DOUYIN && <DouyinHome />}
-                {activePlatform === "FOLLOW" && <FollowList theme={theme} />}
-                {activePlatform === "ALL" && <DouyuHome />}
-              </motion.div>
-            </AnimatePresence>
+            {children ? (
+              <div className="h-full">{children}</div>
+            ) : (
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={activePlatform}
+                  className="h-full"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  {activePlatform === Platform.DOUYU && <DouyuHome />}
+                  {activePlatform === Platform.HUYA && <HuyaHome />}
+                  {activePlatform === Platform.BILIBILI && <BilibiliHome />}
+                  {activePlatform === Platform.DOUYIN && <DouyinHome />}
+                  {activePlatform === "FOLLOW" && <FollowList theme={theme} />}
+                  {activePlatform === "ALL" && <DouyuHome />}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
 

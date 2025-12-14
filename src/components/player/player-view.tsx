@@ -73,7 +73,7 @@ export function PlayerView({
   const isDark = effectiveTheme === "dark";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<Player | null>(null);
-  const danmakuUnlistenRef = useRef<(() => void) | undefined>();
+  const danmakuUnlistenRef = useRef<(() => void) | undefined>(undefined);
   const danmuOverlayRef = useRef<DanmuOverlayInstance | null>(null);
   const danmakuCountRef = useRef(0);
   const refreshControlRef = useRef<RefreshControl | null>(null);
@@ -213,7 +213,7 @@ export function PlayerView({
     rotateObserverRef.current = observer;
   };
 
-  const setupPlayer = (config: StreamConfig) => {
+  const setupPlayer = (config: StreamConfig & { streamUrl: string }) => {
     if (!containerRef.current) {
       throw new Error("播放器容器不存在");
     }
@@ -309,7 +309,7 @@ export function PlayerView({
         mode: "scroll",
         opacity: danmakuOpacity,
       }),
-      onChange: (partial) => {
+      onChange: (partial: Partial<DanmuUserSettings>) => {
         if (partial.color) setDanmakuColor(partial.color);
         if (partial.strokeColor) setDanmakuStrokeColor(partial.strokeColor);
         if (partial.fontSize) {
@@ -450,7 +450,7 @@ export function PlayerView({
         throw new Error("无法获取直播流，请稍后重试");
       }
       setStreamMeta(cfg);
-      setupPlayer(cfg);
+      setupPlayer({ ...cfg, streamUrl: cfg.streamUrl });
     } catch (e) {
       const err = e as Error;
       setError(err.message || "加载失败");
@@ -709,7 +709,7 @@ export function PlayerView({
   return (
     <div
       className={cn(
-        "player-view-page min-h-screen md:h-screen flex justify-center px-2 md:px-4 py-2 md:py-4",
+        "player-view-page min-h-screen md:h-screen flex justify-center",
         isMobile && "mobile-player",
         isDark
           ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
@@ -980,11 +980,11 @@ export function PlayerView({
       </div>
 
             {!isMobile && (
-              <div
-                className={cn(
-                  "w-full md:w-[240px] lg:w-[260px] flex flex-col h-full border-l",
-                  isDark ? "border-white/5 bg-white/5" : "border-gray-200/70 bg-gray-50/80"
-                )}
+                <div
+                  className={cn(
+                    "w-full md:w-[240px] lg:w-[260px] flex flex-col h-full border-l",
+                    isDark ? "border-white/5 bg-white/5" : "border-gray-200/70 bg-gray-50/80"
+                  )}
               >
                 <div
                   className={cn(
@@ -1002,20 +1002,13 @@ export function PlayerView({
                     实时
                   </span>
                 </div>
-                <div className="flex-1 min-h-0 px-3 pb-3">
-                  <div
-                    className={cn(
-                      "h-full rounded-2xl border shadow-inner overflow-hidden",
-                      isDark ? "border-white/10 bg-black/40" : "border-gray-200 bg-white/90"
-                    )}
-                  >
-                    <DanmakuPanel
-                      messages={danmakuMessages}
-                      className="transition-opacity flex-1 overflow-hidden"
-                      style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
-                      theme={isDark ? "dark" : "light"}
-                    />
-                  </div>
+                <div className="flex-1 min-h-0 flex">
+                  <DanmakuPanel
+                    messages={danmakuMessages}
+                    className="transition-opacity flex-1 h-full w-full"
+                    style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
+                    theme={isDark ? "dark" : "light"}
+                  />
                 </div>
               </div>
             )}

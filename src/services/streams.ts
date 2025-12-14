@@ -13,7 +13,14 @@ import { fetchDouyinStreamConfig, startDouyinDanmakuListener, stopDouyinDanmakuL
 import { startBilibiliDanmakuListener, stopBilibiliDanmakuListener } from "@/services/bilibili";
 import { tauriInvoke } from "@/lib/tauri";
 
-export type StreamConfig = { streamUrl: string; streamType?: string; title?: string | null; anchorName?: string | null; avatar?: string | null };
+export type StreamConfig = {
+  streamUrl: string | null;
+  streamType?: string;
+  title?: string | null;
+  anchorName?: string | null;
+  avatar?: string | null;
+  viewer?: string | number;
+};
 
 export async function getBilibiliStreamConfig(roomId: string, quality = "原画", cookie?: string): Promise<StreamConfig> {
   if (!roomId) throw new Error("房间ID未提供");

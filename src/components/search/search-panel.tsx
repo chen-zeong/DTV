@@ -81,15 +81,18 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
 
     // Douyu structure: { data: { relateUser: [ { anchorInfo: {...}} ] } }
     if (!Array.isArray(data) && typeof data === "object" && data !== null) {
-      const relateUser = (data as Record<string, unknown>).data?.relateUser as unknown;
+      const record = data as Record<string, unknown>;
+      const relateUser = (record.data as Record<string, unknown> | undefined)?.relateUser as unknown;
       if (Array.isArray(relateUser)) {
         return relateUser
           .map((item: unknown) => {
             if (!item || typeof item !== "object") return null;
-            const info = (item as Record<string, unknown>).anchorInfo || {};
-            const id = info.rid || info.roomId || info.userId;
-            const nickname = info.nickName || info.nickname || info.userName;
-            const live = toLiveFlag(info.isLive ?? info.is_live ?? info.liveStatus ?? info.live_status);
+            const info = ((item as Record<string, unknown>).anchorInfo || {}) as Record<string, unknown>;
+            const id = (info["rid"] ?? info["roomId"] ?? info["userId"]) as string | number | undefined;
+            const nickname = (info["nickName"] ?? info["nickname"] ?? info["userName"]) as string | undefined;
+            const live = toLiveFlag(
+              info["isLive"] ?? info["is_live"] ?? info["liveStatus"] ?? info["live_status"]
+            );
             if (!id || !nickname) return null;
             return {
               id: String(id),

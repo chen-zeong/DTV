@@ -1,10 +1,15 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { PlayerView } from "@/components/player/player-view";
 import { Platform } from "@/types/platform";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { HomeShell } from "@/components/home-shell";
+import dynamic from "next/dynamic";
+
+const PlayerView = dynamic(async () => {
+  const mod = await import("@/components/player/player-view");
+  return mod.PlayerView;
+}, { ssr: false });
 
 const platformMap: Record<string, Platform> = {
   douyu: Platform.DOUYU,
@@ -13,7 +18,7 @@ const platformMap: Record<string, Platform> = {
   douyin: Platform.DOUYIN,
 };
 
-export default function PlayerPage() {
+function PlayerPageContent() {
   const params = useSearchParams();
   const router = useRouter();
   const platformKey = params.get("platform") || "";
@@ -41,5 +46,13 @@ export default function PlayerPage() {
         <PlayerView platform={platform} roomId={roomId} />
       </div>
     </HomeShell>
+  );
+}
+
+export default function PlayerPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlayerPageContent />
+    </Suspense>
   );
 }

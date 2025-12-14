@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Transition } from "framer-motion";
 import { PlayerView } from "@/components/player/player-view";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { Sidebar } from "@/components/sidebar";
@@ -19,7 +19,7 @@ export function PlayerOverlay() {
   const isMobile = viewportWidth <= 768;
   const sidebarWidthCollapsed = 80;
   const sidebarWidthExpanded = 240;
-  const slideTransition = {
+  const slideTransition: Transition = {
     type: "spring",
     stiffness: 180,
     damping: isSidebarOpen ? 18 : 20,
@@ -27,8 +27,6 @@ export function PlayerOverlay() {
 
   const canRender = isOpen && platform && roomId;
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-  const navHidden = isFullscreen;
 
   useEffect(() => {
     const update = () => {
@@ -81,17 +79,6 @@ export function PlayerOverlay() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             >
-              {!navHidden && (
-                <div className="pt-4 px-4 pb-0 hidden md:block">
-                  <HomeTopNav
-                    theme={theme}
-                    activePlatform={platform ?? Platform.DOUYU}
-                    onPlatformChange={() => {}}
-                    onToggleTheme={toggleTheme}
-                    showSearch
-                  />
-                </div>
-              )}
               <div className="flex-1 min-h-0 overflow-hidden p-0 md:p-4">
                 <PlayerView
                   platform={platform}

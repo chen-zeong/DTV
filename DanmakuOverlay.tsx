@@ -1,5 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Comment } from '../types';
+import React, { useEffect, useState, useRef } from "react";
+
+// Local minimal comment shape to avoid missing external types
+type Comment = {
+  id: string;
+  content: string;
+  color?: string;
+  isDanmaku?: boolean;
+};
 
 interface DanmakuOverlayProps {
   comments: Comment[];

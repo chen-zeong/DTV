@@ -4,13 +4,14 @@ import { ChevronDown, Plus, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { ThemeMode } from "@/types/follow-list";
 import { type FollowListItem, useFollowStore } from "@/stores/follow-store";
-import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/utils/cn";
 import { platformLabelMap } from "@/utils/platform";
 import { usePlayerOverlayStore } from "@/stores/player-overlay-store";
 import { createPortal } from "react-dom";
 import { normalizeAvatarUrl } from "@/utils/image";
+import { Platform } from "@/types/platform";
 
 type FollowListProps = {
   theme: ThemeMode;

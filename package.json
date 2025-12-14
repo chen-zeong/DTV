@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:tauri": "next build && next export",
+    "build": "next build --webpack",
+    "build:tauri": "NEXT_DISABLE_TURBOPACK=1 NEXT_USE_TURBOPACK=0 next build --webpack && rm -rf src-tauri/out && cp -R out src-tauri/out",
     "export": "next export",
     "start": "next start",
     "lint": "eslint",
