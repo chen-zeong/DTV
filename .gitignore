@@ -20,6 +20,7 @@ next-env.d.ts
 target/
 **/*.rs.bk
 Cargo.lock
+.cargo/
 
 # Logs
 logs

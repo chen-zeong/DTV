@@ -21,7 +21,8 @@ prost-build = "0.12"
 [dependencies]
 tauri = { version = "2.7.0", features = ["macos-private-api"] }
 tauri-plugin-opener = "2.5.2"
-tauri-plugin-shell = "2.3.3"
+# mobile 不需要 shell 插件，避免依赖 unstable 的 tars-stream
+# tauri-plugin-shell = "2.3.3"
  serde = { version = "1.0", features = ["derive"] }
  serde_json = "1.0.117"
  md-5 = "0.10.6"
@@ -49,8 +50,8 @@ tauri-plugin-shell = "2.3.3"
  once_cell = "1.8"
  hex = "0.4"
  http = "0.2" 
- # Huya TARS codec
- tars-stream = "0.1.1"
+ # Huya TARS codec（仅桌面端使用；移动端已移除依赖）
+ # tars-stream = "0.1.1"
   
  # Force curl to use platform TLS (SecureTransport on macOS) and avoid OpenSSL linkage
  # Dependencies for Douyin Danmaku

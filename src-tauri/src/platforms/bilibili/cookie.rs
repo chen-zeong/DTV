@@ -133,6 +133,7 @@ pub async fn get_bilibili_cookie(
     collect_cookie_from_labels(app_handle, labels, url).await
 }
 
+#[cfg(not(mobile))]
 #[tauri::command]
 pub async fn bootstrap_bilibili_cookie(
     app_handle: AppHandle,
@@ -169,4 +170,13 @@ pub async fn bootstrap_bilibili_cookie(
     }
 
     Ok(result)
+}
+
+// Android/iOS: 没有桌面 Webview 窗口能力，直接返回默认值，避免编译错误
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn bootstrap_bilibili_cookie(
+    _app_handle: AppHandle,
+) -> Result<BilibiliCookieResult, String> {
+    Ok(BilibiliCookieResult::default())
 }
