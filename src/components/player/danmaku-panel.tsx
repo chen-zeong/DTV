@@ -37,26 +37,11 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
   return (
     <div
       ref={containerRef}
-      className={`w-full md:w-[200px] lg:w-[220px] h-full max-h-[70vh] md:max-h-[80vh] overflow-y-auto no-scrollbar rounded-2xl border p-3.5 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.45)] ${
-        isDark
-          ? "border-white/10 bg-gradient-to-b from-[#0d111a]/90 via-[#0d111a]/70 to-[#0f1625]/80"
-          : "border-gray-200/70 bg-gradient-to-b from-white via-white to-[#f6f8fb]"
+      className={`w-full md:w-[200px] lg:w-[220px] h-full max-h-[70vh] md:max-h-[80vh] overflow-y-auto no-scrollbar p-2 md:p-3 ${
+        isDark ? "text-white" : "text-gray-900"
       } ${className || ""}`}
       style={style}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div
-          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold tracking-[0.16em] uppercase ${
-            isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-800"
-          }`}
-        >
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(52,211,153,0.15)]" />
-          弹幕
-        </div>
-        <div className={`text-[11px] px-2 py-1 rounded-full ${isDark ? "text-gray-300 bg-white/5" : "text-gray-600 bg-gray-100"}`}>
-          {messages.length} 条
-        </div>
-      </div>
       <div className="space-y-2.5 text-sm">
         {messages.slice(-200).map((msg, idx) => {
           const accent = msg.color || (isDark ? "#9ae6b4" : "#2563eb");

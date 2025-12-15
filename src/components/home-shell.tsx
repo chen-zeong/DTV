@@ -104,7 +104,7 @@ export function HomeShell({
     return null;
   }
 
-  const sidebarWidthCollapsed = isMobile ? 0 : 80;
+  const sidebarWidthCollapsed = isMobile ? 0 : 70;
   const sidebarWidthExpanded = isMobile ? 220 : 240;
 
   return (

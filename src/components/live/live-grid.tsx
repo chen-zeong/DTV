@@ -47,7 +47,14 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
         return (
         <div
           key={key}
-          className="group rounded-xl bg-white shadow-[0_10px_30px_-18px_rgba(0,0,0,0.4)] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.45)] cursor-pointer dark:bg-[#0c101a] dark:shadow-[0_12px_34px_-22px_rgba(0,0,0,0.7)] dark:hover:shadow-[0_18px_48px_-22px_rgba(0,0,0,0.8)]"
+          className="group relative overflow-hidden rounded-3xl border border-white/30 dark:border-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+          style={{
+            backgroundColor: "var(--color-card, rgba(255,255,255,0.4))",
+            boxShadow:
+              "0 40px 50px -32px rgba(0, 0, 0, 0.05), inset 0 0 20px rgba(255, 255, 255, 0.25)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+          }}
           onClick={() => onCardClick(item)}
         >
           <div className="relative">
@@ -57,13 +64,13 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
               <div className="w-full aspect-video bg-gray-100 dark:bg-white/5" />
             )}
             {item.viewerText ? (
-              <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs bg-gray-800/55 text-white backdrop-blur px-2 py-1 rounded-full">
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs bg-black/45 text-white backdrop-blur px-2.5 py-1.5 rounded-full shadow-sm">
                 <Eye className="w-4 h-4" />
                 <span>{item.viewerText}</span>
               </div>
             ) : null}
           </div>
-          <div className="p-3 space-y-2">
+          <div className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               {item.avatar ? (
                 <Image
@@ -71,15 +78,15 @@ export function LiveGrid({ items, onCardClick, renderActions, className }: LiveG
                   alt={item.subtitle || item.title}
                   width={40}
                   height={40}
-                  className="w-10 h-10 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
+                  className="w-11 h-11 rounded-2xl object-cover ring-1 ring-black/5 dark:ring-white/10"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-white/70 dark:ring-white/10">
+                <div className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center text-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-white/70 dark:ring-white/10">
                   {(item.subtitle || item.title).slice(0, 1)}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-gray-900 truncate dark:text-white">{item.title}</div>
+                <div className="text-[15px] font-semibold text-gray-900 truncate dark:text-white">{item.title}</div>
                 {item.subtitle ? <div className="text-xs text-gray-500 truncate dark:text-gray-400">{item.subtitle}</div> : null}
               </div>
             </div>
@@ -104,12 +111,19 @@ export function LiveGridSkeleton({ count = 18, className }: LiveGridSkeletonProp
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className="rounded-xl bg-white shadow-[0_10px_30px_-18px_rgba(0,0,0,0.4)] overflow-hidden dark:bg-[#0c101a] dark:shadow-[0_12px_34px_-22px_rgba(0,0,0,0.7)] animate-pulse"
+          className="relative overflow-hidden rounded-3xl border border-white/30 dark:border-white/10 animate-pulse"
+          style={{
+            backgroundColor: "var(--color-card, rgba(255,255,255,0.4))",
+            boxShadow:
+              "0 40px 50px -32px rgba(0, 0, 0, 0.05), inset 0 0 20px rgba(255, 255, 255, 0.25)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+          }}
         >
           <div className="w-full aspect-video bg-gray-200/70 dark:bg-white/10" />
-          <div className="p-3 space-y-3">
+          <div className="p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gray-200/80 dark:bg-white/10" />
+              <div className="w-11 h-11 rounded-2xl bg-gray-200/80 dark:bg-white/10" />
               <div className="flex-1 space-y-2">
                 <div className="h-3.5 rounded bg-gray-200/80 dark:bg-white/10 w-3/4" />
                 <div className="h-3 rounded bg-gray-200/70 dark:bg-white/10 w-2/3" />

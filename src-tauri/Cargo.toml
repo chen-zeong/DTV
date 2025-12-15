@@ -68,6 +68,9 @@ tauri-plugin-opener = "2.5.2"
  cookie = "0.18"
  env_logger = "0.11"
 
+[target.'cfg(not(mobile))'.dependencies]
+tars-stream = "0.1.1"
+
  [profile.release]
  panic = "abort"
  codegen-units = 1

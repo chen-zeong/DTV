@@ -79,7 +79,6 @@ pub struct HuyaJoinParams {
     pub top_sid: i64,
 }
 
-#[tauri::command]
 pub async fn fetch_huya_join_params(room_id: String) -> Result<HuyaJoinParams, String> {
     match fetch_huya_ids(&room_id).await {
         Ok((ayyuid, top_sid)) => Ok(HuyaJoinParams {
@@ -90,7 +89,6 @@ pub async fn fetch_huya_join_params(room_id: String) -> Result<HuyaJoinParams, S
     }
 }
 
-#[tauri::command]
 pub async fn start_huya_danmaku_listener(
     payload: crate::platforms::common::GetStreamUrlPayload,
     app_handle: tauri::AppHandle,
@@ -287,7 +285,6 @@ pub async fn start_huya_danmaku_listener(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn stop_huya_danmaku_listener(
     room_id: String,
     state: tauri::State<'_, crate::platforms::common::HuyaDanmakuState>,

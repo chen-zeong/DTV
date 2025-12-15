@@ -13,4 +13,5 @@ pub use self::douyin_streamer_detail::{
     get_douyin_live_stream_url, get_douyin_live_stream_url_with_quality,
 };
 pub use self::douyin_streamer_info::fetch_douyin_streamer_info;
+#[allow(unused_imports)]
 pub use self::douyin_streamer_list::fetch_douyin_partition_rooms;

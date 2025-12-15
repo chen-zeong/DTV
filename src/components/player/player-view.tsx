@@ -6,7 +6,7 @@ import FlvPlugin from "xgplayer-flv";
 import HlsPlugin from "xgplayer-hls.js";
 import "xgplayer/dist/index.min.css";
 import "./player-controls.css";
-import { Loader2, RotateCw, AlertTriangle, ArrowLeft, Play } from "lucide-react";
+import { Loader2, RotateCw, AlertTriangle, Play, Eye, X } from "lucide-react";
 import DanmuJs from "danmu.js";
 import { Platform } from "@/types/platform";
 import { DanmakuMessage } from "@/types/danmaku";
@@ -85,6 +85,7 @@ export function PlayerView({
   const reloadReasonRef = useRef<"auto" | "refresh" | "quality" | "line">("auto");
   const streamOrientationCleanupRef = useRef<(() => void) | null>(null);
   const rotateObserverRef = useRef<MutationObserver | null>(null);
+  const closeHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [quality, setQuality] = useState<(typeof qualityOptions)[number]>(() => {
     if (typeof window === "undefined") return "原画";
@@ -108,6 +109,7 @@ export function PlayerView({
   const [volume, setVolume] = useState(0.7);
   const [isCssFullscreen, setIsCssFullscreen] = useState(false);
   const [isStreamPortrait, setIsStreamPortrait] = useState<boolean | null>(null);
+  const [showClose, setShowClose] = useState(false);
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const followStreamer = useFollowStore((s) => s.followStreamer);
   const unfollowStreamer = useFollowStore((s) => s.unfollowStreamer);
@@ -118,8 +120,9 @@ export function PlayerView({
   const isMobile = viewportWidth <= 768;
   const isPortrait = viewportHeight >= viewportWidth;
   const isMobileLandscape = isMobile && (!isPortrait || isStreamPortrait === false);
-  const sidebarWidth = isMobile ? 0 : isSidebarOpen ? 240 : 80;
+  const sidebarWidth = isMobile ? 0 : isSidebarOpen ? 240 : 70;
   const showBubbleDanmaku = isPortrait || !isCssFullscreen;
+  const closeVisible = isCssFullscreen ? true : isMobile || showClose;
   const title = useMemo(() => {
     if (streamMeta?.title) return streamMeta.title;
     if (initialTitle) return initialTitle;
@@ -133,6 +136,20 @@ export function PlayerView({
   const avatarDisplay = useMemo(() => {
     return streamMeta?.avatar || initialAvatar || "";
   }, [streamMeta?.avatar, initialAvatar]);
+
+  const viewerText = useMemo(() => {
+    const raw = streamMeta?.viewer;
+    if (raw === null || raw === undefined) return null;
+    const num = Number(raw);
+    if (!Number.isNaN(num)) {
+      if (num >= 10000) {
+        const val = (num / 10000).toFixed(1);
+        return `${val.endsWith(".0") ? val.slice(0, -2) : val} 万`;
+      }
+      return `${num}`;
+    }
+    return String(raw);
+  }, [streamMeta?.viewer]);
 
   const updateStreamOrientation = useCallback((media?: HTMLVideoElement | null) => {
     const target =
@@ -152,6 +169,41 @@ export function PlayerView({
     document.addEventListener("fullscreenchange", handleFsChange);
     return () => document.removeEventListener("fullscreenchange", handleFsChange);
   }, [onFullscreenChange]);
+
+  const scheduleHideClose = useCallback((delay = 1600) => {
+    if (closeHideTimerRef.current) {
+      clearTimeout(closeHideTimerRef.current);
+      closeHideTimerRef.current = null;
+    }
+    closeHideTimerRef.current = setTimeout(() => setShowClose(false), delay);
+  }, []);
+
+  const handlePlayerPointerMove = useCallback(() => {
+    if (isMobile) return;
+    setShowClose(true);
+    scheduleHideClose();
+  }, [isMobile, scheduleHideClose]);
+
+  const handlePlayerPointerLeave = useCallback(() => {
+    if (isMobile) return;
+    scheduleHideClose(400);
+  }, [isMobile, scheduleHideClose]);
+
+  useEffect(() => {
+    if (isCssFullscreen) {
+      setShowClose(true);
+      scheduleHideClose(2000);
+    }
+  }, [isCssFullscreen, scheduleHideClose]);
+
+  useEffect(() => {
+    return () => {
+      if (closeHideTimerRef.current) {
+        clearTimeout(closeHideTimerRef.current);
+        closeHideTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const destroyPlayer = () => {
     try {
@@ -709,7 +761,7 @@ export function PlayerView({
   return (
     <div
       className={cn(
-        "player-view-page min-h-screen md:h-screen flex justify-center",
+        "player-view-page h-full min-h-0 flex justify-center px-1 sm:px-2 md:px-3 lg:px-4",
         isMobile && "mobile-player",
         isDark
           ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
@@ -717,35 +769,27 @@ export function PlayerView({
       )}
       style={{ ["--sidebar-offset" as string]: `${sidebarWidth}px` }}
     >
-      <div className="w-full max-w-[1400px] flex-1">
+      <div className="w-full max-w-none flex-1 h-full flex flex-col">
         <div
           className={cn(
-            "rounded-3xl border shadow-2xl backdrop-blur-xl overflow-hidden",
+            "h-full flex flex-col rounded-3xl border shadow-2xl backdrop-blur-xl overflow-hidden",
             isDark ? "bg-slate-950/70 border-white/10 shadow-black/40" : "bg-white/85 border-gray-200 shadow-gray-300/60"
           )}
         >
-          <div className="flex flex-col md:flex-row items-start gap-2 md:gap-2 px-2 py-2 md:px-2 md:py-0 md:overflow-hidden">
-            <div className={cn("flex-1 flex flex-col gap-2 min-h-0", isMobileLandscape && "items-center pt-12")}>
-              <div className={cn("flex items-center justify-between gap-3 flex-wrap px-1", isMobile && "pt-1")}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <button
-                    onClick={() => {
-                      if (onClose) onClose();
-                      else router.back();
-                    }}
-                    className={cn(
-                      "inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
-                      isDark ? "border-white/10 bg-white/5 hover:bg-white/10" : "border-gray-200 bg-white hover:bg-gray-100"
-                    )}
-                    title="返回"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
+          <div className="flex flex-col md:flex-row items-start md:items-stretch gap-2 md:gap-0 px-0 py-2 md:px-0 md:py-0 md:overflow-hidden h-full">
+            <div
+              className={cn(
+                "flex-1 flex flex-col gap-3 min-h-0 pt-3 md:pt-5 md:h-full",
+                isMobileLandscape && "items-center pt-12"
+              )}
+            >
+              <div className="flex flex-col gap-3 px-2 md:px-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-full overflow-hidden flex-shrink-0",
-                        isDark ? "border border-white/10 bg-white/10" : "border border-gray-200 bg-white"
+                        "w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden flex-shrink-0 ring-2",
+                        isDark ? "ring-white/10 bg-white/10" : "ring-gray-200 bg-white"
                       )}
                     >
                       {avatarDisplay ? (
@@ -761,54 +805,113 @@ export function PlayerView({
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className={cn("text-base font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
-                        {streamMeta?.title || title}
-                      </span>
-                      <span className={cn("text-sm truncate", isDark ? "text-gray-400" : "text-gray-600")}>
-                        @{anchorDisplay} · {streamMeta?.viewer ?? "Live"} · 房间 {roomId}
-                      </span>
+                    <div className="flex flex-col min-w-0 gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn("text-lg font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
+                          {streamMeta?.title || title}
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold tracking-wide",
+                            isDark ? "bg-white/10 text-white border border-white/10" : "bg-gray-100 text-gray-800 border border-gray-200"
+                          )}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
+                          <span>直播中</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap text-sm">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold",
+                            isDark ? "bg-white/8 text-white border border-white/10" : "bg-gray-100 text-gray-800 border border-gray-200"
+                          )}
+                        >
+                          <span className="text-xs opacity-80">主播</span>
+                          <span>@{anchorDisplay}</span>
+                        </span>
+                        {viewerText ? (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium",
+                              isDark ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/25" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            )}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{viewerText} 人气</span>
+                          </span>
+                        ) : null}
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[12px] font-medium",
+                            isDark ? "bg-white/8 text-gray-100 border border-white/10" : "bg-gray-100 text-gray-700 border border-gray-200"
+                          )}
+                        >
+                          房间 {roomId}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      if (isFollowed(platform, roomId)) {
-                        unfollowStreamer(platform, roomId);
-                      } else {
-                        followStreamer({
-                          id: roomId,
-                          platform,
-                          nickname: streamMeta?.anchorName || roomId,
-                          avatarUrl: streamMeta?.avatar || "",
-                          displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
-                          isLive: true,
-                        });
-                      }
-                    }}
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm font-semibold shadow-lg",
-                      isFollowed(platform, roomId)
-                        ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/50"
-                        : "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
-                    )}
-                  >
-                    {isFollowed(platform, roomId) ? "已关注" : "关注"}
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        if (isFollowed(platform, roomId)) {
+                          unfollowStreamer(platform, roomId);
+                        } else {
+                          followStreamer({
+                            id: roomId,
+                            platform,
+                            nickname: streamMeta?.anchorName || roomId,
+                            avatarUrl: streamMeta?.avatar || "",
+                            displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
+                            isLive: true,
+                          });
+                        }
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-colors",
+                        isFollowed(platform, roomId)
+                          ? isDark
+                            ? "bg-emerald-500/25 text-emerald-100 border border-emerald-400/50"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : isDark
+                            ? "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
+                            : "bg-gradient-to-r from-emerald-500 to-lime-400 text-white shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)] hover:shadow-[0_18px_48px_-24px_rgba(16,185,129,0.6)]"
+                      )}
+                    >
+                      {isFollowed(platform, roomId) ? "已关注" : "关注"}
+                    </button>
+                  </div>
                 </div>
               </div>
-        <div
-          className={cn(
-            "relative rounded-xl overflow-hidden shadow-lg",
-            isDark ? "border border-white/10 bg-black" : "border border-gray-200 bg-white",
-            isMobile ? (isMobileLandscape ? "w-full h-auto max-h-[50vh] mx-auto" : "w-full h-[100vh]") : "aspect-video",
-            (!isPortrait || isMobileLandscape) && !isCssFullscreen ? (isMobile ? "pb-12" : "pb-16") : "",
-            isMobileLandscape && "mt-12 mb-3"
-          )}
-          style={{ aspectRatio: isMobileLandscape ? "16 / 9" : undefined }}
-        >
-          <div ref={containerRef} className="w-full h-full" />
+          <div
+            className={cn(
+              "relative flex-1 min-h-0 rounded-xl overflow-hidden shadow-lg",
+              isDark ? "bg-black" : "bg-white",
+              isMobile ? (isMobileLandscape ? "w-full h-auto max-h-[50vh] mx-auto" : "w-full h-[100vh]") : "aspect-video",
+              isMobileLandscape && "mt-12 mb-3"
+            )}
+            style={{ aspectRatio: isMobileLandscape ? "16 / 9" : undefined }}
+            onMouseMove={handlePlayerPointerMove}
+            onMouseEnter={handlePlayerPointerMove}
+            onMouseLeave={handlePlayerPointerLeave}
+          >
+            <button
+              onClick={() => {
+                if (onClose) onClose();
+                else router.back();
+              }}
+              className={cn(
+                "absolute top-3 right-3 z-30 inline-flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-opacity transition-transform transition-colors duration-200",
+                "bg-black/35 border-white/25 text-white hover:bg-black/25",
+                closeVisible ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-1 pointer-events-none"
+              )}
+              title="关闭"
+              aria-label="关闭播放器"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div ref={containerRef} className="w-full h-full" />
           {isMobile && !error && (
             <>
               <div
@@ -849,9 +952,30 @@ export function PlayerView({
                     <span className={cn("text-sm font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
                       {streamMeta?.title || title}
                     </span>
-                    <span className={cn("text-[12px] truncate", isDark ? "text-gray-200" : "text-gray-600")}>
-                      @{anchorDisplay} · {streamMeta?.viewer ?? "Live"} · 房间 {roomId}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold",
+                          isDark ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/30" : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        )}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.18)]" />
+                        <span>直播中</span>
+                      </span>
+                      <span className={cn("text-[12px] font-semibold", isDark ? "text-white" : "text-gray-900")}>@{anchorDisplay}</span>
+                      {viewerText ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium",
+                            isDark ? "bg-white/10 text-gray-100" : "bg-gray-100 text-gray-800"
+                          )}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{viewerText} 人气</span>
+                        </span>
+                      ) : null}
+                      <span className={cn("text-[11px]", isDark ? "text-gray-300/80" : "text-gray-600")}>房间 {roomId}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pointer-events-auto">
@@ -871,10 +995,14 @@ export function PlayerView({
                       }
                     }}
                     className={cn(
-                      "px-4 py-2 rounded-full text-sm font-semibold shadow-lg",
+                      "px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-colors",
                       isFollowed(platform, roomId)
-                        ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/50"
-                        : "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
+                        ? isDark
+                          ? "bg-emerald-500/25 text-emerald-100 border border-emerald-400/50"
+                          : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : isDark
+                          ? "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
+                          : "bg-gradient-to-r from-emerald-500 to-lime-400 text-white shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)] hover:shadow-[0_18px_48px_-24px_rgba(16,185,129,0.6)]"
                     )}
                   >
                     {isFollowed(platform, roomId) ? "已关注" : "关注"}
@@ -982,7 +1110,7 @@ export function PlayerView({
             {!isMobile && (
                 <div
                   className={cn(
-                    "w-full md:w-[240px] lg:w-[260px] flex flex-col h-full border-l",
+                    "w-full md:w-[192px] lg:w-[208px] flex flex-col h-full border-l",
                     isDark ? "border-white/5 bg-white/5" : "border-gray-200/70 bg-gray-50/80"
                   )}
               >
@@ -1015,6 +1143,23 @@ export function PlayerView({
           </div>
         </div>
       </div>
+      {isCssFullscreen ? (
+        <button
+          onClick={() => {
+            if (onClose) onClose();
+            else router.back();
+          }}
+          className={cn(
+            "fixed top-3 right-3 z-[140] inline-flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-opacity transition-transform transition-colors duration-200",
+            "bg-black/35 border-white/25 text-white hover:bg-black/25",
+            closeVisible ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-1 pointer-events-none"
+          )}
+          title="关闭"
+          aria-label="关闭播放器"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      ) : null}
     </div>
   );
 }

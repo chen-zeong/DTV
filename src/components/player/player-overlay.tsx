@@ -17,7 +17,7 @@ export function PlayerOverlay() {
   const isSidebarOpen = useSidebarStore((s) => s.isOpen);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1024 : window.innerWidth));
   const isMobile = viewportWidth <= 768;
-  const sidebarWidthCollapsed = 80;
+  const sidebarWidthCollapsed = 70;
   const sidebarWidthExpanded = 240;
   const slideTransition: Transition = {
     type: "spring",
@@ -79,7 +79,7 @@ export function PlayerOverlay() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="flex-1 min-h-0 overflow-hidden p-0 md:p-4">
+              <div className="flex-1 min-h-0 overflow-hidden p-0 md:py-4 md:px-0 md:box-border">
                 <PlayerView
                   platform={platform}
                   roomId={roomId}

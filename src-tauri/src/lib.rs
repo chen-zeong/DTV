@@ -29,6 +29,7 @@ pub struct StreamUrlStore {
 
 // State for managing Douyu danmaku listener handles (stop signals)
 #[derive(Default, Clone)]
+#[allow(dead_code)]
 pub struct DouyuDanmakuHandles(Arc<Mutex<HashMap<String, oneshot::Sender<()>>>>);
 
 // Douyu主播搜索：调用平台模块的 perform_anchor_search
@@ -95,7 +96,7 @@ async fn stop_danmaku_listener(
     Ok(())
 }
 
-fn resolve_log_level(context: &tauri::Context<Wry>) -> LevelFilter {
+fn resolve_log_level() -> LevelFilter {
     let env_log_level = env::var("DTV_LOG_LEVEL")
         .or_else(|_| env::var("TAURI_DTV_LOG_LEVEL"))
         .unwrap_or_default()
@@ -126,8 +127,7 @@ fn init_logger(level: LevelFilter) {
 }
 
 fn build_app() -> tauri::Builder<Wry> {
-    let context = tauri::generate_context!();
-    let log_level = resolve_log_level(&context);
+    let log_level = resolve_log_level();
     init_logger(log_level);
 
     let client = reqwest::Client::builder()
@@ -189,8 +189,9 @@ fn build_app() -> tauri::Builder<Wry> {
 }
 
 pub fn run_desktop() {
+    let context = tauri::generate_context!();
     build_app()
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 

@@ -49,7 +49,7 @@ pub async fn stop_huya_danmaku_listener(
     state: tauri::State<'_, crate::platforms::common::HuyaDanmakuState>,
     room_id: String,
 ) -> Result<(), String> {
-    danmaku::stop_huya_danmaku_listener(state, room_id).await
+    danmaku::stop_huya_danmaku_listener(room_id, state).await
 }
 
 #[cfg(mobile)]

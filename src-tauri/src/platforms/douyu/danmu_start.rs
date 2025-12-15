@@ -8,12 +8,14 @@ use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{connect_async_tls_with_config, tungstenite::Message};
 use url::Url;
 
+#[allow(dead_code)]
 pub struct DanmakuClient {
     room_id: String,
     window: Window,
     stop_signal_rx: oneshot::Receiver<()>,
 }
 
+#[allow(dead_code)]
 impl DanmakuClient {
     pub fn new(room_id: &str, window: Window, stop_signal_rx: oneshot::Receiver<()>) -> Self {
         Self {

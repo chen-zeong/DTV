@@ -39,11 +39,13 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const normalizeAvatar = (platform: string, url?: string | null) => normalizeAvatarGlobal(platform, url);
   const sidebarRef = useRef<HTMLElement | null>(null);
-  const hoverHighlightKey = useRef<string | null>(null);
-  const [hoverHighlight, setHoverHighlight] = useState<{
-    key: string;
-    rect: { left: number; top: number; width: number; height: number };
-  } | null>(null);
+  const hoverRefs = useRef<{ full: Array<HTMLElement | null>; icons: Array<HTMLElement | null> }>({
+    full: [],
+    icons: [],
+  });
+  const hoverMeasureRaf = useRef<number | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<{ layout: "full" | "icons"; index: number } | null>(null);
+  const [hoverRect, setHoverRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [hoverFolderId, setHoverFolderId] = useState<string | null>(null);
   const [folderMenu, setFolderMenu] = useState<{ id: string; x: number; y: number; renameDraft?: string } | null>(
@@ -170,43 +172,66 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
   };
 
-  const applyHoverHighlight = useCallback(
-    (el: HTMLElement | null, key: string) => {
-      if (!el || !sidebarRef.current) return;
-      const parentRect = sidebarRef.current.getBoundingClientRect();
+  const measureHover = useCallback(
+    (layout: "full" | "icons", index: number) => {
+      const parent = sidebarRef.current;
+      const el = hoverRefs.current[layout][index];
+      if (!parent || !el) {
+        setHoverRect((prev) => (prev === null ? prev : null));
+        return;
+      }
+      const parentRect = parent.getBoundingClientRect();
       const rect = el.getBoundingClientRect();
-      hoverHighlightKey.current = key;
-      setHoverHighlight({
-        key,
-        rect: {
-          left: rect.left - parentRect.left,
-          top: rect.top - parentRect.top,
-          width: rect.width,
-          height: rect.height,
-        },
+      const next = {
+        left: rect.left - parentRect.left,
+        top: rect.top - parentRect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+      setHoverRect((prev) => {
+        if (
+          prev &&
+          prev.left === next.left &&
+          prev.top === next.top &&
+          prev.width === next.width &&
+          prev.height === next.height
+        ) {
+          return prev;
+        }
+        return next;
       });
-    },
-    [sidebarRef]
-  );
-
-  const clearHoverHighlight = useCallback(
-    (key?: string) => {
-      if (key && hoverHighlightKey.current && key !== hoverHighlightKey.current) return;
-      hoverHighlightKey.current = null;
-      setHoverHighlight(null);
     },
     []
   );
 
-  const recomputeHoverHighlight = useCallback(() => {
-    if (!hoverHighlightKey.current || typeof document === "undefined") return;
-    const el = document.querySelector<HTMLElement>(`[data-follow-item-key="${hoverHighlightKey.current}"]`);
-    if (!el) {
-      clearHoverHighlight();
-      return;
+  const setHoverRef = useCallback(
+    (layout: "full" | "icons", index: number) => (el: HTMLElement | null) => {
+      hoverRefs.current[layout][index] = el;
+      if (hoveredIndex && hoveredIndex.layout === layout && hoveredIndex.index === index) {
+        if (hoverMeasureRaf.current) cancelAnimationFrame(hoverMeasureRaf.current);
+        hoverMeasureRaf.current = requestAnimationFrame(() => {
+          measureHover(layout, index);
+          hoverMeasureRaf.current = null;
+        });
+      }
+    },
+    [hoveredIndex, measureHover]
+  );
+
+  const handleHover = useCallback((layout: "full" | "icons", index: number) => {
+    setHoveredIndex({ layout, index });
+  }, []);
+
+  const clearHover = useCallback(() => {
+    setHoveredIndex(null);
+    setHoverRect(null);
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (hoveredIndex) {
+      measureHover(hoveredIndex.layout, hoveredIndex.index);
     }
-    applyHoverHighlight(el, hoverHighlightKey.current);
-  }, [applyHoverHighlight, clearHoverHighlight]);
+  }, [hoveredIndex, measureHover]);
 
   const refreshFollowStatus = useCallback(async () => {
     if (refreshLock.current) return;
@@ -371,6 +396,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     window.addEventListener("keydown", handleEsc);
     setMounted(true);
     return () => {
+      if (hoverMeasureRaf.current) cancelAnimationFrame(hoverMeasureRaf.current);
       window.removeEventListener("click", closeMenu);
       window.removeEventListener("keydown", handleEsc);
     };
@@ -380,45 +406,70 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     return () => {
       clearFolderPreviewTimer();
       clearCollapsedPreviewTimer();
+      if (hoverMeasureRaf.current) cancelAnimationFrame(hoverMeasureRaf.current);
     };
   }, []);
 
   useEffect(() => {
-    const handleResize = () => recomputeHoverHighlight();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [recomputeHoverHighlight]);
+    if (hoveredIndex) {
+      measureHover(hoveredIndex.layout, hoveredIndex.index);
+    } else {
+      setHoverRect(null);
+    }
+  }, [hoveredIndex, measureHover]);
 
   useEffect(() => {
-    recomputeHoverHighlight();
-  }, [isLeaderboardOpen, recomputeHoverHighlight]);
+    const handleResize = () => {
+      if (hoveredIndex) {
+        measureHover(hoveredIndex.layout, hoveredIndex.index);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [hoveredIndex, measureHover]);
+
+  useEffect(() => {
+    if (hoveredIndex) {
+      measureHover(hoveredIndex.layout, hoveredIndex.index);
+    } else {
+      setHoverRect(null);
+    }
+  }, [isLeaderboardOpen, hoveredIndex, measureHover]);
+
+  let fullHoverIndex = 0;
+  const hoverPad = hoveredIndex?.layout === "icons" ? 7 : 4;
 
   return (
     <aside
       ref={sidebarRef}
-      onMouseLeave={() => clearHoverHighlight()}
-      onScroll={recomputeHoverHighlight}
+      onMouseLeave={clearHover}
+      onScroll={handleScroll}
       className={`relative flex flex-col items-center py-4 w-full max-w-[240px] h-full border-r backdrop-blur-xl transition-all duration-300 overflow-y-auto no-scrollbar ${containerClass} ${className}`}
     >
       <AnimatePresence>
-        {hoverHighlight ? (
+        {hoverRect ? (
           <motion.div
             key="nav-hover"
             layoutId="nav-hover"
-            className={`absolute rounded-2xl ${
-              isDark ? "bg-white/10" : "bg-black/5"
-            }`}
-            style={{ pointerEvents: "none" }}
-            initial={{ opacity: 0 }}
+            className="absolute pointer-events-none rounded-3xl border"
+            style={{
+              pointerEvents: "none",
+              backgroundImage: isDark
+                ? "linear-gradient(to right bottom, rgba(255,255,255,0.14), rgba(255,255,255,0.04))"
+                : "linear-gradient(to right bottom, rgba(16,185,129,0.16), rgba(59,130,246,0.12))",
+              boxShadow: "none",
+              borderColor: "transparent",
+            }}
+            initial={false}
             animate={{
               opacity: 1,
-              left: hoverHighlight.rect.left,
-              top: hoverHighlight.rect.top,
-              width: hoverHighlight.rect.width,
-              height: hoverHighlight.rect.height,
+              left: hoverRect.left - hoverPad,
+              top: hoverRect.top - hoverPad,
+              width: hoverRect.width + hoverPad * 2,
+              height: hoverRect.height + hoverPad * 2,
             }}
-            exit={{ opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.9 }}
           />
         ) : null}
       </AnimatePresence>
@@ -484,15 +535,17 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
 
         {!isLeaderboardOpen && (orderedFollows.length > 0 || folders.length > 0) ? (
           <div className="flex flex-col items-center gap-3 mt-1 w-full px-2">
-            {collapsedItems.map((item) => {
+            {collapsedItems.map((item, idx) => {
               if (item.type === "streamer") {
                 const s = orderedFollows.find((f) => f.platform === item.data.platform && f.id === item.data.id);
                 if (!s) return null;
                 const key = toKey(s.platform, s.id);
+                const hoverIndex = idx;
                 return (
                   <button
                     key={key}
                     type="button"
+                    ref={setHoverRef("icons", hoverIndex)}
                     data-follow-item-key={key}
                     onClick={() =>
                       openPlayer({
@@ -505,6 +558,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                     }
                     onMouseEnter={(e) => {
                       if (isLeaderboardOpen) return;
+                      handleHover("icons", hoverIndex);
                       clearCollapsedPreviewTimer();
                       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                       setCollapsedHover({
@@ -515,11 +569,10 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                         title: s.roomTitle || s.displayName || s.nickname || "",
                         avatar: normalizeAvatar(s.platform, s.avatarUrl),
                       });
-                      applyHoverHighlight(e.currentTarget, key);
                     }}
                     onMouseLeave={() => {
                       scheduleHideCollapsedPreview();
-                      clearHoverHighlight(key);
+                      clearHover();
                     }}
                     className={`relative w-10 h-10 rounded-full border shadow-sm transition-all duration-200 ${
                       isDark
@@ -561,9 +614,11 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                 })
                 .filter((v): v is (typeof followedStreamers)[number] => Boolean(v));
               const label = (folder.name || "F").slice(0, 1);
+              const hoverIndex = idx;
               return (
                 <div
                   key={`folder-${folder.id}`}
+                  ref={setHoverRef("icons", hoverIndex)}
                   className={`px-3 h-10 rounded-2xl border shadow-sm flex items-center justify-center text-xs font-semibold uppercase transition-all duration-200 ${
                     isDark
                       ? "border-white/10 bg-white/10 text-white hover:border-white/25"
@@ -572,11 +627,15 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                   title={folder.name}
                   onMouseEnter={(e) => {
                     if (isLeaderboardOpen) return;
+                    handleHover("icons", hoverIndex);
                     clearFolderPreviewTimer();
                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                     setFolderPreview({ id: folder.id, x: rect.right + 10, y: rect.top });
                   }}
-                  onMouseLeave={() => scheduleHideFolderPreview()}
+                  onMouseLeave={() => {
+                    scheduleHideFolderPreview();
+                    clearHover();
+                  }}
                 >
                   {label}
                 </div>
@@ -669,16 +728,16 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
                         sortedItems.map((item) => {
                           const itemKey = toKey(item.platform, item.id);
                           const avatar = normalizeAvatar(item.platform, item.avatarUrl);
+                          const hoverIndex = fullHoverIndex++;
                           return (
                             <button
                               key={`${item.platform}:${item.id}`}
                               type="button"
+                              ref={setHoverRef("full", hoverIndex)}
                               data-follow-item-key={itemKey}
-                              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
-                                isDark ? "hover:bg-white/10" : "hover:bg-black/5"
-                              }`}
-                              onPointerEnter={(e) => applyHoverHighlight(e.currentTarget, itemKey)}
-                              onPointerLeave={() => clearHoverHighlight(itemKey)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors"
+                              onMouseEnter={() => handleHover("full", hoverIndex)}
+                              onMouseLeave={clearHover}
                               onClick={() =>
                                 openPlayer({
                                   platform: item.platform,
@@ -730,24 +789,29 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
           </div>
           {orderedIds.length > 0 && reorderValues.length > 0 ? (
             <Reorder.Group axis="y" values={reorderValues} onReorder={handleReorderList} className="space-y-1">
-              {reorderItems.map((item) => (
-                <ReorderableStreamer
-                  key={item.key}
-                  itemKey={item.key}
-                  data={item.data}
-                  isDark={isDark}
-                  getHoverFolderId={getHoverFolderId}
-                  getClientPoint={getClientPoint}
-                  setDraggingKey={setDraggingKey}
-                  setHoverFolderId={setHoverFolderId}
-                  hoverFolderId={hoverFolderId}
-                  moveToFolder={moveToFolder}
-                  openPlayer={openPlayer}
-                  statusDot={statusDot}
-                  onHoverHighlight={applyHoverHighlight}
-                  onClearHighlight={clearHoverHighlight}
-                />
-              ))}
+              {reorderItems.map((item) => {
+                const hoverIndex = fullHoverIndex++;
+                return (
+                  <ReorderableStreamer
+                    key={item.key}
+                    itemKey={item.key}
+                    data={item.data}
+                    isDark={isDark}
+                    getHoverFolderId={getHoverFolderId}
+                    getClientPoint={getClientPoint}
+                    setDraggingKey={setDraggingKey}
+                    setHoverFolderId={setHoverFolderId}
+                    hoverFolderId={hoverFolderId}
+                    moveToFolder={moveToFolder}
+                    openPlayer={openPlayer}
+                    statusDot={statusDot}
+                    hoverIndex={hoverIndex}
+                    onHover={(idx) => handleHover("full", idx)}
+                    onHoverEnd={clearHover}
+                    getHoverRef={(idx) => setHoverRef("full", idx)}
+                  />
+                );
+              })}
             </Reorder.Group>
           ) : null}
           {mounted && folderMenu
@@ -1025,8 +1089,10 @@ type ReorderableStreamerProps = {
     avatar?: string | null;
   }) => void;
   statusDot: (live?: boolean | null) => React.ReactElement;
-  onHoverHighlight: (el: HTMLElement | null, key: string) => void;
-  onClearHighlight: (key?: string) => void;
+  hoverIndex: number;
+  onHover: (index: number) => void;
+  onHoverEnd: () => void;
+  getHoverRef: (index: number) => (el: HTMLElement | null) => void;
 };
 
 function ReorderableStreamer({
@@ -1041,8 +1107,10 @@ function ReorderableStreamer({
   moveToFolder,
   openPlayer,
   statusDot,
-  onHoverHighlight,
-  onClearHighlight,
+  hoverIndex,
+  onHover,
+  onHoverEnd,
+  getHoverRef,
 }: ReorderableStreamerProps) {
   const controls = useDragControls();
   const pressTimer = useRef<number | null>(null);
@@ -1107,6 +1175,7 @@ function ReorderableStreamer({
   }, []);
 
   const avatar = normalizeAvatarGlobal(data.platform, data.avatarUrl);
+  const hoverRef = getHoverRef(hoverIndex);
 
   return (
     <Reorder.Item
@@ -1119,7 +1188,7 @@ function ReorderableStreamer({
       whileDrag={{ scale: 0.98, opacity: 0.9 }}
       className="flex"
       onDragStart={(e) => {
-        onClearHighlight(itemKey);
+        onHoverEnd();
         setDraggingKey(itemKey);
         setHoverFolderId(null);
         const { x, y } = getClientPoint(e as unknown as MouseEvent | PointerEvent | TouchEvent);
@@ -1137,6 +1206,7 @@ function ReorderableStreamer({
         if (hit) {
           moveToFolder(itemKey, hit);
         }
+        onHoverEnd();
         setDraggingKey(null);
         setHoverFolderId(null);
         wasDragging.current = true;
@@ -1149,8 +1219,9 @@ function ReorderableStreamer({
     >
       <button
         data-follow-item-key={itemKey}
-        onPointerEnter={(e) => onHoverHighlight(e.currentTarget, itemKey)}
-        onPointerLeave={() => onClearHighlight(itemKey)}
+        ref={hoverRef}
+        onMouseEnter={() => onHover(hoverIndex)}
+        onMouseLeave={onHoverEnd}
         onClick={() => {
           if (wasDragging.current) {
             wasDragging.current = false;
@@ -1164,9 +1235,7 @@ function ReorderableStreamer({
             avatar,
           });
         }}
-        className={`group w-full flex items-center gap-2 p-1.5 rounded-xl transition-all ${
-          isDark ? "hover:bg-white/10" : "hover:bg-black/5"
-        }`}
+        className="group w-full flex items-center gap-2 p-1.5 rounded-xl transition-all"
       >
         <div className="relative flex-shrink-0">
           {avatar ? (
