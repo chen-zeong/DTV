@@ -265,20 +265,8 @@ async fn fetch_web_stream_data(
     client: &reqwest::Client,
     room_id: &str,
 ) -> Result<HuyaWebStreamData, Box<dyn Error + Send + Sync>> {
-    match fetch_web_stream_data_with_headers(client, room_id, true).await {
-        Ok(data) if !data.candidates.is_empty() => Ok(data),
-        Ok(_) => {
-            println!("[Huya] Mobile UA response contained no stream candidates, retrying with desktop headers.");
-            fetch_web_stream_data_with_headers(client, room_id, false).await
-        }
-        Err(err) => {
-            eprintln!(
-                "[Huya] Mobile UA request failed ({:?}), retrying with desktop headers.",
-                err
-            );
-            fetch_web_stream_data_with_headers(client, room_id, false).await
-        }
-    }
+    // Prefer desktop headers directly to avoid mobile UA quirks.
+    fetch_web_stream_data_with_headers(client, room_id, false).await
 }
 
 async fn fetch_web_stream_data_with_headers(

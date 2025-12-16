@@ -44,10 +44,10 @@ export function HomeTopNav({
           <motion.div
             layout
             className={cn(
-              "flex items-center gap-2 rounded-full border px-2 py-1.5 backdrop-blur-xl relative",
+              "flex items-center gap-1.5 rounded-full border px-2 py-1 backdrop-blur-xl relative",
               isDark
-                ? "bg-white/60 border-white/50 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.25)]"
-                : "bg-black/30 border-white/10"
+                ? "bg-gray-200/95 border-gray-300 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.25)]"
+                : "bg-black border-black shadow-[0_22px_48px_-26px_rgba(0,0,0,0.65)]"
             )}
           >
             {[Platform.DOUYU, Platform.HUYA, Platform.BILIBILI, Platform.DOUYIN].map((p) => {
@@ -55,31 +55,18 @@ export function HomeTopNav({
               const label = platformLabelMap[p];
               return (
                 <div key={p} className="relative">
-                  {isActive ? (
-                    <motion.div
-                      layoutId="platform-pill"
-                      className={cn(
-                        "absolute inset-0 rounded-full",
-                        isDark
-                          ? "bg-gray-900 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)]"
-                          : "bg-white text-gray-900 shadow-[0_10px_30px_-12px_rgba(255,255,255,0.7)]"
-                      )}
-                      transition={pillSpring}
-                      layout
-                    />
-                  ) : null}
                   <motion.button
                     layout
                     onClick={() => onPlatformChange?.(p)}
                     className={cn(
-                      "relative px-4 py-2 text-sm font-semibold rounded-full transition-colors",
+                      "relative px-3.5 py-1.5 text-sm font-semibold rounded-full transition-colors",
                       isActive
                         ? isDark
-                          ? "bg-white text-gray-900 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.2)]"
-                          : "bg-white/90 text-gray-900 shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                          ? "text-black"
+                          : "text-white"
                         : isDark
-                          ? "text-gray-700 hover:text-gray-900"
-                          : "text-slate-300 hover:text-white"
+                          ? "text-gray-500 hover:text-black"
+                          : "text-gray-500 hover:text-white"
                     )}
                     whileTap={{ scale: 0.99 }}
                     whileHover={{ y: -1, scale: 1.01 }}

@@ -9,6 +9,8 @@ import { useFollowStore } from "@/stores/follow-store";
 import { proxyBilibiliImage } from "@/utils/image";
 import { motion } from "framer-motion";
 import { useThemeStore } from "@/stores/theme-store";
+import { useRouter } from "next/navigation";
+import { platformSlugMap } from "@/utils/platform";
 
 type SearchResult = {
   id: string;
@@ -32,6 +34,7 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
   const theme = useThemeStore((s) => s.resolvedTheme);
   const isDark = theme === "dark";
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (currentPlatform) setPlatform(currentPlatform);
@@ -170,6 +173,12 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
     return mapped;
   };
 
+  const openRoom = (r: SearchResult) => {
+    const slug = platformSlugMap[r.platform] || String(r.platform).toLowerCase();
+    router.push(`/player?platform=${encodeURIComponent(slug)}&roomId=${encodeURIComponent(r.id)}`);
+    setOpen(false);
+  };
+
   const doSearch = async () => {
     if (!keyword.trim()) {
       setOpen(false);
@@ -274,11 +283,20 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                 return (
                   <div
                     key={`${r.platform}-${r.id}`}
-                    className={`rounded-lg px-2 py-1.5 flex items-center gap-2 transition-all ${
+                    className={`rounded-lg px-2 py-1.5 flex items-center gap-2 transition-all cursor-pointer ${
                       isDark
                         ? "hover:bg-white/10 text-white"
                         : "hover:bg-white border border-transparent hover:border-gray-200 bg-transparent text-gray-900"
                     }`}
+                    onClick={() => openRoom(r)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openRoom(r);
+                      }
+                    }}
                   >
                     <div
                       className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${
@@ -314,18 +332,19 @@ export function SearchPanel({ platform: currentPlatform }: { platform?: Platform
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      className={`text-[11px] px-2 py-1 rounded-full border inline-flex items-center gap-1 ${
-                        followed
-                          ? isDark
+                    <div className="flex items-center gap-1">
+                      <button
+                        className={`text-[11px] px-2 py-1 rounded-full border inline-flex items-center gap-1 ${
+                          followed
+                            ? isDark
                             ? "border-emerald-400/60 text-emerald-100 bg-emerald-500/10"
                             : "border-emerald-500/70 text-emerald-700 bg-emerald-50"
                           : isDark
                             ? "border-white/20 text-white hover:bg-white/10"
                             : "border-gray-200 text-gray-800 hover:bg-gray-100 bg-white"
-                      }`}
-                        onClick={() => {
+                          }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (followed) {
                             unfollow(r.platform, r.id);
                           } else {

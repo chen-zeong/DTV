@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直播间头部 UI - 沉浸版重制</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Confetti 库用于撒花特效 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        /* 呼吸动画 */
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        
+        .live-dot {
+            animation: pulse-dot 2s infinite ease-in-out;
+        }
+
+        /* 按钮点击时的微动画 */
+        .btn-press {
+            animation: press 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes press {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.92); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // 定义专门的日间/夜间背景色
+                        card: {
+                            light: '#ffffff',
+                            dark: '#1a1b26'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 gap-8 bg-gray-100 dark:bg-gray-900">
+
+    <!-- 切换模式按钮 -->
+    <button onclick="document.documentElement.classList.toggle('dark')" class="fixed top-4 right-4 bg-white dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-full text-sm font-medium shadow-md transition-all hover:scale-105 z-50 flex items-center gap-2 border border-gray-200 dark:border-gray-600">
+        <span class="dark:hidden"><i class="fas fa-moon"></i> 切换暗黑模式</span>
+        <span class="hidden dark:inline"><i class="fas fa-sun text-yellow-400"></i> 切换日间模式</span>
+    </button>
+
+    <!-- 最终优化方案：游戏沉浸风格 (支持日/夜切换) -->
+    <!-- 容器：日间白底+阴影，夜间深蓝底+发光 -->
+    <div class="w-full max-w-4xl bg-white dark:bg-[#1a1b26] rounded-xl overflow-hidden shadow-xl dark:shadow-2xl border border-gray-200 dark:border-gray-800 transition-colors duration-300 group">
+        
+        <!-- 顶部装饰条已移除 -->
+        
+        <div class="p-5 flex flex-col sm:flex-row items-center gap-5">
+            <!-- 头像区域 -->
+            <div class="relative flex-shrink-0 cursor-pointer">
+                <!-- 头像外框：日间灰色，夜间深色 -->
+                <div class="absolute -inset-1 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-pink-600/50 dark:to-blue-600/50 rounded-full opacity-50 blur-[2px] transition-opacity"></div>
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=1a1b26" class="relative w-16 h-16 rounded-full border-2 border-white dark:border-[#1a1b26] object-cover shadow-sm" alt="Avatar">
+                
+                <!-- 在线状态点 -->
+                <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-[#1a1b26] rounded-full z-10" title="Online"></div>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="flex-1 min-w-0 text-center sm:text-left flex flex-col justify-center gap-1.5">
+                <!-- 标题行 -->
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h2 class="text-lg sm:text-xl font-bold truncate text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-tight">
+                        三位现役职业欧美打法冲刺大师段位
+                    </h2>
+                    
+                    <!-- 调整后的标签位置 -->
+                    <span class="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[11px] px-2 py-0.5 rounded border border-red-100 dark:border-red-800/50 font-medium whitespace-nowrap">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 live-dot"></span>
+                        直播中
+                    </span>
+                </div>
+                
+                <!-- 信息行 (主播名 & 房间号) -->
+                <div class="flex items-center justify-center sm:justify-start gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer">
+                        <i class="fas fa-at mr-1.5 opacity-70"></i>阔澜
+                    </span>
+                    <span class="w-px h-3 bg-gray-300 dark:bg-gray-700"></span>
+                    <span class="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-mono cursor-copy" title="点击复制">
+                        <i class="fas fa-hashtag mr-1.5 opacity-70"></i>91819894158
+                    </span>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex-shrink-0 mt-2 sm:mt-0">
+                <!-- 交互按钮：为了演示动画，默认为“未关注”状态 -->
+                <button id="followBtn" onclick="toggleFollow(this)" class="relative overflow-hidden w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 group">
+                    <i class="fas fa-plus transition-transform duration-300 group-hover:rotate-90" id="btnIcon"></i>
+                    <span id="btnText">关注</span>
+                    
+                    <!-- 涟漪效果容器 -->
+                    <span class="absolute inset-0 bg-white/20 opacity-0 transition-opacity duration-300 pointer-events-none" id="btnRipple"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isFollowing = false;
+        
+        function toggleFollow(btn) {
+            const icon = document.getElementById('btnIcon');
+            const text = document.getElementById('btnText');
+            
+            // 添加点击按压动画类
+            btn.classList.add('btn-press');
+            setTimeout(() => btn.classList.remove('btn-press'), 300);
+
+            if (!isFollowing) {
+                //

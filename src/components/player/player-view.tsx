@@ -6,7 +6,7 @@ import FlvPlugin from "xgplayer-flv";
 import HlsPlugin from "xgplayer-hls.js";
 import "xgplayer/dist/index.min.css";
 import "./player-controls.css";
-import { Loader2, RotateCw, AlertTriangle, Play, Eye, X } from "lucide-react";
+import { Loader2, RotateCw, AlertTriangle, Play, X, ChevronRight, AtSign, Hash, Check, Plus, ChevronLeft } from "lucide-react";
 import DanmuJs from "danmu.js";
 import { Platform } from "@/types/platform";
 import { DanmakuMessage } from "@/types/danmaku";
@@ -17,6 +17,7 @@ import { useFollowStore } from "@/stores/follow-store";
 import { platformSlugMap } from "@/utils/platform";
 import { getLineLabel, getLineOptionsForPlatform, persistLinePreference, resolveStoredLine } from "@/types/line";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { arrangeControlClusters } from "./controls/control-layout";
 import { DanmuSettingsControl, DanmuToggleControl } from "./controls/danmu-plugins";
 import { LineControl, QualityControl, RefreshControl, VolumeControl } from "./controls/player-controls-plugins";
@@ -57,6 +58,7 @@ type XgMediaPlayer = Player & {
 };
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
+const DANMAKU_PANEL_COLLAPSE_KEY = "danmaku_panel_collapsed";
 
 export function PlayerView({
   platform,
@@ -110,6 +112,10 @@ export function PlayerView({
   const [isCssFullscreen, setIsCssFullscreen] = useState(false);
   const [isStreamPortrait, setIsStreamPortrait] = useState<boolean | null>(null);
   const [showClose, setShowClose] = useState(false);
+  const [danmakuCollapsed, setDanmakuCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(DANMAKU_PANEL_COLLAPSE_KEY) === "1";
+  });
   const isFollowed = useFollowStore((s) => s.isFollowed);
   const followStreamer = useFollowStore((s) => s.followStreamer);
   const unfollowStreamer = useFollowStore((s) => s.unfollowStreamer);
@@ -120,7 +126,7 @@ export function PlayerView({
   const isMobile = viewportWidth <= 768;
   const isPortrait = viewportHeight >= viewportWidth;
   const isMobileLandscape = isMobile && (!isPortrait || isStreamPortrait === false);
-  const sidebarWidth = isMobile ? 0 : isSidebarOpen ? 240 : 70;
+  const sidebarWidth = isMobile ? 0 : isSidebarOpen ? 220 : 70;
   const showBubbleDanmaku = isPortrait || !isCssFullscreen;
   const closeVisible = isCssFullscreen ? true : isMobile || showClose;
   const title = useMemo(() => {
@@ -137,19 +143,7 @@ export function PlayerView({
     return streamMeta?.avatar || initialAvatar || "";
   }, [streamMeta?.avatar, initialAvatar]);
 
-  const viewerText = useMemo(() => {
-    const raw = streamMeta?.viewer;
-    if (raw === null || raw === undefined) return null;
-    const num = Number(raw);
-    if (!Number.isNaN(num)) {
-      if (num >= 10000) {
-        const val = (num / 10000).toFixed(1);
-        return `${val.endsWith(".0") ? val.slice(0, -2) : val} 万`;
-      }
-      return `${num}`;
-    }
-    return String(raw);
-  }, [streamMeta?.viewer]);
+  const isAnchorFollowed = isFollowed(platform, roomId);
 
   const updateStreamOrientation = useCallback((media?: HTMLVideoElement | null) => {
     const target =
@@ -414,7 +408,17 @@ export function PlayerView({
     watchAndNormalizeRotateWrapper(player.root as HTMLElement | null);
 
     player.on("play", () => setIsPlaying(true));
-    player.on("pause", () => setIsPlaying(false));
+    player.on("pause", () => {
+      setIsPlaying(false);
+      // 部分斗鱼线路会意外触发暂停，尝试自动恢复播放
+      if (platform === Platform.DOUYU) {
+        const media = (player as XgMediaPlayer).media ?? (player as XgMediaPlayer).video;
+        const shouldResume = media && !media.ended;
+        if (shouldResume) {
+          void player.play().catch(() => {});
+        }
+      }
+    });
     player.on("volumechange", () => {
       setVolume(player.volume ?? 1);
     });
@@ -581,6 +585,11 @@ export function PlayerView({
       window.localStorage.setItem(key, quality);
     }
   }, [quality, platform]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(DANMAKU_PANEL_COLLAPSE_KEY, danmakuCollapsed ? "1" : "0");
+  }, [danmakuCollapsed]);
 
   useEffect(() => {
     const update = () => {
@@ -761,7 +770,7 @@ export function PlayerView({
   return (
     <div
       className={cn(
-        "player-view-page h-full min-h-0 flex justify-center px-1 sm:px-2 md:px-3 lg:px-4",
+        "player-view-page h-full min-h-0 flex justify-center px-0.5 sm:px-1.5 md:px-2 lg:px-3",
         isMobile && "mobile-player",
         isDark
           ? "bg-gradient-to-br from-black via-zinc-950 to-gray-900 text-white"
@@ -784,103 +793,118 @@ export function PlayerView({
               )}
             >
               <div className="flex flex-col gap-3 px-2 md:px-3">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={cn(
-                        "w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden flex-shrink-0 ring-2",
-                        isDark ? "ring-white/10 bg-white/10" : "ring-gray-200 bg-white"
-                      )}
-                    >
-                      {avatarDisplay ? (
-                        <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
-                      ) : (
-                        <div
-                          className={cn(
-                            "w-full h-full flex items-center justify-center text-sm",
-                            isDark ? "text-white/70" : "text-gray-700"
-                          )}
-                        >
-                          {(anchorDisplay || roomId).slice(0, 1)}
-                        </div>
-                      )}
+                <div className="w-full">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5">
+                    <div className="relative flex-shrink-0">
+                      <div
+                        className={cn(
+                          "absolute -inset-1 rounded-full opacity-60 blur-[2px]",
+                          isDark ? "bg-gradient-to-br from-pink-600/50 to-blue-600/60" : "bg-gradient-to-br from-gray-200 to-gray-300"
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          "relative w-16 h-16 rounded-full overflow-hidden border-2 shadow-sm",
+                          isDark ? "border-[#1a1b26] bg-black/20" : "border-white bg-white"
+                        )}
+                      >
+                        {avatarDisplay ? (
+                          <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
+                        ) : (
+                          <div
+                            className={cn(
+                              "w-full h-full flex items-center justify-center text-lg font-semibold",
+                              isDark ? "text-white/80" : "text-gray-700"
+                            )}
+                          >
+                            {(anchorDisplay || roomId).slice(0, 1)}
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 live-dot",
+                          isDark ? "border-[#1a1b26]" : "border-white",
+                          "bg-emerald-500"
+                        )}
+                        title="直播中"
+                      />
                     </div>
-                    <div className="flex flex-col min-w-0 gap-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={cn("text-lg font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
-                          {streamMeta?.title || title}
-                        </span>
+                    <div className="flex-1 min-w-0 text-center sm:text-left flex flex-col justify-center gap-2">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold tracking-wide",
-                            isDark ? "bg-white/10 text-white border border-white/10" : "bg-gray-100 text-gray-800 border border-gray-200"
+                            "text-lg sm:text-xl font-bold truncate leading-tight transition-colors",
+                            isDark ? "text-gray-100 hover:text-blue-400" : "text-gray-900 hover:text-blue-600"
                           )}
                         >
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]" />
+                          {streamMeta?.title || title}
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[11px] px-2 py-0.5 rounded border border-red-100 dark:border-red-800/50 font-medium whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 live-dot" />
                           <span>直播中</span>
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap text-sm">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold",
-                            isDark ? "bg-white/8 text-white border border-white/10" : "bg-gray-100 text-gray-800 border border-gray-200"
-                          )}
-                        >
-                          <span className="text-xs opacity-80">主播</span>
-                          <span>@{anchorDisplay}</span>
+                      <div
+                        className={cn(
+                          "flex items-center justify-center sm:justify-start gap-4 text-xs sm:text-sm",
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <AtSign className="w-4 h-4 opacity-70" />
+                          <span className={cn("truncate", isDark ? "text-gray-200" : "text-gray-800")}>{anchorDisplay}</span>
                         </span>
-                        {viewerText ? (
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium",
-                              isDark ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/25" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            )}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{viewerText} 人气</span>
-                          </span>
-                        ) : null}
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[12px] font-medium",
-                            isDark ? "bg-white/8 text-gray-100 border border-white/10" : "bg-gray-100 text-gray-700 border border-gray-200"
-                          )}
-                        >
-                          房间 {roomId}
+                        <span className={cn("w-px h-3", isDark ? "bg-gray-700" : "bg-gray-300")} />
+                        <span className="flex items-center gap-1.5 font-mono">
+                          <Hash className="w-4 h-4 opacity-70" />
+                          <span className="truncate">{roomId}</span>
                         </span>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => {
-                        if (isFollowed(platform, roomId)) {
-                          unfollowStreamer(platform, roomId);
-                        } else {
-                          followStreamer({
-                            id: roomId,
-                            platform,
-                            nickname: streamMeta?.anchorName || roomId,
-                            avatarUrl: streamMeta?.avatar || "",
-                            displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
-                            isLive: true,
-                          });
-                        }
-                      }}
-                      className={cn(
-                        "px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-colors",
-                        isFollowed(platform, roomId)
-                          ? isDark
-                            ? "bg-emerald-500/25 text-emerald-100 border border-emerald-400/50"
-                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : isDark
-                            ? "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
-                            : "bg-gradient-to-r from-emerald-500 to-lime-400 text-white shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)] hover:shadow-[0_18px_48px_-24px_rgba(16,185,129,0.6)]"
-                      )}
-                    >
-                      {isFollowed(platform, roomId) ? "已关注" : "关注"}
-                    </button>
+                    <div className="flex-shrink-0 w-full sm:w-auto">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                        onClick={() => {
+                          if (isAnchorFollowed) {
+                            unfollowStreamer(platform, roomId);
+                          } else {
+                            followStreamer({
+                              id: roomId,
+                              platform,
+                              nickname: streamMeta?.anchorName || roomId,
+                              avatarUrl: streamMeta?.avatar || "",
+                              displayName: streamMeta?.anchorName || streamMeta?.title || roomId,
+                              isLive: true,
+                            });
+                          }
+                        }}
+                        className={cn(
+                          "relative overflow-hidden w-full sm:w-auto px-6 sm:px-7 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2",
+                          isAnchorFollowed
+                            ? isDark
+                              ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/70"
+                        )}
+                        title={isAnchorFollowed ? "取消关注" : "关注主播"}
+                      >
+                        <AnimatePresence mode="popLayout" initial={false}>
+                          <motion.span
+                            key={isAnchorFollowed ? "followed" : "unfollowed"}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.16, ease: [0.25, 0.8, 0.4, 1] }}
+                            className="flex items-center gap-2"
+                          >
+                            {isAnchorFollowed ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                            <span>{isAnchorFollowed ? "已关注" : "关注"}</span>
+                          </motion.span>
+                        </AnimatePresence>
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -902,14 +926,14 @@ export function PlayerView({
                 else router.back();
               }}
               className={cn(
-                "absolute top-3 right-3 z-30 inline-flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-opacity transition-transform transition-colors duration-200",
-                "bg-black/35 border-white/25 text-white hover:bg-black/25",
+                "absolute top-3 left-3 z-30 inline-flex items-center justify-center w-10 h-10 rounded-full border transition-opacity transition-transform transition-colors duration-200 hover:scale-105",
+                isDark ? "bg-black/40 border-white/20 text-white hover:bg-black/30" : "bg-white/80 border-gray-200 text-gray-900 hover:bg-white",
                 closeVisible ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-1 pointer-events-none"
               )}
-              title="关闭"
-              aria-label="关闭播放器"
+              title="返回"
+              aria-label="返回"
             >
-              <X className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <div ref={containerRef} className="w-full h-full" />
           {isMobile && !error && (
@@ -922,66 +946,82 @@ export function PlayerView({
                     : "absolute top-3 left-3 right-3 md:left-4 md:right-4"
                 )}
               >
-                <div
-                  className={cn(
-                    "flex items-center gap-3 backdrop-blur-xl rounded-full px-3 py-2 border shadow-lg flex-1 min-w-0",
-                    !isMobile && "md:max-w-[60%]",
-                    isDark ? "bg-black/60 border-white/10" : "bg-white/85 border-gray-200"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-full overflow-hidden flex-shrink-0",
-                      isDark ? "border border-white/10 bg-white/5" : "border border-gray-200 bg-white"
-                    )}
-                  >
-                    {avatarDisplay ? (
-                      <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
-                    ) : (
+                <div className={cn("flex-1 min-w-0 pointer-events-none", !isMobile && "md:max-w-[65%]")}>
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 w-full">
+                    <div className="relative flex-shrink-0">
                       <div
                         className={cn(
-                          "w-full h-full flex items-center justify-center text-sm",
-                          isDark ? "text-white/70" : "text-gray-700"
+                          "absolute -inset-1 rounded-full opacity-60 blur-[2px]",
+                          isDark ? "bg-gradient-to-br from-pink-600/50 to-blue-600/60" : "bg-gradient-to-br from-gray-200 to-gray-300"
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          "relative w-12 h-12 rounded-full overflow-hidden border-2 shadow-sm",
+                          isDark ? "border-[#1a1b26] bg-black/20" : "border-white bg-white"
                         )}
                       >
-                        {(anchorDisplay || roomId).slice(0, 1)}
+                        {avatarDisplay ? (
+                          <img src={avatarDisplay} alt={anchorDisplay || roomId} className="w-full h-full object-cover" />
+                        ) : (
+                          <div
+                            className={cn(
+                              "w-full h-full flex items-center justify-center text-sm font-semibold",
+                              isDark ? "text-white/80" : "text-gray-700"
+                            )}
+                          >
+                            {(anchorDisplay || roomId).slice(0, 1)}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className={cn("text-sm font-semibold truncate", isDark ? "text-white" : "text-gray-900")}>
-                      {streamMeta?.title || title}
-                    </span>
-                    <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold",
-                          isDark ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/30" : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          "absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 live-dot",
+                          isDark ? "border-[#1a1b26]" : "border-white",
+                          "bg-emerald-500"
                         )}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.18)]" />
-                        <span>直播中</span>
-                      </span>
-                      <span className={cn("text-[12px] font-semibold", isDark ? "text-white" : "text-gray-900")}>@{anchorDisplay}</span>
-                      {viewerText ? (
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0 gap-1 text-left">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium",
-                            isDark ? "bg-white/10 text-gray-100" : "bg-gray-100 text-gray-800"
+                            "text-sm font-semibold truncate leading-tight transition-colors",
+                            isDark ? "text-gray-100" : "text-gray-900"
                           )}
                         >
-                          <Eye className="w-3 h-3" />
-                          <span>{viewerText} 人气</span>
+                          {streamMeta?.title || title}
                         </span>
-                      ) : null}
-                      <span className={cn("text-[11px]", isDark ? "text-gray-300/80" : "text-gray-600")}>房间 {roomId}</span>
+                        <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] px-2 py-0.5 rounded border border-red-100 dark:border-red-800/50 font-medium whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 live-dot" />
+                          <span>直播中</span>
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          "flex items-center gap-3 flex-wrap text-[11px]",
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        )}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <AtSign className="w-3.5 h-3.5 opacity-70" />
+                          <span className={cn("truncate", isDark ? "text-gray-200" : "text-gray-800")}>{anchorDisplay}</span>
+                        </span>
+                        <span className={cn("w-px h-3", isDark ? "bg-gray-700" : "bg-gray-300")} />
+                        <span className="inline-flex items-center gap-1.5 font-mono">
+                          <Hash className="w-3.5 h-3.5 opacity-70" />
+                          <span className="truncate">{roomId}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pointer-events-auto">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 18 }}
                     onClick={() => {
-                      if (isFollowed(platform, roomId)) {
+                      if (isAnchorFollowed) {
                         unfollowStreamer(platform, roomId);
                       } else {
                         followStreamer({
@@ -995,18 +1035,28 @@ export function PlayerView({
                       }
                     }}
                     className={cn(
-                      "px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-colors",
-                      isFollowed(platform, roomId)
+                      "relative overflow-hidden px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2",
+                      isAnchorFollowed
                         ? isDark
-                          ? "bg-emerald-500/25 text-emerald-100 border border-emerald-400/50"
+                          ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40"
                           : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : isDark
-                          ? "bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900"
-                          : "bg-gradient-to-r from-emerald-500 to-lime-400 text-white shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)] hover:shadow-[0_18px_48px_-24px_rgba(16,185,129,0.6)]"
+                        : "bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/70"
                     )}
                   >
-                    {isFollowed(platform, roomId) ? "已关注" : "关注"}
-                  </button>
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={isAnchorFollowed ? "followed-m" : "unfollowed-m"}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.16, ease: [0.25, 0.8, 0.4, 1] }}
+                        className="flex items-center gap-2"
+                      >
+                        {isAnchorFollowed ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        <span>{isAnchorFollowed ? "已关注" : "关注"}</span>
+                      </motion.span>
+                    </AnimatePresence>
+                  </motion.button>
                 </div>
               </div>
 
@@ -1107,39 +1157,62 @@ export function PlayerView({
         )}
       </div>
 
-            {!isMobile && (
-                <div
+      {!isMobile && (
+        <div
+          className={cn(
+            "relative h-full flex-shrink-0 transition-[width] duration-300 ease-out overflow-visible",
+            danmakuCollapsed ? "w-[64px]" : "w-[208px] lg:w-[224px]"
+          )}
+        >
+          <button
+            onClick={() => setDanmakuCollapsed((v) => !v)}
+            className={cn(
+              "absolute -left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center w-9 h-9 rounded-full shadow-lg border backdrop-blur",
+              isDark
+                ? "bg-slate-900/80 border-white/10 text-gray-100 hover:bg-slate-800/90"
+                : "bg-white/90 border-gray-200 text-gray-800 hover:bg-white"
+            )}
+            title={danmakuCollapsed ? "展开弹幕列表" : "收起弹幕列表"}
+            aria-label="折叠弹幕列表"
+          >
+            <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", danmakuCollapsed ? "-rotate-180" : "rotate-0")} />
+          </button>
+          <div
+            className={cn(
+              "flex flex-col h-full border-l rounded-none transition-opacity duration-200",
+              isDark ? "border-white/5 bg-white/5" : "border-gray-200/70 bg-gray-50/80",
+              danmakuCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
+          >
+            <div
+              className={cn(
+                "px-4 pt-4 pb-2 text-sm font-semibold tracking-wide uppercase flex items-center gap-2",
+                isDark ? "text-gray-100" : "text-gray-700"
+              )}
+            >
+              弹幕
+                <span
                   className={cn(
-                    "w-full md:w-[192px] lg:w-[208px] flex flex-col h-full border-l",
-                    isDark ? "border-white/5 bg-white/5" : "border-gray-200/70 bg-gray-50/80"
-                  )}
-              >
-                <div
-                  className={cn(
-                    "px-4 pt-4 pb-2 text-sm font-semibold tracking-wide uppercase flex items-center gap-2",
-                    isDark ? "text-gray-100" : "text-gray-700"
+                    "text-[11px] font-semibold px-2.5 py-0.5 rounded-full border",
+                    isDark
+                      ? "bg-emerald-500/20 text-emerald-100 border-emerald-400/40"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
                   )}
                 >
-                  弹幕
-                  <span
-                    className={cn(
-                      "text-[11px] font-normal px-2 py-0.5 rounded-full",
-                      isDark ? "bg-white/10 text-gray-200" : "bg-gray-200/80 text-gray-700"
-                    )}
-                  >
-                    实时
-                  </span>
-                </div>
-                <div className="flex-1 min-h-0 flex">
-                  <DanmakuPanel
-                    messages={danmakuMessages}
-                    className="transition-opacity flex-1 h-full w-full"
-                    style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
-                    theme={isDark ? "dark" : "light"}
-                  />
-                </div>
-              </div>
-            )}
+                  已连接
+                </span>
+            </div>
+            <div className="flex-1 min-h-0 flex">
+              <DanmakuPanel
+                messages={danmakuMessages}
+                className="transition-opacity flex-1 h-full w-full"
+                style={{ opacity: danmakuPanelOpacity, fontSize: `${danmakuFontSize}px` }}
+                theme={isDark ? "dark" : "light"}
+              />
+            </div>
+          </div>
+        </div>
+      )}
           </div>
         </div>
       </div>
@@ -1150,14 +1223,14 @@ export function PlayerView({
             else router.back();
           }}
           className={cn(
-            "fixed top-3 right-3 z-[140] inline-flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-opacity transition-transform transition-colors duration-200",
-            "bg-black/35 border-white/25 text-white hover:bg-black/25",
+            "fixed top-3 left-3 z-[140] inline-flex items-center justify-center w-10 h-10 rounded-full border transition-opacity transition-transform transition-colors duration-200 hover:scale-105",
+            isDark ? "bg-black/40 border-white/20 text-white hover:bg-black/30" : "bg-white/80 border-gray-200 text-gray-900 hover:bg-white",
             closeVisible ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-1 pointer-events-none"
           )}
-          title="关闭"
-          aria-label="关闭播放器"
+          title="返回"
+          aria-label="返回"
         >
-          <X className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
       ) : null}
     </div>

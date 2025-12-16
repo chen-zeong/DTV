@@ -13,6 +13,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { tauriInvoke } from "@/lib/tauri";
 import { normalizeAvatarUrl as normalizeAvatarGlobal } from "@/utils/image";
+import { cn } from "@/utils/cn";
 
 const toKey = (platform: string, id: string) => `${String(platform).toUpperCase()}:${id}`;
 
@@ -327,9 +328,11 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
 
   const statusDot = (live?: boolean | null) => (
     <span
-      className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border ${
-        isDark ? "border-slate-900" : "border-white"
-      } ${live ? "bg-emerald-400" : "bg-gray-500/70"}`}
+      className={cn(
+        "absolute -bottom-0.5 -right-0.5 rounded-full border-2 w-3.5 h-3.5",
+        isDark ? "border-slate-900" : "border-white",
+        live ? "bg-emerald-400" : "bg-gray-500/70"
+      )}
     />
   );
 
@@ -395,6 +398,7 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
     window.addEventListener("click", closeMenu);
     window.addEventListener("keydown", handleEsc);
     setMounted(true);
+    void refreshFollowStatus();
     return () => {
       if (hoverMeasureRaf.current) cancelAnimationFrame(hoverMeasureRaf.current);
       window.removeEventListener("click", closeMenu);
@@ -437,7 +441,8 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
   }, [isLeaderboardOpen, hoveredIndex, measureHover]);
 
   let fullHoverIndex = 0;
-  const hoverPad = hoveredIndex?.layout === "icons" ? 7 : 4;
+  const hoverPadX = hoveredIndex?.layout === "icons" ? 7 : 4;
+  const hoverPadY = hoveredIndex?.layout === "icons" ? 4 : 2;
 
   return (
     <aside
@@ -455,18 +460,18 @@ export function Sidebar({ className, theme, isLeaderboardOpen }: SidebarProps) {
             style={{
               pointerEvents: "none",
               backgroundImage: isDark
-                ? "linear-gradient(to right bottom, rgba(255,255,255,0.14), rgba(255,255,255,0.04))"
-                : "linear-gradient(to right bottom, rgba(16,185,129,0.16), rgba(59,130,246,0.12))",
+                ? "linear-gradient(to right bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.12))"
+                : "linear-gradient(to right bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.04))",
               boxShadow: "none",
               borderColor: "transparent",
             }}
             initial={false}
             animate={{
               opacity: 1,
-              left: hoverRect.left - hoverPad,
-              top: hoverRect.top - hoverPad,
-              width: hoverRect.width + hoverPad * 2,
-              height: hoverRect.height + hoverPad * 2,
+              left: hoverRect.left - hoverPadX,
+              top: hoverRect.top - hoverPadY,
+              width: hoverRect.width + hoverPadX * 2,
+              height: hoverRect.height + hoverPadY * 2,
             }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.9 }}

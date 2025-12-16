@@ -37,7 +37,7 @@ export function DanmakuPanel({ messages, className, style, theme }: DanmakuPanel
   return (
     <div
       ref={containerRef}
-      className={`w-full md:w-[200px] lg:w-[220px] h-full max-h-[70vh] md:max-h-[80vh] overflow-y-auto no-scrollbar p-2 md:p-3 ${
+      className={`w-full md:w-[200px] lg:w-[220px] h-full min-h-0 overflow-y-auto no-scrollbar p-2 md:p-3 ${
         isDark ? "text-white" : "text-gray-900"
       } ${className || ""}`}
       style={style}

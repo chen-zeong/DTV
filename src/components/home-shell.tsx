@@ -19,6 +19,7 @@ import { BilibiliHome } from "@/components/home/bilibili-home";
 import { DouyinHome } from "@/components/home/douyin-home";
 import { FollowList } from "@/components/follow-list";
 import { HomeTopNav } from "@/components/home/top-nav";
+import { cn } from "@/utils/cn";
 import dynamic from "next/dynamic";
 
 const PlayerOverlay = dynamic(async () => {
@@ -105,13 +106,14 @@ export function HomeShell({
   }
 
   const sidebarWidthCollapsed = isMobile ? 0 : 70;
-  const sidebarWidthExpanded = isMobile ? 220 : 240;
+  const sidebarWidthExpanded = isMobile ? 200 : 220;
 
   return (
     <div
-      className={`relative w-full h-screen overflow-hidden flex font-sans select-none transition-colors duration-300 ${
+      className={cn(
+        "relative w-full h-screen overflow-hidden flex font-sans select-none transition-colors duration-300",
         theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
-      }`}
+      )}
     >
       {isMobile ? null : (
         <motion.div

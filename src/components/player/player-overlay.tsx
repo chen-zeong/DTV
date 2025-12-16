@@ -18,7 +18,7 @@ export function PlayerOverlay() {
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1024 : window.innerWidth));
   const isMobile = viewportWidth <= 768;
   const sidebarWidthCollapsed = 70;
-  const sidebarWidthExpanded = 240;
+  const sidebarWidthExpanded = 220;
   const slideTransition: Transition = {
     type: "spring",
     stiffness: 180,
