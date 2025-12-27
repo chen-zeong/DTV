@@ -192,6 +192,15 @@ async fn fetch_categories_douyu_raw() -> Result<Vec<RawFrontendCate1Item>, Strin
                                                 });
                                             }
                                         }
+                                        //硬编码加入“娱乐天地”下的“一起看”分类
+                                        if 2 == raw_c1_item.id {//娱乐天地 yl 2
+                                            c1_specific_cate2_list.push(RawFrontendCate2Item {
+                                                id: 208.to_string(),
+                                                name: "一起看".to_string(),
+                                                short_name: "yqk".to_string(),
+                                                icon: "https://sta-op.douyucdn.cn/dycatr/7c723d30bfb4399be7592c9fa12026e3.png".to_string(),
+                                            });
+                                        }
                                         cate1_list.push(RawFrontendCate1Item {
                                             id: raw_c1_item.id.to_string(),
                                             name: raw_c1_item.name.clone(),
