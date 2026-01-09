@@ -76,9 +76,10 @@ jobs:
         shell: powershell
         run: |
           $path = "src-tauri/tauri.conf.json"
-          $json = Get-Content -Path $path -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+          $json = Get-Content -Path $path -Raw -Encoding utf8 | ConvertFrom-Json
           if ($null -ne $json.app -and $null -ne $json.app.windows -and $json.app.windows.Count -gt 0) {
-            $json.app.windows[0]["decorations"] = $false
+            $win0 = $json.app.windows[0]
+            $win0 | Add-Member -NotePropertyName decorations -NotePropertyValue $false -Force
           }
           $raw = $json | ConvertTo-Json -Depth 100
           [System.IO.File]::WriteAllText($path, $raw, [System.Text.UTF8Encoding]::new($false))
