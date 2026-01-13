@@ -1,12 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DouyuHomeView from '../pages/DouyuHomeView.vue'
-import DouyinHomeView from '../pages/DouyinHomeView.vue'
-import DouyuPlayerView from '../pages/DouyuPlayerView.vue';
-import DouyinPlayerView from '../pages/DouyinPlayerView.vue';
-import HuyaHomeView from '../pages/HuyaHomeView.vue'
-import HuyaPlayerView from '../pages/HuyaPlayerView.vue'
-import BilibiliHomeView from '../pages/BilibiliHomeView.vue'
-import BilibiliPlayerView from '../pages/BilibiliPlayerView.vue'
+import PlatformHomeView from '../pages/PlatformHomeView.vue'
+import UniversalPlayerView from '../pages/UniversalPlayerView.vue'
+import { Platform } from '../platforms/common/types'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,46 +9,50 @@ const router = createRouter({
     {
       path: '/',
       name: 'DouyuHome',
-      component: DouyuHomeView
+      component: PlatformHomeView,
+      meta: { platform: 'douyu' }
     },
     {
       path: '/douyin',
       name: 'DouyinHome',
-      component: DouyinHomeView
+      component: PlatformHomeView,
+      meta: { platform: 'douyin' }
     },
     {
       path: '/huya',
       name: 'HuyaHome',
-      component: HuyaHomeView
+      component: PlatformHomeView,
+      meta: { platform: 'huya' }
     },
     {
       path: '/bilibili',
       name: 'BilibiliHome',
-      component: BilibiliHomeView
+      component: PlatformHomeView,
+      meta: { platform: 'bilibili' }
     },
     {
       path: '/player/douyu/:roomId', 
       name: 'douyuPlayer',
-      component: DouyuPlayerView,
-      props: true
+      component: UniversalPlayerView,
+      props: route => ({ roomId: route.params.roomId, platform: Platform.DOUYU })
     },
     {
       path: '/player/douyin/:roomId',
       name: 'douyinPlayer',
-      component: DouyinPlayerView,
-      props: true
+      component: UniversalPlayerView,
+      props: route => ({ roomId: route.params.roomId, platform: Platform.DOUYIN })
     },
     {
       path: '/player/huya/:roomId',
       name: 'huyaPlayer',
-      component: HuyaPlayerView,
-      props: true
+      component: UniversalPlayerView,
+      props: route => ({ roomId: route.params.roomId, platform: Platform.HUYA })
     },
     {
       path: '/player/bilibili/:roomId',
       name: 'bilibiliPlayer',
-      component: BilibiliPlayerView,
-      props: true
+      component: UniversalPlayerView,
+      props: route => ({ roomId: route.params.roomId, platform: Platform.BILIBILI })
     }
   ]
 })

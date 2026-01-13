@@ -1,24 +1,20 @@
 <template>
-  <div class="relative flex items-center justify-center overflow-hidden bg-[var(--skeleton-bg)]">
-    <div
-      v-if="!isLoaded && !isError"
-      class="absolute inset-0 z-10 h-full w-full animate-pulse bg-[rgba(255,255,255,0.08)]"
-    ></div>
-    <div v-if="isError" class="flex h-full w-full items-center justify-center bg-[var(--secondary-bg)] text-[var(--secondary-text)]">
+  <div class="relative flex items-center justify-center overflow-hidden">
+    <div v-if="!isLoaded && !isError"
+      class="absolute inset-0 z-10 h-full w-full animate-pulse bg-[rgba(255,255,255,0.08)]"></div>
+    <div v-if="isError" class="flex h-full w-full items-center justify-center ">
       <slot name="error">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
         </svg>
       </slot>
     </div>
-    <img
-      v-show="isLoaded"
-      :src="src"
-      :alt="alt"
+    <img v-show="isLoaded" :src="src" :alt="alt"
       :class="['block h-full w-full object-cover transition-opacity duration-300', imgClass, { 'opacity-100': isLoaded, 'opacity-0': !isLoaded }]"
-      @load="handleLoad"
-      @error="handleError"
-    />
+      @load="handleLoad" @error="handleError" />
   </div>
 </template>
 
@@ -50,4 +46,3 @@ watch(() => props.src, () => {
   isError.value = false;
 });
 </script>
-

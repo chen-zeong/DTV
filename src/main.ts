@@ -2,7 +2,9 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import { useFollowStore } from './store/followStore'; 
+import { createPinia } from 'pinia';
+import { useFollowStore } from './stores/followStore';
+import App from './App.vue'; 
 import { useThemeStore } from './stores/theme';
 import { check } from '@tauri-apps/plugin-updater';
 

@@ -1,4 +1,5 @@
 export type SupportedPlatform = 'douyu' | 'bilibili' | 'douyin' | 'huya'; // Add other platforms as needed 
+export type UiPlatform = SupportedPlatform;
  
 export enum Platform {
   DOUYU = 'DOUYU',

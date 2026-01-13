@@ -1,17 +1,13 @@
 <template>
   <div class="flex items-center gap-2.5 px-1.5">
-    <button 
-      class="rounded-[12px] border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3.5 py-1.5 text-[12px] font-bold tracking-[0.02em] text-[var(--secondary-text)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:border-[var(--accent-color)] hover:bg-[var(--hover-bg)] hover:text-[var(--accent-color)]"
-      :class="activeFilter === 'ALL' ? 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-primary)] shadow-[var(--shadow-low)] -translate-y-0.5' : ''"
-      @click="$emit('update:activeFilter', 'ALL')"
-    >全部</button>
-    <button 
-      v-for="p in visiblePlatforms" 
-      :key="p" 
-      class="rounded-[12px] border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3.5 py-1.5 text-[12px] font-bold tracking-[0.02em] text-[var(--secondary-text)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:border-[var(--accent-color)] hover:bg-[var(--hover-bg)] hover:text-[var(--accent-color)]"
-      :class="activeFilter === p ? 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-primary)] shadow-[var(--shadow-low)] -translate-y-0.5' : ''"
-      @click="$emit('update:activeFilter', p)"
-    >{{ platformLabel(p) }}</button>
+    <button
+      class="rounded-[12px] border   px-3.5 py-1.5 text-[12px] font-bold tracking-[0.02em]  transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5  "
+      :class="activeFilter === 'ALL' ? 'bg-[var(--bg-secondary)]    -translate-y-0.5' : ''"
+      @click="$emit('update:activeFilter', 'ALL')">全部</button>
+    <button v-for="p in visiblePlatforms" :key="p"
+      class="rounded-[12px] border   px-3.5 py-1.5 text-[12px] font-bold tracking-[0.02em]  transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5  "
+      :class="activeFilter === p ? 'bg-[var(--bg-secondary)]    -translate-y-0.5' : ''"
+      @click="$emit('update:activeFilter', p)">{{ platformLabel(p) }}</button>
   </div>
 </template>
 
@@ -33,4 +29,3 @@ const platformLabel = (p: Platform): string => {
   }
 };
 </script>
-

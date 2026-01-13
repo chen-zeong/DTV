@@ -1,67 +1,94 @@
   <template>
-    <div class="relative z-[2] w-full flex-shrink-0 overflow-hidden rounded-t-[var(--radius-lg)] rounded-b-none border border-[var(--glass-border)] bg-[var(--glass-bg)] px-6 pb-5 pt-5 text-[var(--primary-text,rgba(244,247,255,0.96))] [backdrop-filter:var(--glass-blur)] [-webkit-backdrop-filter:var(--glass-blur)] max-lg:mb-[-18px] max-lg:rounded-b-[22px] max-lg:px-5 max-lg:pb-6 max-lg:pt-5 max-md:mb-[-14px] max-md:rounded-b-[18px] max-md:px-4 max-md:pb-5 max-md:pt-4">
-      <div class="relative z-[1] grid items-center gap-5 [grid-template-columns:auto_minmax(0,1fr)_auto] max-lg:gap-[18px] max-md:gap-4">
-        <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.22)] bg-[linear-gradient(135deg,rgba(96,156,255,0.5),rgba(219,134,255,0.34))] shadow-[0_14px_28px_rgba(9,12,24,0.55)] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-[rgba(255,255,255,0.38)] hover:shadow-[0_18px_32px_rgba(9,12,24,0.62)]">
-          <img v-if="avatarUrl && !showAvatarText" :src="avatarUrl" :alt="computedNickname" @error="handleAvatarError" class="h-full w-full object-cover">
-          <div v-else class="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#ff4757,#ff6b81)] text-lg font-semibold text-white">{{ computedNickname.charAt(0).toUpperCase() }}</div>
+    <div
+      class="relative z-[2] w-full flex-shrink-0 overflow-hidden  rounded-b-none    px-6 pb-5 pt-5  max-lg:mb-[-18px] max-lg:rounded-b-[22px] max-lg:px-5 max-lg:pb-6 max-lg:pt-5 max-md:mb-[-14px] max-md:rounded-b-[18px] max-md:px-4 max-md:pb-5 max-md:pt-4">
+      <div
+        class="relative z-[1] grid items-center gap-5 [grid-template-columns:auto_minmax(0,1fr)_auto] max-lg:gap-[18px] max-md:gap-4">
+        <div
+          class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl border-[rgba(255,255,255,0.22)] bg-[linear-gradient(135deg,rgba(96,156,255,0.5),rgba(219,134,255,0.34))] shadow-[0_14px_28px_rgba(9,12,24,0.55)] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-[rgba(255,255,255,0.38)] hover:shadow-[0_18px_32px_rgba(9,12,24,0.62)]">
+          <img v-if="avatarUrl && !showAvatarText" :src="avatarUrl" :alt="computedNickname" @error="handleAvatarError"
+            class="h-full w-full object-cover">
+          <div v-else
+            class="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#ff4757,#ff6b81)] text-lg  text-white">
+            {{ computedNickname.charAt(0).toUpperCase() }}</div>
         </div>
-  
+
         <div class="flex min-w-0 flex-col gap-2.5">
-          <h3 class="line-clamp-2 text-left text-[1.05rem] font-semibold leading-[1.35] tracking-[0.25px] text-[rgba(250,251,255,0.98)] [text-shadow:0_8px_20px_rgba(8,11,20,0.5)]" :title="computedRoomTitle">{{ computedRoomTitle }}</h3>
+          <h3
+            class="line-clamp-2 text-left text-[1.05rem]  leading-[1.35] tracking-[0.25px] text-[rgba(250,251,255,0.98)] [text-shadow:0_8px_20px_rgba(8,11,20,0.5)]"
+            :title="computedRoomTitle">{{ computedRoomTitle }}</h3>
           <div class="flex flex-wrap items-center gap-4 text-[rgba(202,210,232,0.82)]">
-            <span class="text-[0.88rem] font-semibold tracking-[0.03em] text-[rgba(214,223,255,0.9)]">{{ computedNickname }}</span>
+            <span class="text-[0.88rem]  tracking-[0.03em] text-[rgba(214,223,255,0.9)]">{{ computedNickname }}</span>
             <span
-              class="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.1)] px-2.5 py-[3px] text-[0.72rem] font-semibold leading-[1.3] tracking-[0.05em] text-white transition-[background,color,border-color] duration-300"
+              class="inline-flex items-center rounded-full border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.1)] px-2.5 py-[3px] text-[0.72rem]  leading-[1.3] tracking-[0.05em] text-white transition-[background,color,border-color] duration-300"
               :class="statusClass === 'live'
                 ? 'border-[rgba(53,210,122,0.5)] bg-[linear-gradient(135deg,#35d27a,#23b263)]'
                 : statusClass === 'looping'
                   ? 'border-[rgba(128,145,255,0.4)] bg-[linear-gradient(135deg,#8091ff,#a071ff)]'
-                  : 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.12)] text-[rgba(225,229,243,0.78)]'"
-            >{{ getStatusText }}</span>
+                  : 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.12)] text-[rgba(225,229,243,0.78)]'">{{
+                    getStatusText }}</span>
             <!-- Bilibili login button -->
             <span v-if="props.platform === Platform.BILIBILI" class="inline-flex items-center gap-2">
               <button
-                class="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[rgba(255,255,255,0.06)] px-2.5 py-1 text-[0.75rem] text-[var(--secondary-text)] transition-[background-color,color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--border-color-light)] hover:bg-[var(--hover-bg)] hover:text-[var(--primary-text)] active:scale-95"
-                @click="handleBilibiliLogin"
-                :disabled="isLoggingIn"
-                :title="hasRequiredBilibiliCookie ? '点击重新登录' : '登录以同步 Cookie'"
-              >
+                class="inline-flex items-center gap-1.5 rounded-md  bg-[rgba(255,255,255,0.06)] px-2.5 py-1 text-[0.75rem]  transition-[background-color,color,border-color,transform] duration-200 hover:-translate-y-0.5    active:scale-95"
+                @click="handleBilibiliLogin" :disabled="isLoggingIn"
+                :title="hasRequiredBilibiliCookie ? '点击重新登录' : '登录以同步 Cookie'">
                 <span v-if="isLoggingIn" class="text-[var(--secondary-text)]">登录中...</span>
-                <span v-else-if="hasRequiredBilibiliCookie" class="inline-flex items-center gap-1 text-[var(--status-live)]">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span v-else-if="hasRequiredBilibiliCookie" class="inline-flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
                   已登录
                 </span>
                 <span v-else class="text-[var(--secondary-text)]">
                   登录
                 </span>
               </button>
-              <button
-                v-if="hasRequiredBilibiliCookie && !isLoggingIn"
-                class="rounded-md border border-transparent bg-transparent px-2 py-1 text-[0.75rem] text-[var(--secondary-text)] transition-[color,transform] duration-150 hover:-translate-y-0.5 hover:text-[var(--primary-text)] active:scale-95"
-                @click="handleBilibiliLogout"
-              >
+              <button v-if="hasRequiredBilibiliCookie && !isLoggingIn"
+                class="rounded-md border-transparent bg-transparent px-2 py-1 text-[0.75rem]  transition-[color,transform] duration-150 hover:-translate-y-0.5  active:scale-95"
+                @click="handleBilibiliLogout">
                 退出
               </button>
-              <span v-if="loginError" class="text-[0.72rem] text-[var(--error-color,#f87171)]">{{ loginError }}</span>
+              <span v-if="loginError" class="text-[0.72rem]">{{ loginError }}</span>
             </span>
-            <span v-if="computedViewerCount > 0" class="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(12,16,28,0.65)] px-3 py-1 text-[0.78rem] text-[rgba(216,224,253,0.88)] shadow-[0_12px_24px_rgba(8,10,20,0.35)] [backdrop-filter:blur(10px)] [-webkit-backdrop-filter:blur(10px)]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" class="h-[13px] w-[13px] opacity-90"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5-5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3"/></svg>
+            <span v-if="computedViewerCount > 0"
+              class="inline-flex items-center gap-1.5 rounded-full border-[rgba(255,255,255,0.12)] bg-[rgba(12,16,28,0.65)] px-3 py-1 text-[0.78rem] text-[rgba(216,224,253,0.88)] shadow-[0_12px_24px_rgba(8,10,20,0.35)] [backdrop-filter:blur(10px)] [-webkit-backdrop-filter:blur(10px)]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                class="h-[13px] w-[13px] opacity-90">
+                <path fill="currentColor"
+                  d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5-5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3" />
+              </svg>
               {{ formattedViewerCount }}
             </span>
           </div>
         </div>
-  
-        <div class="ml-auto flex flex-shrink-0 items-center justify-end">
-          <div class="relative flex min-w-[210px] items-stretch overflow-hidden rounded-[14px] border border-[rgba(255,255,255,0.12)] bg-[rgba(15,18,28,0.9)] p-0.5 shadow-[0_14px_28px_rgba(9,12,24,0.5)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)]" ref="idFollowContainerRef">
-            <span class="absolute top-[3px] bottom-[3px] left-[var(--highlight-left)] w-[var(--highlight-width)] rounded-[12px] bg-[rgba(114,169,255,0.92)] transition-[left,width] duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"></span>
-            <span class="relative z-[1] flex min-w-[90px] max-w-[140px] flex-1 items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[12px] px-3.5 py-2 text-[0.78rem] font-semibold text-[rgba(210,220,246,0.85)]" ref="streamerIdRef" :class="{ 'text-white': isFollowing }">ID:{{ props.roomId }}</span>
-            <button class="relative z-[1] flex min-w-[92px] items-center justify-center gap-2 whitespace-nowrap rounded-[12px] px-3.5 py-2 text-[0.82rem] font-semibold text-[rgba(230,235,255,0.92)] transition-colors duration-200" ref="followBtnRef" :class="{ 'text-white': !isFollowing }" @click="toggleFollow">
+
+        <div class="ml-auto flex flex-shrink-0 items-center justify-end ">
+          <div
+            class="relative flex min-w-[210px] items-stretch overflow-hidden rounded-[14px] border border-[rgba(255,255,255,0.12)] bg-[rgba(15,18,28,0.9)] p-0.5 shadow-[0_14px_28px_rgba(9,12,24,0.5)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)]"
+            ref="idFollowContainerRef">
+            <span
+              class="absolute top-[3px] bottom-[3px]   rounded-[12px] bg-[rgba(114,169,255,0.92)] transition-[left,width] duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"></span>
+            <span
+              class="relative z-[1] flex min-w-[90px] max-w-[140px] flex-1 items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[12px] px-3.5 py-2 text-[0.78rem]  text-[rgba(210,220,246,0.85)]"
+              ref="streamerIdRef" :class="{ 'text-white': isFollowing }">ID:{{ props.roomId }}</span>
+            <button
+              class="relative z-[1]  flex min-w-[92px] items-center justify-center gap-2 whitespace-nowrap rounded-[12px] px-3.5 py-2 text-[0.82rem]  text-[rgba(230,235,255,0.92)] transition-colors duration-200"
+              ref="followBtnRef" :class="{ 'text-white': !isFollowing }" @click="toggleFollow">
               <span class="relative flex h-4 w-4 items-center justify-center">
-                <span class="absolute inset-0 flex items-center justify-center transition-[opacity,transform] duration-200" :class="isFollowing ? 'opacity-0 scale-50 -rotate-90' : 'opacity-100 scale-100 rotate-0'">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z"/></svg>
+                <span
+                  class="absolute inset-0 flex items-center justify-center transition-[opacity,transform] duration-200"
+                  :class="isFollowing ? 'opacity-0 scale-50 -rotate-90' : 'opacity-100 scale-100 rotate-0'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z" />
+                  </svg>
                 </span>
-                <span class="absolute inset-0 flex items-center justify-center transition-[opacity,transform] duration-200" :class="isFollowing ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 rotate-90'">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M18.3 5.71a.996.996 0 0 0-1.41 0L12 10.59L7.11 5.7A.996.996 0 1 0 5.7 7.11L10.59 12L5.7 16.89a.996.996 0 1 0 1.41 1.41L12 13.41l4.89 4.89a.996.996 0 1 0 1.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"/></svg>
+                <span
+                  class="absolute inset-0 flex items-center justify-center transition-[opacity,transform] duration-200"
+                  :class="isFollowing ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 rotate-90'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                      d="M18.3 5.71a.996.996 0 0 0-1.41 0L12 10.59L7.11 5.7A.996.996 0 1 0 5.7 7.11L10.59 12L5.7 16.89a.996.996 0 1 0 1.41 1.41L12 13.41l4.89 4.89a.996.996 0 1 0 1.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
+                  </svg>
                 </span>
               </span>
               <span>{{ isFollowing ? '取关' : '关注' }}</span>
@@ -70,426 +97,426 @@
         </div>
       </div>
     </div>
-</template>
-  
-  <script setup lang="ts">
+  </template>
 
-  import { ref, computed, onMounted, watch, onUpdated, nextTick } from 'vue'
-  import { Platform } from '../../platforms/common/types'
-  import type { StreamerDetails } from '../../platforms/common/types'
-  import { fetchDouyuStreamerDetails } from '../../platforms/douyu/streamerInfoParser'
-  import { getDouyinStreamerDetails } from '../../platforms/douyin/streamerInfoParser'
-  import { invoke } from '@tauri-apps/api/core'
-  import type { UnlistenFn } from '@tauri-apps/api/event'
-  import {
-    ensureBilibiliLoginWindow,
-    extractRequiredFlags,
-    getBilibiliCookies,
-    hasRequiredCookies,
-    sleep,
-  } from '../../platforms/bilibili/cookieHelper'
+<script setup lang="ts">
 
-  // Helper: normalize avatar URL (strip wrappers/backticks, fix protocol)
-  const normalizeAvatarUrl = (input: string | null | undefined): string => {
-    if (!input) return ''
-    let url = String(input).trim()
-    // strip wrapping backticks or quotes
-    const startsWithWrapper = url.startsWith('`') || url.startsWith('"') || url.startsWith("'")
-    const endsWithWrapper = url.endsWith('`') || url.endsWith('"') || url.endsWith("'")
-    if (startsWithWrapper && endsWithWrapper) {
-      url = url.slice(1, -1).trim()
-    }
-    // handle protocol-relative URLs
-    if (url.startsWith('//')) {
-      url = 'https:' + url
-    }
-    // upgrade http to https
-    if (url.startsWith('http://')) {
-      url = 'https://' + url.slice('http://'.length)
-    }
-    // remove any whitespace inside the URL
-    url = url.replace(/\s+/g, '')
-    return url
+import { ref, computed, onMounted, watch, onUpdated, nextTick } from 'vue'
+import { Platform } from '../../platforms/common/types'
+import type { StreamerDetails } from '../../platforms/common/types'
+import { fetchDouyuStreamerDetails } from '../../platforms/douyu/streamerInfoParser'
+import { getDouyinStreamerDetails } from '../../platforms/douyin/streamerInfoParser'
+import { invoke } from '@tauri-apps/api/core'
+import type { UnlistenFn } from '@tauri-apps/api/event'
+import {
+  ensureBilibiliLoginWindow,
+  extractRequiredFlags,
+  getBilibiliCookies,
+  hasRequiredCookies,
+  sleep,
+} from '../../platforms/bilibili/cookieHelper'
+
+// Helper: normalize avatar URL (strip wrappers/backticks, fix protocol)
+const normalizeAvatarUrl = (input: string | null | undefined): string => {
+  if (!input) return ''
+  let url = String(input).trim()
+  // strip wrapping backticks or quotes
+  const startsWithWrapper = url.startsWith('`') || url.startsWith('"') || url.startsWith("'")
+  const endsWithWrapper = url.endsWith('`') || url.endsWith('"') || url.endsWith("'")
+  if (startsWithWrapper && endsWithWrapper) {
+    url = url.slice(1, -1).trim()
   }
-  const emit = defineEmits<{
-    (e: 'follow', data: { id: string; platform: Platform; nickname: string; avatarUrl: string | null; roomTitle?: string }): void
-    (e: 'unfollow', roomId: string): void
-  }>()
-  
-  const props = defineProps<{
-    roomId: string
-    platform: Platform
-    isFollowed: boolean
-    title?: string | null
-    anchorName?: string | null
-    avatar?: string | null
-    isLive?: boolean | null
-    initialViewerCount?: number | null
-  }>()
-  
-  const roomDetails = ref<StreamerDetails | null>(null)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
-  const showAvatarText = ref(false)
-  
-  const computedRoomTitle = computed(() => roomDetails.value?.roomTitle ?? props.title ?? '直播间标题加载中...')
-  const computedNickname = computed(() => roomDetails.value?.nickname ?? props.anchorName ?? '主播昵称加载中...')
-  const avatarUrl = ref(props.avatar || '')
-  const computedViewerCount = computed(() => roomDetails.value?.viewerCount ?? 0)
-  const isFollowing = computed(() => props.isFollowed)
-  const computedStreamStatus = computed(() => {
-    if (roomDetails.value) {
-      if (roomDetails.value.isLive && roomDetails.value.isLooping) {
-        return 'looping';
-      }
-      if (roomDetails.value.isLive) {
-        return 'live';
-      }
-    } else if (props.isLive) { 
+  // handle protocol-relative URLs
+  if (url.startsWith('//')) {
+    url = 'https:' + url
+  }
+  // upgrade http to https
+  if (url.startsWith('http://')) {
+    url = 'https://' + url.slice('http://'.length)
+  }
+  // remove any whitespace inside the URL
+  url = url.replace(/\s+/g, '')
+  return url
+}
+const emit = defineEmits<{
+  (e: 'follow', data: { id: string; platform: Platform; nickname: string; avatarUrl: string | null; roomTitle?: string }): void
+  (e: 'unfollow', roomId: string): void
+}>()
+
+const props = defineProps<{
+  roomId: string
+  platform: Platform
+  isFollowed: boolean
+  title?: string | null
+  anchorName?: string | null
+  avatar?: string | null
+  isLive?: boolean | null
+  initialViewerCount?: number | null
+}>()
+
+const roomDetails = ref<StreamerDetails | null>(null)
+const isLoading = ref(false)
+const error = ref<string | null>(null)
+const showAvatarText = ref(false)
+
+const computedRoomTitle = computed(() => roomDetails.value?.roomTitle ?? props.title ?? '直播间标题加载中...')
+const computedNickname = computed(() => roomDetails.value?.nickname ?? props.anchorName ?? '主播昵称加载中...')
+const avatarUrl = ref(props.avatar || '')
+const computedViewerCount = computed(() => roomDetails.value?.viewerCount ?? 0)
+const isFollowing = computed(() => props.isFollowed)
+const computedStreamStatus = computed(() => {
+  if (roomDetails.value) {
+    if (roomDetails.value.isLive && roomDetails.value.isLooping) {
+      return 'looping';
+    }
+    if (roomDetails.value.isLive) {
       return 'live';
     }
-    return 'offline';
-  });
-
-  const statusClass = computed(() => {
-    return computedStreamStatus.value;
-  })
-  
-  const getStatusText = computed(() => {
-    if (error.value) return '信息加载失败';
-    const status = computedStreamStatus.value;
-    if (status === 'live') return '直播中';
-    if (status === 'looping') return '轮播中';
-    return '未开播';
-  })
-  
-  const formattedViewerCount = computed(() => {
-    const count = computedViewerCount.value
-    if (count >= 10000) {
-      return (count / 10000).toFixed(1) + '万'
-    }
-    return count.toString()
-  })
-
-  // Proxy support for Bilibili avatar images
-  const proxyBase = ref<string | null>(null)
-  const ensureProxyStarted = async () => {
-    if (!proxyBase.value) {
-      try {
-        const base = await invoke<string>('start_static_proxy_server')
-        proxyBase.value = base
-      } catch (e) {
-        console.error('[StreamerInfo] Failed to start static proxy server', e)
-      }
-    }
+  } else if (props.isLive) {
+    return 'live';
   }
-  const proxify = (url?: string): string => {
-    if (!url) return ''
-    if (proxyBase.value) {
-      return `${proxyBase.value}/image?url=${encodeURIComponent(url)}`
-    }
-    return url
+  return 'offline';
+});
+
+const statusClass = computed(() => {
+  return computedStreamStatus.value;
+})
+
+const getStatusText = computed(() => {
+  if (error.value) return '信息加载失败';
+  const status = computedStreamStatus.value;
+  if (status === 'live') return '直播中';
+  if (status === 'looping') return '轮播中';
+  return '未开播';
+})
+
+const formattedViewerCount = computed(() => {
+  const count = computedViewerCount.value
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + '万'
   }
+  return count.toString()
+})
 
-  // Bilibili login state
-  const bilibiliCookie = ref<string>('')
-  const hasRequiredBilibiliCookie = ref(false)
-  const isLoggingIn = ref(false)
-  const loginError = ref<string | null>(null)
-
-  const updateBilibiliCookieState = (raw: string | null | undefined) => {
-    const value = (raw ?? '').trim()
-    bilibiliCookie.value = value
-    const { hasSessdata, hasBiliJct } = extractRequiredFlags(value)
-    hasRequiredBilibiliCookie.value = hasSessdata && hasBiliJct
-  }
-
-  const persistBilibiliCookie = (raw: string | null | undefined) => {
-    if (typeof localStorage === 'undefined') return
-    const value = (raw ?? '').trim()
-    if (value) {
-      localStorage.setItem('bilibili_cookie', value)
-    } else {
-      localStorage.removeItem('bilibili_cookie')
-    }
-    updateBilibiliCookieState(value)
-  }
-
-  const loadBilibiliCookieFromStorage = () => {
-    if (typeof localStorage === 'undefined') return
-    const saved = localStorage.getItem('bilibili_cookie')
-    updateBilibiliCookieState(saved)
-  }
-
-  const handleBilibiliLogout = async () => {
-    loginError.value = null
-    persistBilibiliCookie(null)
-    if (props.platform === Platform.BILIBILI) {
-      await fetchRoomDetails()
-    }
-  }
-
-  const handleBilibiliLogin = async () => {
-    if (isLoggingIn.value) return
-    loginError.value = null
-    isLoggingIn.value = true
-
-    let unlisten: UnlistenFn | null = null
-
+// Proxy support for Bilibili avatar images
+const proxyBase = ref<string | null>(null)
+const ensureProxyStarted = async () => {
+  if (!proxyBase.value) {
     try {
-      const loginWindow = await ensureBilibiliLoginWindow()
-      let windowClosed = false
+      const base = await invoke<string>('start_static_proxy_server')
+      proxyBase.value = base
+    } catch (e) {
+      console.error('[StreamerInfo] Failed to start static proxy server', e)
+    }
+  }
+}
+const proxify = (url?: string): string => {
+  if (!url) return ''
+  if (proxyBase.value) {
+    return `${proxyBase.value}/image?url=${encodeURIComponent(url)}`
+  }
+  return url
+}
 
-      unlisten = await loginWindow.listen('tauri://close-requested', () => {
-        windowClosed = true
-      })
+// Bilibili login state
+const bilibiliCookie = ref<string>('')
+const hasRequiredBilibiliCookie = ref(false)
+const isLoggingIn = ref(false)
+const loginError = ref<string | null>(null)
 
-      const timeoutMs = 120_000
-      const intervalMs = 1_500
-      const deadline = Date.now() + timeoutMs
+const updateBilibiliCookieState = (raw: string | null | undefined) => {
+  const value = (raw ?? '').trim()
+  bilibiliCookie.value = value
+  const { hasSessdata, hasBiliJct } = extractRequiredFlags(value)
+  hasRequiredBilibiliCookie.value = hasSessdata && hasBiliJct
+}
 
-      while (!windowClosed && Date.now() < deadline) {
-        const result = await getBilibiliCookies([loginWindow.label])
-        if (hasRequiredCookies(result)) {
-          persistBilibiliCookie(result.cookie)
-          try {
-            await loginWindow.close()
-          } catch (closeErr) {
-            console.warn('[StreamerInfo] Failed to close bilibili login window:', closeErr)
-          }
-          if (props.platform === Platform.BILIBILI) {
-            await fetchRoomDetails()
-          }
-          return
-        }
-        await sleep(intervalMs)
-      }
+const persistBilibiliCookie = (raw: string | null | undefined) => {
+  if (typeof localStorage === 'undefined') return
+  const value = (raw ?? '').trim()
+  if (value) {
+    localStorage.setItem('bilibili_cookie', value)
+  } else {
+    localStorage.removeItem('bilibili_cookie')
+  }
+  updateBilibiliCookieState(value)
+}
 
-      if (windowClosed) {
-        throw new Error('登录窗口已关闭，未完成登录')
-      }
+const loadBilibiliCookieFromStorage = () => {
+  if (typeof localStorage === 'undefined') return
+  const saved = localStorage.getItem('bilibili_cookie')
+  updateBilibiliCookieState(saved)
+}
 
-      throw new Error('登录超时，请重试')
-    } catch (e: any) {
-      loginError.value = e?.message || '登录失败，请重试'
-      console.error('[StreamerInfo] handleBilibiliLogin error:', e)
-    } finally {
-      if (unlisten) {
+const handleBilibiliLogout = async () => {
+  loginError.value = null
+  persistBilibiliCookie(null)
+  if (props.platform === Platform.BILIBILI) {
+    await fetchRoomDetails()
+  }
+}
+
+const handleBilibiliLogin = async () => {
+  if (isLoggingIn.value) return
+  loginError.value = null
+  isLoggingIn.value = true
+
+  let unlisten: UnlistenFn | null = null
+
+  try {
+    const loginWindow = await ensureBilibiliLoginWindow()
+    let windowClosed = false
+
+    unlisten = await loginWindow.listen('tauri://close-requested', () => {
+      windowClosed = true
+    })
+
+    const timeoutMs = 120_000
+    const intervalMs = 1_500
+    const deadline = Date.now() + timeoutMs
+
+    while (!windowClosed && Date.now() < deadline) {
+      const result = await getBilibiliCookies([loginWindow.label])
+      if (hasRequiredCookies(result)) {
+        persistBilibiliCookie(result.cookie)
         try {
-          unlisten()
-        } catch (_) {
-          /* no-op */
+          await loginWindow.close()
+        } catch (closeErr) {
+          console.warn('[StreamerInfo] Failed to close bilibili login window:', closeErr)
         }
+        if (props.platform === Platform.BILIBILI) {
+          await fetchRoomDetails()
+        }
+        return
       }
-      isLoggingIn.value = false
+      await sleep(intervalMs)
     }
+
+    if (windowClosed) {
+      throw new Error('登录窗口已关闭，未完成登录')
+    }
+
+    throw new Error('登录超时，请重试')
+  } catch (e: any) {
+    loginError.value = e?.message || '登录失败，请重试'
+    console.error('[StreamerInfo] handleBilibiliLogin error:', e)
+  } finally {
+    if (unlisten) {
+      try {
+        unlisten()
+      } catch (_) {
+        /* no-op */
+      }
+    }
+    isLoggingIn.value = false
   }
-  
-  const fetchRoomDetails = async () => {
-    if (props.platform === Platform.DOUYIN) {
-      showAvatarText.value = !props.avatar;
-      isLoading.value = false;
-      roomDetails.value = null;
-      avatarUrl.value = props.avatar || '';
-      return;
-    }
+}
 
-    if (props.platform === Platform.HUYA) {
-      try {
-        isLoading.value = true;
-        error.value = null;
-        roomDetails.value = null;
-        showAvatarText.value = false;
-
-        const res: any = await invoke('get_huya_unified_cmd', { roomId: props.roomId, quality: '原画' });
-        const mapped: StreamerDetails = {
-          roomId: props.roomId,
-          platform: 'huya',
-          roomTitle: (res && res.title) ? res.title : (props.title ?? '直播间标题加载中...'),
-          nickname: (res && res.nick) ? res.nick : (props.anchorName ?? props.roomId),
-          avatarUrl: (res && res.avatar) ? res.avatar : (props.avatar ?? null),
-          isLive: !!(res && res.is_live),
-        };
-        roomDetails.value = mapped;
-        await ensureProxyStarted();
-        avatarUrl.value = proxify(normalizeAvatarUrl(mapped.avatarUrl));
-        showAvatarText.value = !avatarUrl.value;
-      } catch (e: any) {
-        console.error(`[StreamerInfo] HUYA fetchRoomDetails error for ${props.roomId}:`, e);
-        error.value = e?.message || '获取虎牙房间信息失败';
-        roomDetails.value = null;
-        await ensureProxyStarted();
-        avatarUrl.value = proxify(normalizeAvatarUrl(props.avatar || ''));
-        showAvatarText.value = !props.avatar;
-      } finally {
-        isLoading.value = false;
-      }
-      return;
-    }
-
-    // 新增：B 站主播信息
-    if (props.platform === Platform.BILIBILI) {
-      try {
-        isLoading.value = true;
-        error.value = null;
-        roomDetails.value = null;
-        showAvatarText.value = false;
-
-        const payload = { args: { room_id_str: props.roomId } };
-        const savedCookie = (typeof localStorage !== 'undefined') ? (localStorage.getItem('bilibili_cookie') || null) : null;
-        const res: any = await invoke('fetch_bilibili_streamer_info', {
-          payload,
-          cookie: savedCookie,
-        });
-
-        const mapped: StreamerDetails = {
-          roomId: props.roomId,
-          platform: 'bilibili',
-          roomTitle: (res && res.title) ? res.title : (props.title ?? '直播间标题加载中...'),
-          nickname: (res && res.anchor_name) ? res.anchor_name : (props.anchorName ?? props.roomId),
-          avatarUrl: (res && res.avatar) ? res.avatar : (props.avatar ?? null),
-          isLive: !!(res && res.status === 1),
-        };
-        roomDetails.value = mapped;
-        await ensureProxyStarted();
-        avatarUrl.value = proxify(normalizeAvatarUrl(mapped.avatarUrl));
-        showAvatarText.value = !avatarUrl.value;
-      } catch (e: any) {
-        console.error(`[StreamerInfo] BILIBILI fetchRoomDetails error for ${props.roomId}:`, e);
-        error.value = e?.message || '获取 B 站房间信息失败';
-        roomDetails.value = null;
-        await ensureProxyStarted();
-        avatarUrl.value = proxify(normalizeAvatarUrl(props.avatar || ''));
-        showAvatarText.value = !props.avatar;
-      } finally {
-        isLoading.value = false;
-      }
-      return;
-    }
-
-    isLoading.value = true;
-    error.value = null;
+const fetchRoomDetails = async () => {
+  if (props.platform === Platform.DOUYIN) {
+    showAvatarText.value = !props.avatar;
+    isLoading.value = false;
     roomDetails.value = null;
-    showAvatarText.value = false;
+    avatarUrl.value = props.avatar || '';
+    return;
+  }
 
+  if (props.platform === Platform.HUYA) {
     try {
-      if (props.platform === Platform.DOUYU) {
-        roomDetails.value = await fetchDouyuStreamerDetails(props.roomId);
-        avatarUrl.value = normalizeAvatarUrl(roomDetails.value?.avatarUrl || avatarUrl.value);
-      } else {
-        console.warn(`[StreamerInfo] Unsupported platform: ${props.platform}`);
-        throw new Error(`Unsupported platform: ${props.platform}`);
-      }
-
-      if (!avatarUrl.value) {
-        showAvatarText.value = true
-      }
-
-    } catch (e: any) {
-      console.error(`[StreamerInfo] Error in fetchRoomDetails for ${props.platform}/${props.roomId}:`, e)
-      error.value = e.message || 'Failed to load streamer details'
-      showAvatarText.value = true
-    } finally {
-      isLoading.value = false
-    }
-  }
-  
-  const toggleFollow = () => {
-    if (isFollowing.value) {
-      emit('unfollow', props.roomId)
-    } else {
-      const followData = {
-        id: props.roomId,
-        platform: props.platform,
-        nickname: computedNickname.value === '主播昵称加载中...' ? props.roomId : computedNickname.value,
-        avatarUrl: avatarUrl.value,
-        roomTitle: computedRoomTitle.value === '直播间标题加载中...' ? undefined : computedRoomTitle.value,
-      }
-      emit('follow', followData)
-    }
-  }
-  
-  const handleAvatarError = () => {
-    console.warn(`[StreamerInfo] Avatar image failed to load for ${computedNickname.value} (URL: ${avatarUrl.value}). Displaying fallback.`);
-    showAvatarText.value = true;
-  };
-  
-  const idFollowContainerRef = ref<HTMLElement | null>(null);
-  const streamerIdRef = ref<HTMLElement | null>(null);
-  const followBtnRef = ref<HTMLElement | null>(null);
-  
-  const updateHighlightVars = () => {
-    if (idFollowContainerRef.value && streamerIdRef.value && followBtnRef.value) {
-      const idWidth = streamerIdRef.value.offsetWidth;
-      const buttonWidth = followBtnRef.value.offsetWidth;
-
-      idFollowContainerRef.value.style.setProperty('--id-width', `${idWidth}px`);
-      idFollowContainerRef.value.style.setProperty('--button-width', `${buttonWidth}px`);
-
-      if (isFollowing.value) {
-        idFollowContainerRef.value.style.setProperty('--highlight-left', '2px');
-        idFollowContainerRef.value.style.setProperty('--highlight-width', `calc(${idWidth}px - 4px)`);
-      } else {
-        idFollowContainerRef.value.style.setProperty('--highlight-left', `calc(${idWidth}px + 2px)`);
-        idFollowContainerRef.value.style.setProperty('--highlight-width', `calc(${buttonWidth}px - 4px)`);
-      }
-    }
-  };
-  
-  onMounted(() => {
-    loadBilibiliCookieFromStorage()
-    fetchRoomDetails()
-    nextTick(() => {
-      updateHighlightVars();
-    });
-  })
-  
-  watch(() => [props.roomId, props.platform], (newValues, oldValues) => {
-    if (newValues[0] !== oldValues[0] || newValues[1] !== oldValues[1]) {
-      fetchRoomDetails()
-    }
-  }, { deep: true })
-
-  watch(() => [props.title, props.anchorName, props.avatar], async (newValues, oldValues) => {
-    if (props.platform === Platform.DOUYIN) {
-      const hasChanged = newValues.some((val, index) => val !== oldValues[index])
-      if (hasChanged) {
-        roomDetails.value = await getDouyinStreamerDetails({
-          roomId: props.roomId,
-          initialTitle: props.title,
-          initialAnchorName: props.anchorName,
-          initialAvatar: props.avatar,
-        })
-        avatarUrl.value = normalizeAvatarUrl(roomDetails.value?.avatarUrl || avatarUrl.value)
-        showAvatarText.value = !avatarUrl.value
-      }
-    } else {
-      // For non-Douyin platforms, if parent updates avatar prop, reflect it
-      if (newValues[2] !== oldValues[2]) {
-        avatarUrl.value = normalizeAvatarUrl(props.avatar || '')
-        showAvatarText.value = !avatarUrl.value
-      }
-    }
-  })
-
-  watch([() => props.roomId, () => props.platform, isFollowing], () => {
-    nextTick(() => {
-      updateHighlightVars();
-    });
-  }, { deep: true })
-
-  watch(() => props.avatar, (newAvatar, oldAvatar) => {
-    if (newAvatar !== oldAvatar) {
-      showAvatarText.value = false; // Reset error state if avatar URL changes
-    }
-    if (newAvatar && showAvatarText.value) {
+      isLoading.value = true;
+      error.value = null;
+      roomDetails.value = null;
       showAvatarText.value = false;
-    }
-  });
 
-  onUpdated(() => {
-    nextTick(() => {
-      updateHighlightVars();
-    });
-  })
-  </script>
+      const res: any = await invoke('get_huya_unified_cmd', { roomId: props.roomId, quality: '原画' });
+      const mapped: StreamerDetails = {
+        roomId: props.roomId,
+        platform: 'huya',
+        roomTitle: (res && res.title) ? res.title : (props.title ?? '直播间标题加载中...'),
+        nickname: (res && res.nick) ? res.nick : (props.anchorName ?? props.roomId),
+        avatarUrl: (res && res.avatar) ? res.avatar : (props.avatar ?? null),
+        isLive: !!(res && res.is_live),
+      };
+      roomDetails.value = mapped;
+      await ensureProxyStarted();
+      avatarUrl.value = proxify(normalizeAvatarUrl(mapped.avatarUrl));
+      showAvatarText.value = !avatarUrl.value;
+    } catch (e: any) {
+      console.error(`[StreamerInfo] HUYA fetchRoomDetails error for ${props.roomId}:`, e);
+      error.value = e?.message || '获取虎牙房间信息失败';
+      roomDetails.value = null;
+      await ensureProxyStarted();
+      avatarUrl.value = proxify(normalizeAvatarUrl(props.avatar || ''));
+      showAvatarText.value = !props.avatar;
+    } finally {
+      isLoading.value = false;
+    }
+    return;
+  }
+
+  // 新增：B 站主播信息
+  if (props.platform === Platform.BILIBILI) {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      roomDetails.value = null;
+      showAvatarText.value = false;
+
+      const payload = { args: { room_id_str: props.roomId } };
+      const savedCookie = (typeof localStorage !== 'undefined') ? (localStorage.getItem('bilibili_cookie') || null) : null;
+      const res: any = await invoke('fetch_bilibili_streamer_info', {
+        payload,
+        cookie: savedCookie,
+      });
+
+      const mapped: StreamerDetails = {
+        roomId: props.roomId,
+        platform: 'bilibili',
+        roomTitle: (res && res.title) ? res.title : (props.title ?? '直播间标题加载中...'),
+        nickname: (res && res.anchor_name) ? res.anchor_name : (props.anchorName ?? props.roomId),
+        avatarUrl: (res && res.avatar) ? res.avatar : (props.avatar ?? null),
+        isLive: !!(res && res.status === 1),
+      };
+      roomDetails.value = mapped;
+      await ensureProxyStarted();
+      avatarUrl.value = proxify(normalizeAvatarUrl(mapped.avatarUrl));
+      showAvatarText.value = !avatarUrl.value;
+    } catch (e: any) {
+      console.error(`[StreamerInfo] BILIBILI fetchRoomDetails error for ${props.roomId}:`, e);
+      error.value = e?.message || '获取 B 站房间信息失败';
+      roomDetails.value = null;
+      await ensureProxyStarted();
+      avatarUrl.value = proxify(normalizeAvatarUrl(props.avatar || ''));
+      showAvatarText.value = !props.avatar;
+    } finally {
+      isLoading.value = false;
+    }
+    return;
+  }
+
+  isLoading.value = true;
+  error.value = null;
+  roomDetails.value = null;
+  showAvatarText.value = false;
+
+  try {
+    if (props.platform === Platform.DOUYU) {
+      roomDetails.value = await fetchDouyuStreamerDetails(props.roomId);
+      avatarUrl.value = normalizeAvatarUrl(roomDetails.value?.avatarUrl || avatarUrl.value);
+    } else {
+      console.warn(`[StreamerInfo] Unsupported platform: ${props.platform}`);
+      throw new Error(`Unsupported platform: ${props.platform}`);
+    }
+
+    if (!avatarUrl.value) {
+      showAvatarText.value = true
+    }
+
+  } catch (e: any) {
+    console.error(`[StreamerInfo] Error in fetchRoomDetails for ${props.platform}/${props.roomId}:`, e)
+    error.value = e.message || 'Failed to load streamer details'
+    showAvatarText.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const toggleFollow = () => {
+  if (isFollowing.value) {
+    emit('unfollow', props.roomId)
+  } else {
+    const followData = {
+      id: props.roomId,
+      platform: props.platform,
+      nickname: computedNickname.value === '主播昵称加载中...' ? props.roomId : computedNickname.value,
+      avatarUrl: avatarUrl.value,
+      roomTitle: computedRoomTitle.value === '直播间标题加载中...' ? undefined : computedRoomTitle.value,
+    }
+    emit('follow', followData)
+  }
+}
+
+const handleAvatarError = () => {
+  console.warn(`[StreamerInfo] Avatar image failed to load for ${computedNickname.value} (URL: ${avatarUrl.value}). Displaying fallback.`);
+  showAvatarText.value = true;
+};
+
+const idFollowContainerRef = ref<HTMLElement | null>(null);
+const streamerIdRef = ref<HTMLElement | null>(null);
+const followBtnRef = ref<HTMLElement | null>(null);
+
+const updateHighlightVars = () => {
+  if (idFollowContainerRef.value && streamerIdRef.value && followBtnRef.value) {
+    const idWidth = streamerIdRef.value.offsetWidth;
+    const buttonWidth = followBtnRef.value.offsetWidth;
+
+    idFollowContainerRef.value.style.setProperty('--id-width', `${idWidth}px`);
+    idFollowContainerRef.value.style.setProperty('--button-width', `${buttonWidth}px`);
+
+    if (isFollowing.value) {
+      idFollowContainerRef.value.style.setProperty('--highlight-left', '2px');
+      idFollowContainerRef.value.style.setProperty('--highlight-width', `calc(${idWidth}px - 4px)`);
+    } else {
+      idFollowContainerRef.value.style.setProperty('--highlight-left', `calc(${idWidth}px + 2px)`);
+      idFollowContainerRef.value.style.setProperty('--highlight-width', `calc(${buttonWidth}px - 4px)`);
+    }
+  }
+};
+
+onMounted(() => {
+  loadBilibiliCookieFromStorage()
+  fetchRoomDetails()
+  nextTick(() => {
+    updateHighlightVars();
+  });
+})
+
+watch(() => [props.roomId, props.platform], (newValues, oldValues) => {
+  if (newValues[0] !== oldValues[0] || newValues[1] !== oldValues[1]) {
+    fetchRoomDetails()
+  }
+}, { deep: true })
+
+watch(() => [props.title, props.anchorName, props.avatar], async (newValues, oldValues) => {
+  if (props.platform === Platform.DOUYIN) {
+    const hasChanged = newValues.some((val, index) => val !== oldValues[index])
+    if (hasChanged) {
+      roomDetails.value = await getDouyinStreamerDetails({
+        roomId: props.roomId,
+        initialTitle: props.title,
+        initialAnchorName: props.anchorName,
+        initialAvatar: props.avatar,
+      })
+      avatarUrl.value = normalizeAvatarUrl(roomDetails.value?.avatarUrl || avatarUrl.value)
+      showAvatarText.value = !avatarUrl.value
+    }
+  } else {
+    // For non-Douyin platforms, if parent updates avatar prop, reflect it
+    if (newValues[2] !== oldValues[2]) {
+      avatarUrl.value = normalizeAvatarUrl(props.avatar || '')
+      showAvatarText.value = !avatarUrl.value
+    }
+  }
+})
+
+watch([() => props.roomId, () => props.platform, isFollowing], () => {
+  nextTick(() => {
+    updateHighlightVars();
+  });
+}, { deep: true })
+
+watch(() => props.avatar, (newAvatar, oldAvatar) => {
+  if (newAvatar !== oldAvatar) {
+    showAvatarText.value = false; // Reset error state if avatar URL changes
+  }
+  if (newAvatar && showAvatarText.value) {
+    showAvatarText.value = false;
+  }
+});
+
+onUpdated(() => {
+  nextTick(() => {
+    updateHighlightVars();
+  });
+})
+</script>

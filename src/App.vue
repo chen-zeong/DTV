@@ -1,26 +1,11 @@
 <template>
-  <div class="flex h-screen overflow-hidden">
-    <Sidebar
-      v-show="!shouldHidePlayerChrome"
-      :is-collapsed="isSidebarCollapsed"
-      :followed-anchors="followedStreamers"
-      @toggle="toggleSidebar"
-      @select-anchor="handleSelectAnchor"
-      @unfollow="handleUnfollowStore"
-      @reorder-list="handleReorderListStore"
-    />
+  <div class="flex flex-col h-screen overflow-hidden bg-neutral-900 text-neutral-200">
+   
+    <Navbar v-show="!shouldHidePlayerChrome" :theme="theme" :active-platform="activePlatform"
+      @theme-toggle="toggleTheme" @select-anchor="handleSelectAnchorFromSearch" />
 
-    <div class="flex min-w-0 flex-1 flex-col bg-[var(--bg-primary)] transition-none">
-      <Navbar
-        v-show="!shouldHidePlayerChrome"
-        :theme="theme"
-        :active-platform="activePlatform"
-        @theme-toggle="toggleTheme"
-        @platform-change="handlePlatformChange"
-        @select-anchor="handleSelectAnchorFromSearch"
-      />
-
-      <main class="relative flex-1 overflow-y-auto px-4 pb-3 pt-4" :class="{ 'p-0': isPlayerRoute }">
+    <div class="flex flex-1 min-h-0 overflow-hidden bg-neutral-90">
+      <main class="relative flex-1 min-h-0 overflow-y-auto" :class="{ 'p-0': isPlayerRoute }">
         <router-view
           v-slot="{ Component, route }"
           @follow="handleFollowStore"
@@ -28,7 +13,7 @@
           @fullscreen-change="handleFullscreenChange"
         >
           <transition name="fade" mode="out-in">
-            <keep-alive :include="['DouyuHomeView', 'DouyinHomeView', 'HuyaHomeView', 'BilibiliHomeView']">
+            <keep-alive :include="['PlatformHomeView']">
               <component :is="Component" :key="route.path" />
             </keep-alive>
           </transition>
@@ -41,11 +26,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Navbar from './layout/Navbar.vue';
-import Sidebar from './layout/Sidebar.vue';
-import type { Platform as UiPlatform } from './layout/types';
+import Navbar from './components/layout/Navbar.vue';
+import type { UiPlatform } from './platforms/common/types';
 import { useThemeStore } from './stores/theme';
-import { useFollowStore } from './store/followStore';
+import { useFollowStore } from './stores/followStore';
 import { Platform } from './platforms/common/types';
 import type { FollowedStreamer } from './platforms/common/types';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -56,7 +40,6 @@ const router = useRouter();
 const route = useRoute();
 const followStore = useFollowStore();
 
-const isSidebarCollapsed = ref(false);
 const isPlayerFullscreen = ref(false);
 const isWindowMaximized = ref(false);
 const currentWindow = typeof window !== 'undefined' ? getCurrentWindow() : null;
@@ -75,8 +58,6 @@ const routePlatform = computed<UiPlatform>(() => {
 });
 
 const activePlatform = computed<UiPlatform>(() => routePlatform.value);
-
-const followedStreamers = computed<FollowedStreamer[]>(() => followStore.getFollowedStreamers);
 
 const syncWindowMaximizedState = async () => {
   if (!currentWindow) {
@@ -122,25 +103,10 @@ const shouldHidePlayerChrome = computed(() => (
   isPlayerRoute.value && (isPlayerFullscreen.value || isWindowMaximized.value)
 ));
 
-const toggleSidebar = () => {
-  isSidebarCollapsed.value = !isSidebarCollapsed.value;
-};
-
 const toggleTheme = () => {
   themeStore.setUserPreference(theme.value === 'light' ? 'dark' : 'light');
 };
 
-const handlePlatformChange = (platform: UiPlatform | 'all') => {
-  if (platform === 'douyin') {
-    router.push({ name: 'DouyinHome' });
-  } else if (platform === 'huya') {
-    router.push({ name: 'HuyaHome' });
-  } else if (platform === 'bilibili') {
-    router.push({ name: 'BilibiliHome' });
-  } else {
-    router.push({ name: 'DouyuHome' });
-  }
-};
 
 const handleSelectAnchor = (streamer: FollowedStreamer) => {
   if (streamer.platform === Platform.DOUYIN) {
@@ -175,10 +141,6 @@ const handleUnfollowStore = (payload: { platform: Platform; id: string } | strin
   } else {
     followStore.unfollowStreamer(payload.platform, payload.id);
   }
-};
-
-const handleReorderListStore = (reorderedList: FollowedStreamer[]) => {
-  followStore.updateOrder(reorderedList);
 };
 
 const handleFullscreenChange = (isFullscreen: boolean) => {

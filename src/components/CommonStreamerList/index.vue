@@ -1,64 +1,59 @@
 <template>
-  <div class="flex h-full w-full flex-col overflow-hidden bg-transparent">
-    <div v-if="isLoading && rooms.length === 0" class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-[var(--secondary-text)]">
+  <div class="flex h-full w-full flex-col overflow-hidden mb-6 p-4 min-h-[600px]">
+    <div v-if="isLoading && rooms.length === 0"
+      class="flex flex-1 flex-col items-center justify-center gap-3 p-6  min-h-[400px]">
       <LoadingDots />
     </div>
-    <div v-else-if="!isLoading && rooms.length === 0 && hasCategory" class="flex flex-col items-center justify-center gap-3 p-6 text-[var(--secondary-text)]">
+    <div v-else-if="!isLoading && rooms.length === 0 && hasCategory"
+      class="flex flex-col items-center justify-center gap-3 p-6  min-h-[400px]">
       <p>分类下暂无主播</p>
     </div>
-    <div v-else-if="!hasCategory && !isLoading" class="flex flex-col items-center justify-center gap-3 p-6 text-[var(--secondary-text)]">
-       <p>请选择一个分类开始浏览</p>
+    <div v-else-if="!hasCategory && !isLoading"
+      class="flex flex-col items-center justify-center gap-3 p-6 min-h-[400px]">
+      <p>请选择一个分类开始浏览</p>
     </div>
 
-    <div
-      v-else
-      ref="scrollComponentRef"
-      class="flex-1 overflow-y-auto px-3 py-2 [--card-radius:14px] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-[var(--glass-border)]"
-      @scroll.passive="handleScrollerScroll"
-    >
-      <div class="grid gap-3 pb-3 [grid-template-columns:repeat(var(--items-per-row,1),minmax(0,1fr))]" :style="{ '--items-per-row': itemsPerRow }">
-        <div 
-          v-for="room in rooms" 
-          :key="room.room_id" 
+    <div v-else ref="scrollComponentRef"
+      class="flex-1 overflow-y-auto   [--card-radius:18px]  [&::-webkit-scrollbar-thumb]:rounded-[10px]"
+      @scroll.passive="handleScrollerScroll">
+      <div class="grid gap-5 pb-3 grid-cols-4" :style="{ '--items-per-row': itemsPerRow }">
+        <div v-for="room in rooms" :key="room.room_id"
           class="relative transition-transform duration-200 will-change-transform"
-          :class="isScrolling ? 'hover:translate-y-0' : 'hover:-translate-y-1'"
-          @click="goToPlayer(room.room_id)"
-        >
-            <div class="group flex cursor-pointer flex-col rounded-[var(--card-radius)] border border-[var(--glass-border)] bg-[var(--hover-bg)] shadow-[var(--shadow-low)] transition-all duration-200 hover:shadow-[var(--shadow-md)]">
-              <div class="relative w-full overflow-hidden rounded-t-[var(--card-radius)] aspect-[16/8.5]">
-                <div class="relative h-full w-full">
-                  <SmoothImage 
-                    :src="room.room_cover || ''" 
-                    :alt="room.title" 
-                    class="h-full w-full" 
-                  />
-                  <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_0%,transparent_40%)]"></div>
-                  <span class="absolute right-2.5 top-2 flex items-center gap-1 rounded-full border border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.4)] px-2 py-0.5 text-[9px] font-bold text-white [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)]">
-                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-                    {{ room.viewer_count_str || '0' }} 
-                  </span>
-                </div>
+          :class="isScrolling ? 'hover:translate-y-0' : ''" @click="goToPlayer(room.room_id)">
+          <div
+            class="group flex cursor-pointer flex-col overflow-hidden rounded-sm border-neutral-50  transition-all duration-200  ">
+            <div class="relative w-full overflow-hidden aspect-video">
+              <div class="relative h-full w-full">
+                <SmoothImage :src="room.room_cover || ''" :alt="room.title" class="h-full w-full" />
+                <div class="pointer-events-none absolute inset-0 "></div>
+                <span
+                  class="absolute right-3 top-3 flex items-center gap-2 rounded-full border   px-2.5 py-1 text-[10px] font-semibold">
+                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                  </svg>
+                  {{ room.viewer_count_str || '0' }}
+                </span>
               </div>
-              <div class="flex items-center gap-2.5 px-3 py-3.5">
-                <div class="flex-shrink-0">
-                  <SmoothImage 
-                    :src="room.avatar || ''" 
-                    :alt="room.nickname" 
-                    class="h-[38px] w-[38px] rounded-full border border-[var(--border-color)] object-cover transition-colors duration-300 group-hover:border-[var(--accent-color)]" 
-                  />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <h3 class="mb-1 truncate text-[14px] font-bold leading-[1.2] text-[var(--primary-text)]" :title="room.title">{{ room.title }}</h3>
-                  <div class="flex min-w-0 items-center">
-                    <span class="block truncate text-xs font-semibold text-[var(--secondary-text)]">{{ room.nickname || '主播' }}</span>
-                  </div>
+            </div>
+            <div class="flex items-center gap-3   px-4 py-2">
+              <div class="flex-shrink-0">
+                <SmoothImage :src="room.avatar || ''" :alt="room.nickname"
+                  class="size-12 rounded-full border object-cover transition-colors duration-300 " />
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="mb-1 truncate text-[14px]  leading-[1.2]" :title="room.title">{{
+                  room.title }}</h3>
+                <div class="flex min-w-0 items-center">
+                  <span class="block truncate text-xs ">{{ room.nickname || '主播' }}</span>
                 </div>
               </div>
             </div>
+          </div>
         </div>
       </div>
     </div>
-    <div v-if="isLoadingMore" class="flex flex-col items-center justify-center gap-3 p-6 text-[var(--secondary-text)]">
+    <div v-if="isLoadingMore" class="flex flex-col items-center justify-center gap-3 p-6">
       <LoadingDots />
     </div>
   </div>
@@ -84,10 +79,10 @@ type DouyuCategorySelection = {
 
 const props = defineProps<{
   selectedCategory?: CategorySelectedEvent | null;
-  categoriesData?: any[]; 
-  playerRouteName?: string; 
-  platformName?: 'huya' | 'douyin' | 'douyu' | 'bilibili' | string; 
-  defaultPageSize?: number; 
+  categoriesData?: any[];
+  playerRouteName?: string;
+  platformName?: 'huya' | 'douyin' | 'douyu' | 'bilibili' | string;
+  defaultPageSize?: number;
   douyuCategory?: DouyuCategorySelection | null;
 }>();
 
@@ -115,13 +110,13 @@ const resolvedSubcategoryId = computed(() => {
   return null;
 });
 
-const douyinPartition = computed(() => { 
+const douyinPartition = computed(() => {
   const href = props.selectedCategory?.cate2Href;
   if (!href) return null;
   const parts = href.split('_');
   return parts.length >= 1 ? parts[parts.length - 1] : null;
 });
-const douyinPartitionType = computed(() => { 
+const douyinPartitionType = computed(() => {
   const href = props.selectedCategory?.cate2Href;
   if (!href) return null;
   const parts = href.split('_');
@@ -282,4 +277,3 @@ const goToPlayer = (roomId: string) => {
   }
 };
 </script>
-

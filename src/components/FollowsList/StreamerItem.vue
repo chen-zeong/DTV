@@ -1,51 +1,44 @@
 <template>
   <div class="group relative flex w-full select-none items-center justify-start overflow-hidden bg-transparent">
     <div class="flex flex-1 min-w-0 items-center gap-2.5 px-2 py-1" @click="onClick">
-      <div ref="avatarRef" class="relative flex-shrink-0 transition-all duration-300" :class="big ? 'h-10 w-10' : 'h-8 w-8'">
-        <img 
-          v-if="shouldLoadAvatar"
-          :src="avatarSrc"
-          :alt="streamer.nickname"
-          loading="lazy"
-          decoding="async"
-          fetchpriority="low"
-          @error="handleImgError($event, streamer)"
-          class="h-full w-full rounded-full border border-[var(--border-color)] bg-[var(--tertiary-bg)] object-cover transition-all duration-300"
-        >
-        <div v-else-if="canLoadAvatar" class="h-full w-full rounded-full border border-[var(--border-color)] bg-[var(--tertiary-bg)]" aria-hidden="true"></div>
-        <div v-else class="flex h-full w-full items-center justify-center rounded-full bg-[var(--tertiary-bg)] text-[14px] font-bold text-[var(--primary-text)]">{{ streamer.nickname[0] }}</div>
+      <div ref="avatarRef" class="relative flex-shrink-0 transition-all duration-300"
+        :class="big ? 'h-10 w-10' : 'h-8 w-8'">
+        <img v-if="shouldLoadAvatar" :src="avatarSrc" :alt="streamer.nickname" loading="lazy" decoding="async"
+          fetchpriority="low" @error="handleImgError($event, streamer)"
+          class="h-full w-full rounded-full border   object-cover transition-all duration-300">
+        <div v-else-if="canLoadAvatar" class="h-full w-full rounded-full border " aria-hidden="true"></div>
+        <div v-else class="flex h-full w-full items-center justify-center rounded-full  text-[14px] font-bold">
+          {{ streamer.nickname[0] }}</div>
       </div>
-      
+
       <div class="flex min-w-0 flex-1 flex-col">
         <div class="flex items-center">
-          <span class="truncate text-[12.5px] font-bold text-[var(--text-primary)] transition-colors duration-200" :title="streamer.nickname">{{ streamer.nickname }}</span>
+          <span class="truncate text-[12.5px] font-bold  transition-colors duration-200" :title="streamer.nickname">{{
+            streamer.nickname }}</span>
           <!-- 移除左侧平台名，改为右侧胶囊与状态点集成 -->
         </div>
-        <div class="truncate text-[11.5px] font-medium text-[var(--text-secondary)] opacity-90 transition-all duration-200 group-hover:text-[var(--text-primary)] group-hover:opacity-100" :title="streamer.roomTitle">
+        <div class="truncate text-[11.5px] font-medium  opacity-90 transition-all duration-200  group-hover:opacity-100"
+          :title="streamer.roomTitle">
           {{ streamer.roomTitle || '暂无直播标题' }}
         </div>
       </div>
     </div>
 
     <div class="ml-auto flex flex-shrink-0 items-center pr-3.5">
-      <div v-if="showPlatform" class="flex items-center gap-1.5 rounded-full border border-[var(--border-color)] bg-[var(--tertiary-bg)] px-2.5 py-0.5 text-[10px] font-extrabold text-[var(--primary-text)]">
-        <span
-          class="h-2 w-2 rounded-full bg-[var(--dim-text)] transition-all duration-300"
-          :class="{
-            'bg-[#10b981]': getLiveIndicatorClass(streamer) === 'is-live',
-            'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]': getLiveIndicatorClass(streamer) === 'is-replay',
-            'bg-[var(--border-color)]': getLiveIndicatorClass(streamer) === 'is-offline'
-          }"
-        ></span>
-        <span>{{ platformLabel(streamer.platform) }}</span>
-      </div>
-      <div v-else class="h-2 w-2 rounded-full bg-[var(--dim-text)] transition-all duration-300"
-        :class="{
+      <div v-if="showPlatform"
+        class="flex items-center gap-1.5 rounded-full border   px-2.5 py-0.5 text-[10px] font-extrabold">
+        <span class="h-2 w-2 rounded-full  transition-all duration-300" :class="{
           'bg-[#10b981]': getLiveIndicatorClass(streamer) === 'is-live',
           'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]': getLiveIndicatorClass(streamer) === 'is-replay',
           'bg-[var(--border-color)]': getLiveIndicatorClass(streamer) === 'is-offline'
-        }"
-      ></div>
+        }"></span>
+        <span>{{ platformLabel(streamer.platform) }}</span>
+      </div>
+      <div v-else class="h-2 w-2 rounded-full  transition-all duration-300" :class="{
+        'bg-[#10b981]': getLiveIndicatorClass(streamer) === 'is-live',
+        'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]': getLiveIndicatorClass(streamer) === 'is-replay',
+        'bg-[var(--border-color)]': getLiveIndicatorClass(streamer) === 'is-offline'
+      }"></div>
     </div>
   </div>
 </template>

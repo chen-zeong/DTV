@@ -1,42 +1,37 @@
 <template>
-  <div class="flex h-8 w-[138px] items-stretch overflow-hidden bg-transparent shadow-none [-webkit-app-region:no-drag]" data-tauri-drag-region="none">
-    <button
-      type="button"
-      class="flex h-8 w-[46px] items-center justify-center bg-transparent text-[var(--text-primary)] transition-colors duration-150 [-webkit-app-region:no-drag] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgba(88,142,255,0.8)] hover:bg-[var(--hover-bg)] active:bg-[color-mix(in_srgb,var(--text-primary)_18%,transparent)]"
-      @mousedown="preventWindowDrag"
-      @click="handleMinimize"
-      aria-label="最小化窗口"
-      data-tauri-drag-region="none"
-    >
-      <svg class="h-[14px] w-[14px] fill-none stroke-current stroke-[1.15] [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]" viewBox="0 0 12 12" aria-hidden="true">
+  <div class="flex h-8 w-[138px] items-stretch overflow-hidden bg-transparent shadow-none [-webkit-app-region:no-drag]"
+    data-tauri-drag-region="none">
+    <button type="button"
+      class="flex h-8 w-[46px] items-center justify-center bg-transparent  transition-colors duration-150 [-webkit-app-region:no-drag] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgba(88,142,255,0.8)] "
+      @mousedown="preventWindowDrag" @click="handleMinimize" aria-label="最小化窗口" data-tauri-drag-region="none">
+      <svg
+        class="h-[14px] w-[14px] fill-none stroke-current stroke-[1.15] [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]"
+        viewBox="0 0 12 12" aria-hidden="true">
         <path d="M2 6h8" />
       </svg>
     </button>
-    <button
-      type="button"
-      class="flex h-8 w-[46px] items-center justify-center bg-transparent text-[var(--text-primary)] transition-colors duration-150 [-webkit-app-region:no-drag] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgba(88,142,255,0.8)] hover:bg-[var(--hover-bg)] active:bg-[color-mix(in_srgb,var(--text-primary)_18%,transparent)]"
-      @mousedown="preventWindowDrag"
-      @click="handleMaximize"
-      :aria-label="isMaximized ? '还原窗口' : '最大化窗口'"
-      data-tauri-drag-region="none"
-    >
-      <svg v-if="!isMaximized" class="h-[14px] w-[14px] fill-none stroke-current stroke-[1.15] [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]" viewBox="0 0 12 12" aria-hidden="true">
+    <button type="button"
+      class="flex h-8 w-[46px] items-center justify-center bg-transparent  transition-colors duration-150 [-webkit-app-region:no-drag] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgba(88,142,255,0.8)] "
+      @mousedown="preventWindowDrag" @click="handleMaximize" :aria-label="isMaximized ? '还原窗口' : '最大化窗口'"
+      data-tauri-drag-region="none">
+      <svg v-if="!isMaximized"
+        class="h-[14px] w-[14px] fill-none stroke-current stroke-[1.15] [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]"
+        viewBox="0 0 12 12" aria-hidden="true">
         <rect x="2" y="2" width="8" height="8" rx="1" ry="1" />
       </svg>
-      <svg v-else class="h-[14px] w-[14px] fill-none stroke-current stroke-[1.15] [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]" viewBox="0 0 12 12" aria-hidden="true">
+      <svg v-else
+        class="h-[14px] w-[14px] fill-none stroke-current stroke-[1.15] [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]"
+        viewBox="0 0 12 12" aria-hidden="true">
         <path d="M4 2h6v6h-2" />
         <rect x="2" y="4" width="6" height="6" rx="1" ry="1" />
       </svg>
     </button>
-    <button
-      type="button"
-      class="flex h-8 w-[46px] items-center justify-center bg-transparent text-[var(--text-primary)] transition-colors duration-150 [-webkit-app-region:no-drag] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgba(88,142,255,0.8)] hover:bg-[#e81123] hover:text-white active:bg-[#c50f1f] active:text-white"
-      @mousedown="preventWindowDrag"
-      @click="handleClose"
-      aria-label="关闭窗口"
-      data-tauri-drag-region="none"
-    >
-      <svg class="h-[15px] w-[15px] fill-none stroke-current stroke-[1.1] [stroke-linecap:square] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]" viewBox="0 0 12 12" aria-hidden="true">
+    <button type="button"
+      class="flex h-8 w-[46px] items-center justify-center bg-transparent  transition-colors duration-150 [-webkit-app-region:no-drag] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgba(88,142,255,0.8)] hover:bg-[#e81123] hover:text-white active:bg-[#c50f1f] active:text-white"
+      @mousedown="preventWindowDrag" @click="handleClose" aria-label="关闭窗口" data-tauri-drag-region="none">
+      <svg
+        class="h-[15px] w-[15px] fill-none stroke-current stroke-[1.1] [stroke-linecap:square] [stroke-linejoin:round] [vector-effect:non-scaling-stroke] [shape-rendering:geometricPrecision]"
+        viewBox="0 0 12 12" aria-hidden="true">
         <path d="M3.25 3.25l5.5 5.5M8.75 3.25l-5.5 5.5" />
       </svg>
     </button>
@@ -123,4 +118,3 @@ onBeforeUnmount(async () => {
   }
 });
 </script>
-

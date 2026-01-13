@@ -1,28 +1,27 @@
 <template>
   <teleport to="body">
-    <Transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 scale-95 -translate-y-1"
-      enter-to-class="opacity-100 scale-100 translate-y-0"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 scale-100 translate-y-0"
-      leave-to-class="opacity-0 scale-95 -translate-y-1"
-    >
-      <div 
-        v-if="show" 
-        class="fixed z-[1000] min-w-[160px] rounded-[10px] border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)] [backdrop-filter:blur(12px)]"
-        :style="{ top: `${position.y}px`, left: `${position.x}px` }"
-        @click.stop
-      >
-        <button class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] text-[var(--primary-text)] transition-colors duration-150 hover:bg-[var(--hover-bg)]" @click="handleRename">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+    <Transition enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0"
+      leave-to-class="opacity-0 scale-95 -translate-y-1">
+      <div v-if="show"
+        class="fixed z-[1000] min-w-[160px] rounded-[10px] border   p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)] [backdrop-filter:blur(12px)]"
+        :style="{ top: `${position.y}px`, left: `${position.x}px` }" @click.stop>
+        <button
+          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px]  transition-colors duration-150"
+          @click="handleRename">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
           <span>重命名</span>
         </button>
-        <button class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] text-[rgba(248,113,113,0.9)] transition-colors duration-150 hover:bg-[rgba(248,113,113,0.15)]" @click="handleDelete">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+        <button
+          class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] text-[rgba(248,113,113,0.9)] transition-colors duration-150 hover:bg-[rgba(248,113,113,0.15)]"
+          @click="handleDelete">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
@@ -32,33 +31,26 @@
     </Transition>
     <div v-if="show" class="fixed inset-0 z-[999]" @click="close"></div>
   </teleport>
-  
+
   <!-- 重命名对话框 -->
   <teleport to="body">
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition duration-200 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div v-if="showRenameDialog" class="fixed inset-0 z-[2000] flex items-center justify-center bg-[rgba(7,10,18,0.35)] [backdrop-filter:blur(10px)]" @click="cancelRename">
-        <div class="min-w-[320px] rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-[22px] pb-[18px] shadow-[var(--glass-shadow)] [backdrop-filter:var(--glass-blur)] [-webkit-backdrop-filter:var(--glass-blur)]" @click.stop>
-          <h3 class="mb-3.5 text-[16px] font-semibold tracking-[0.01em] text-[var(--primary-text)]">重命名文件夹</h3>
-          <input
-            ref="renameInputRef"
-            v-model="renameValue"
-            class="mb-4 w-full rounded-[12px] border border-[var(--glass-border)] bg-[rgba(255,255,255,0.06)] px-3.5 py-2.5 text-[14px] text-[var(--primary-text)] transition-colors duration-200 focus:outline-none focus:border-[color-mix(in_srgb,var(--accent-color)_65%,transparent)]"
-            type="text"
-            placeholder="输入文件夹名称"
-            maxlength="50"
-            @keyup.enter="confirmRename"
-            @keyup.esc="cancelRename"
-          />
+    <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="showRenameDialog"
+        class="fixed inset-0 z-[2000] flex items-center justify-center bg-[rgba(7,10,18,0.35)] [backdrop-filter:blur(10px)]"
+        @click="cancelRename">
+        <div class="min-w-[320px] rounded-2xl border   p-[22px] pb-[18px] " @click.stop>
+          <h3 class="mb-3.5 text-[16px] font-semibold tracking-[0.01em]">重命名文件夹</h3>
+          <input ref="renameInputRef" v-model="renameValue"
+            class="mb-4 w-full rounded-[12px] border  bg-[rgba(255,255,255,0.06)] px-3.5 py-2.5 text-[14px]  transition-colors duration-200 focus:outline-none"
+            type="text" placeholder="输入文件夹名称" maxlength="50" @keyup.enter="confirmRename" @keyup.esc="cancelRename" />
           <div class="flex justify-end gap-2">
-            <button class="rounded-[10px] border border-[var(--glass-border)] bg-[rgba(255,255,255,0.06)] px-[18px] py-2 text-[13px] text-[var(--primary-text)] transition-colors duration-150 hover:bg-[rgba(255,255,255,0.12)] hover:border-[color-mix(in_srgb,var(--glass-border)_80%,transparent)]" @click="cancelRename">取消</button>
-            <button class="rounded-[10px] border border-[color-mix(in_srgb,var(--accent-color)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent-color)_18%,transparent)] px-[18px] py-2 text-[13px] text-[var(--primary-text)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--accent-color)_30%,transparent)] hover:border-[color-mix(in_srgb,var(--accent-color)_65%,transparent)]" @click="confirmRename">确定</button>
+            <button
+              class="rounded-[10px] border  bg-[rgba(255,255,255,0.06)] px-[18px] py-2 text-[13px]  transition-colors duration-150 hover:bg-[rgba(255,255,255,0.12)]"
+              @click="cancelRename">取消</button>
+            <button class="rounded-[10px] border   px-[18px] py-2 text-[13px]  transition-colors duration-150 "
+              @click="confirmRename">确定</button>
           </div>
         </div>
       </div>
@@ -123,4 +115,3 @@ const cancelRename = () => {
   renameValue.value = '';
 };
 </script>
-

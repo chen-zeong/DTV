@@ -1,6 +1,6 @@
 import { ref, computed, Ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { Category1, Category2, Category3 } from '../types'
+import type { Category1, Category2, Category3 } from '../categoryTypes'
 
 export function useCategories(
   selectedCate1Id: Ref<number | null>,

@@ -1,96 +1,56 @@
 <template>
   <motion.div
-    class="relative mb-2 select-none overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-none transition-[box-shadow,background,border-color] duration-200 [backdrop-filter:blur(4px)]"
-    :data-folder-id="folder.id"
-    :class="{ 
-      'border-[rgba(255,255,255,0.7)] shadow-[0_0_0_2px_rgba(255,255,255,0.55),0_0_16px_rgba(255,255,255,0.45),0_0_28px_rgba(255,255,255,0.3)]': isDragOver,
-      'bg-[var(--color-card)]': folder.expanded
-    }"
-    @mousedown="handleHeaderMouseDown"
-    @mouseup="handleHeaderMouseUp"
-    @contextmenu.prevent="handleContextMenu"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
-  >
-    <div class="group flex cursor-pointer items-center gap-3 rounded-[14px] bg-transparent px-4 py-2.5 transition-all duration-200 hover:bg-[rgba(255,255,255,0.08)]" @click="handleToggleClick">
-      <svg 
-        class="h-4 w-4 text-[#94a3b8] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:text-[var(--text-primary)]"
-        :class="folder.expanded ? 'scale-110 text-[var(--text-primary)]' : ''"
-        xmlns="http://www.w3.org/2000/svg" 
-        width="16" 
-        height="16" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        stroke-width="2" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"
-      >
+    class="relative mb-2 select-none overflow-hidden rounded-[24px] border    transition-[box-shadow,background,border-color] duration-200"
+    :data-folder-id="folder.id" :class="{
+      'border-[var(--accent)] shadow-[0_0_0_2px_rgba(29,185,84,0.35),0_0_16px_rgba(29,185,84,0.25)]': isDragOver,
+      'bg-[var(--surface-2)]': folder.expanded
+    }" @mousedown="handleHeaderMouseDown" @mouseup="handleHeaderMouseUp" @contextmenu.prevent="handleContextMenu"
+    @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+    <div
+      class="group flex cursor-pointer items-center gap-3 rounded-[14px] bg-transparent px-4 py-2.5 transition-all duration-200"
+      @click="handleToggleClick">
+      <svg class="h-4 w-4 text-[#94a3b8] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]"
+        :class="folder.expanded ? 'scale-110' : ''" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
       </svg>
-      <span class="flex-1 truncate text-[14px] font-bold tracking-[0.02em] text-[var(--primary-text)] transition-colors duration-200 group-hover:text-[var(--text-primary)]">{{ folder.name }}</span>
-      <span class="rounded-[20px] border border-[rgba(148,163,184,0.3)] bg-[rgba(15,23,42,0.08)] px-2 text-[10px] font-extrabold text-[#94a3b8] transition-colors duration-200 group-hover:border-[rgba(148,163,184,0.5)] group-hover:bg-[rgba(15,23,42,0.12)] group-hover:text-[var(--text-primary)]">{{ folder.streamerIds.length }}</span>
-      <motion.span
-        class="inline-flex h-3 w-3 items-center justify-center text-[#94a3b8] transition-colors duration-200 group-hover:text-[var(--text-primary)]"
-        :animate="{ rotate: folder.expanded ? 180 : 0 }"
-        :transition="{ duration: 0.2, ease: [0.25, 0.8, 0.4, 1] }"
-      >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="12" 
-          height="12" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          stroke-width="2.5" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-        >
+      <span class="flex-1 truncate text-[14px] font-bold tracking-[0.02em]  transition-colors duration-200">{{
+        folder.name }}</span>
+      <span class="rounded-[20px] border   px-2 text-[10px] font-extrabold  transition-colors duration-200  ">{{
+        folder.streamerIds.length }}</span>
+      <motion.span class="inline-flex h-3 w-3 items-center justify-center text-[#94a3b8] transition-colors duration-200"
+        :animate="{ rotate: folder.expanded ? 180 : 0 }" :transition="{ duration: 0.2, ease: [0.25, 0.8, 0.4, 1] }">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </motion.span>
     </div>
     <AnimatePresence :initial="false">
-      <motion.div
-        v-if="folder.expanded && folderItems.length > 0"
+      <motion.div v-if="folder.expanded && folderItems.length > 0"
         class="relative overflow-hidden px-3 pb-4 pt-2 [will-change:height]"
-        :class="{ 'pointer-events-none': globalDragging }"
-        ref="folderContentRef"
-        @mouseleave="handleFolderContentMouseLeave"
-        :initial="{ height: 0, opacity: 0 }"
+        :class="{ 'pointer-events-none': globalDragging }" ref="folderContentRef"
+        @mouseleave="handleFolderContentMouseLeave" :initial="{ height: 0, opacity: 0 }"
         :animate="{ height: folderContentHeight, opacity: 1 }"
         :exit="{ height: 0, opacity: 0, transition: { type: 'tween', duration: 0.24, ease: [0.64, 0, 0.78, 0.39] } }"
-        :transition="{ type: 'tween', duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }"
-        >
+        :transition="{ type: 'tween', duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }">
         <motion.div
-          class="absolute left-0 top-0 z-0 rounded-[10px] border border-[rgba(148,163,184,0.25)] bg-[rgba(148,163,184,0.12)] opacity-0 transition-[transform,width,height] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
-          :initial="folderHoverHighlightInitial"
-          :animate="folderHoverHighlightMotion"
-          :transition="folderHoverHighlightTransition"
-          aria-hidden="true"
-          :style="{ borderRadius: '12px', minHeight: '38px' }"
-        />
+          class="absolute left-0 top-0 z-0 rounded-[10px] border border-[rgba(29,185,84,0.25)] bg-[rgba(29,185,84,0.12)] opacity-0 transition-[transform,width,height] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          :initial="folderHoverHighlightInitial" :animate="folderHoverHighlightMotion"
+          :transition="folderHoverHighlightTransition" aria-hidden="true"
+          :style="{ borderRadius: '12px', minHeight: '38px' }" />
         <ul class="relative z-[1] flex flex-col gap-1">
-          <li
-            v-for="(streamer, index) in folderItems"
-            :key="`${streamer.platform}:${streamer.id}`"
+          <li v-for="(streamer, index) in folderItems" :key="`${streamer.platform}:${streamer.id}`"
             class="rounded-[var(--radius-sm)] bg-transparent transition-all duration-200"
-            :class="getStreamerItemClass(streamer)"
-            :ref="(el) => setFolderItemRef(index, el)"
-            @mouseenter="handleFolderItemMouseEnter(index)"
-            @click.stop="handleClick(streamer)"
+            :class="getStreamerItemClass(streamer)" :ref="(el) => setFolderItemRef(index, el)"
+            @mouseenter="handleFolderItemMouseEnter(index)" @click.stop="handleClick(streamer)"
             @mousedown.stop="(e) => handleFolderStreamerMouseDown(streamer, e)"
             @mouseup.stop="handleFolderStreamerMouseUp"
-            @mouseleave="() => { handleFolderItemMouseLeave(index); handleFolderStreamerMouseUp(); }"
-          >
-            <StreamerItem 
-              :streamer="streamer"
-              :getAvatarSrc="getAvatarSrc"
-              :handleImgError="handleImgError"
-              :getLiveIndicatorClass="getLiveIndicatorClass"
-              :proxyBase="proxyBase"
-              @clickItem="(s) => emit('selectAnchor', s)"
-            />
+            @mouseleave="() => { handleFolderItemMouseLeave(index); handleFolderStreamerMouseUp(); }">
+            <StreamerItem :streamer="streamer" :getAvatarSrc="getAvatarSrc" :handleImgError="handleImgError"
+              :getLiveIndicatorClass="getLiveIndicatorClass" :proxyBase="proxyBase"
+              @clickItem="(s) => emit('selectAnchor', s)" />
           </li>
         </ul>
       </motion.div>
@@ -102,8 +62,7 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { AnimatePresence, motion } from 'motion-v';
 import type { FollowedStreamer } from '../../platforms/common/types';
-import type { FollowFolder } from '../../store/followStore';
-import StreamerItem from './StreamerItem.vue';
+import { useFollowStore, type FollowFolder } from '../../stores/followStore';
 
 const props = defineProps<{
   folder: FollowFolder;
@@ -450,4 +409,3 @@ const getStreamerItemClass = (streamer: FollowedStreamer) => {
 };
 
 </script>
-
