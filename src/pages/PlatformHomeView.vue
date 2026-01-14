@@ -1,47 +1,144 @@
 <template>
-  <div class="flex flex-1 min-h-0 justify-center px-3 pb-3 ">
-    <!-- Center Panel Inline -->
-    <div class="relative flex w-full max-w-300 flex-1 min-h-0 flex-col gap-5 rounded-md h-full bg-linear-to-b from-indigo-500 from-10% via-sky-500 via-30% to-neutral-950 to-90% p-6 shadow-[var(--shadow-lg)]">
-      <!-- Tabs Section -->
-      <div class="flex sticky top-0 items-center justify-between gap-4 w-full z-10 px-4 pt-6 pb-2">
-        <!-- Platform Tabs Inline -->
-        <div class="flex items-center gap-2 rounded text-neutral-200 bg-neutral-800 p-1">
-          <button
-            v-for="platform in platforms"
-            :key="platform.id"
-            type="button"
-            class="rounded-sm px-4 py-2 text-sm font-semibold transition-all duration-200 cursor-pointer"
-            :class="platform.id === activePlatform
-              ? 'bg-purple-500'
-              : 'bg-neutral-800 hover:bg-neutral-700'"
-            @click="handlePlatformChange(platform.id)"
+  <div class="grid grid-cols-9 h-full w-full overflow-hidden bg-neutral-950 text-neutral-200">
+    
+    <!-- Left Column: Navigation / Library -->
+    <div class="col-span-2 h-full overflow-y-auto min-h-0 border-r border-white/5 bg-neutral-900/30 p-4 flex flex-col gap-6 scrollbar-none">
+      <div class="flex justify-between items-center px-2">
+        <h2 class="text-lg font-bold">收藏列表</h2>
+        <div class="flex gap-2">
+          <MagnetIcon class="size-5 text-neutral-400 hover:text-white cursor-pointer" />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <div v-for="value in followedStreamers" :key="value.id" 
+             class="group flex gap-3 items-center p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+             @click="handleSelectHistory(value)">
+          <SmoothImage class="size-12 rounded-full border border-white/10 flex-shrink-0" :src="value.avatarUrl || ''" :alt="value.nickname" />
+          <div class="flex flex-col min-w-0">
+            <p class="text-sm font-semibold text-white truncate">{{ value.nickname }}</p>
+            <p class="text-xs text-neutral-400 truncate">{{ value.roomTitle || '正在直播' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Column: Main Feed -->
+    <div 
+      ref="centerColumnRef"
+      class="col-span-5 h-full overflow-y-auto min-h-0 relative scrollbar-none"
+      @scroll="handleCenterScroll"
+    >
+      <!-- Spotify-like Sticky Header -->
+      <div 
+        class="sticky top-0 z-20 transition-all duration-300 ease-in-out"
+        :class="[
+          isHeaderCollapsed 
+            ? 'bg-neutral-900/95 backdrop-blur-md py-3 shadow-lg' 
+            : 'bg-transparent pt-12 pb-6'
+        ]"
+      >
+        <div class="px-8 flex flex-col gap-6">
+          <div class="flex items-end gap-4 transition-all duration-300"
+               :class="{ 'opacity-0 -translate-y-4 pointer-events-none h-0 mb-0': isHeaderCollapsed, 'opacity-100': !isHeaderCollapsed }">
+            <h1 class="text-6xl font-black tracking-tighter">
+              {{ currentCategoryName || '英雄联盟' }}
+            </h1>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <!-- Category Shortcuts -->
+            <div class="flex gap-3 overflow-x-auto scrollbar-none">
+              <button
+                v-for="cate in categoryShortcuts"
+                :key="cate"
+                class="px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors"
+                :class="isShortcutActive(cate) ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'"
+              >
+                {{ cate }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="px-8 pb-12">
+        <div v-if="isDouyu" class="min-h-0">
+          <div v-if="selectedCategoryInfo" class="min-h-0">
+            <CommonStreamerList 
+              :douyu-category="selectedCategoryInfo" 
+              platformName="douyu"
+              playerRouteName="UniversalPlayer" 
+              :key="selectedCategoryInfo.type + '-' + selectedCategoryInfo.id" 
+              :is-scrolling="isScrolling"
+            />
+          </div>
+          <div v-else-if="isCategoryLoading" class="flex h-96 items-center justify-center">
+            <LoadingDots />
+          </div>
+        </div>
+        <div v-else class="min-h-0">
+          <CommonStreamerList 
+            :selectedCategory="selectedCategory" 
+            :categoriesData="categoriesData"
+            :default-page-size="platformConfig.defaultPageSize" 
+            :platformName="activePlatform"
+            :playerRouteName="platformConfig.playerRouteName" 
+            :is-scrolling="isScrolling"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Info / Actions -->
+    <div class="col-span-2 h-full overflow-y-auto min-h-0 border-l border-white/5 bg-neutral-900/30 p-6 flex flex-col gap-8 scrollbar-none">
+      <div class="flex flex-col gap-4">
+        <p class="text-xs font-black uppercase tracking-widest text-neutral-500">选择平台</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button 
+            v-for="plt in platforms" 
+            :key="plt.id"
+            class="px-4 py-3 rounded-lg text-sm font-bold border border-white/5 transition-all"
+            :class="plt.id === activePlatform ? 'bg-purple-600 border-purple-400 text-white' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'"
+            @click="handlePlatformChange(plt.id)"
           >
-            {{ platform.name }}
+            {{ plt.name }}
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <p class="text-xs font-black uppercase tracking-widest text-neutral-500">快速分类</p>
+        
+        <!-- Sidebar Main Categories -->
+        <div class="flex flex-wrap gap-2 mb-2">
+          <button 
+            v-for="cate1 in sidebarCate1List" 
+            :key="cate1.id"
+            class="px-3 py-1.5 text-xs font-bold rounded-md transition-all border"
+            :class="sidebarSelectedCate1Id === cate1.id 
+              ? 'bg-white text-black border-white' 
+              : 'bg-neutral-800 text-neutral-400 border-transparent hover:border-neutral-600'"
+            @click="sidebarSelectedCate1Id = cate1.id"
+          >
+            {{ cate1.title }}
           </button>
         </div>
 
-        <CategoryCombobox :groups="categoryGroups" :selected-id="currentSelectedId" :loading="isCategoryLoading"
-          placeholder="选择分类..." class="w-64" @select="handleCategorySelect" />
-      </div>
-
-      <!-- Grid Section -->
-      <div class="min-h-0 flex-1 overflow-auto h-full">
-        <div v-if="isDouyu" class="min-h-0 h-full pb-6 ">
-          <div v-if="selectedCategoryInfo" class="min-h-0 h-full pb-6">
-            <CommonStreamerList class="h-full" :douyu-category="selectedCategoryInfo" platformName="douyu"
-              playerRouteName="UniversalPlayer" :key="selectedCategoryInfo.type + '-' + selectedCategoryInfo.id" />
-          </div>
-          <div v-else-if="isCategoryLoading" class="flex min-h-80 items-center justify-center">
-            正在加载分类...
-          </div>
-          <div v-else class="flex min-h-80 items-center justify-center text-neutral-400">
-            请选择一个分类
-          </div>
-        </div>
-        <div v-else class="min-h-0 h-full">
-          <CommonStreamerList class="h-full" :selectedCategory="selectedCategory" :categoriesData="categoriesData"
-            :default-page-size="platformConfig.defaultPageSize" :platformName="activePlatform"
-            :playerRouteName="platformConfig.playerRouteName" />
+        <!-- Sidebar Sub Categories -->
+        <div v-if="sidebarCate2List.length > 0" class="flex flex-wrap gap-2 pt-4 border-t border-white/5">
+          <button 
+            v-for="cate2 in sidebarCate2List" 
+            :key="cate2.id"
+            class="px-3 py-1.5 text-[11px] font-medium rounded-md transition-all border"
+            :class="currentSelectedId === cate2.id 
+              ? 'bg-purple-600/20 text-purple-400 border-purple-500/50' 
+              : 'bg-neutral-900/50 text-neutral-500 border-neutral-800 hover:border-neutral-700 hover:text-neutral-300'"
+            @click="handleCategorySelect(cate2)"
+          >
+            {{ cate2.title }}
+          </button>
         </div>
       </div>
     </div>
@@ -51,25 +148,84 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import CategoryCombobox, { CategoryGroup, CategoryItem } from '../components/Design2/CategoryCombobox.vue'
+import { MagnetIcon } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia'
+import { useFollowStore } from '../stores/followStore'
 import CommonStreamerList from '../components/CommonStreamerList/index.vue'
+import SmoothImage from '../components/Common/SmoothImage.vue'
+import LoadingDots from '../components/Common/LoadingDots.vue'
 import { douyinCategoriesData } from '../platforms/douyin/douyinCategoriesData'
 import { huyaCategoriesData } from '../platforms/huya/huyaCategoriesData'
 import { biliCategoriesData } from '../platforms/bilibili/biliCategoriesData'
 import { useCategories } from '../platforms/douyu/composables/useCategories'
 import type { CategorySelectedEvent as CommonCategorySelectedEvent } from '../platforms/common/categoryTypes'
-import { type UiPlatform } from '../platforms/common/types'
+import { type UiPlatform, type FollowedStreamer } from '../platforms/common/types'
 
 defineOptions({
   name: 'PlatformHomeView'
 })
 
+const router = useRouter()
+const route = useRoute()
+const followStore = useFollowStore()
+const { followedStreamers } = storeToRefs(followStore)
+
+// Layout State
+const centerColumnRef = ref<HTMLElement | null>(null)
+const isHeaderCollapsed = ref(false)
+const isScrolling = ref(false)
+let scrollTimer: number | null = null
+
+const sidebarSelectedCate1Id = ref<string | null>(null)
+
+const handleCenterScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+  isHeaderCollapsed.value = target.scrollTop > 80
+  
+  isScrolling.value = true
+  if (scrollTimer) clearTimeout(scrollTimer)
+  scrollTimer = window.setTimeout(() => {
+    isScrolling.value = false
+  }, 150)
+}
+
+const handleSelectHistory = (streamer: FollowedStreamer) => {
+  router.push({ 
+    name: 'UniversalPlayer', 
+    params: { 
+      platform: streamer.platform.toLowerCase(), 
+      roomId: streamer.id 
+    } 
+  })
+}
+
+// Data Mapping
 const platforms: { id: UiPlatform; name: string }[] = [
   { id: 'douyu', name: '斗鱼' },
   { id: 'huya', name: '虎牙' },
   { id: 'douyin', name: '抖音' },
   { id: 'bilibili', name: 'Bilibili' },
-];
+]
+
+const categoryShortcuts = computed(() => {
+  if (activePlatform.value === 'huya') return ['英雄联盟', '王者荣耀', '和平精英', '主机游戏']
+  return ['全部', '网游', '手游', '单机']
+})
+
+const isShortcutActive = (name: string) => {
+  return currentCategoryName.value === name
+}
+
+// Sidebar Navigation Logic
+const sidebarCate1List = computed(() => {
+  return categoryGroups.value.map(g => ({ id: g.id, title: g.title }))
+})
+
+const sidebarCate2List = computed(() => {
+  if (!sidebarSelectedCate1Id.value) return []
+  const group = categoryGroups.value.find(g => g.id === sidebarSelectedCate1Id.value)
+  return group ? group.items : []
+})
 
 interface SelectedCategoryInfo {
   type: 'cate2' | 'cate3'
@@ -77,8 +233,16 @@ interface SelectedCategoryInfo {
   name?: string
 }
 
-const router = useRouter()
-const route = useRoute()
+interface CategoryItem {
+  id: string
+  title: string
+}
+
+interface CategoryGroup {
+  id: string
+  title: string
+  items: CategoryItem[]
+}
 
 const platformConfigMap: Record<UiPlatform, { playerRouteName: string; defaultPageSize?: number }> = {
   douyu: { playerRouteName: 'UniversalPlayer' },
@@ -96,6 +260,11 @@ const categoriesData = computed(() => {
   if (activePlatform.value === 'huya') return huyaCategoriesData
   if (activePlatform.value === 'bilibili') return biliCategoriesData
   return []
+})
+
+const currentCategoryName = computed(() => {
+  if (isDouyu.value) return selectedCategoryInfo.value?.name
+  return selectedCategory.value?.cate2Name
 })
 
 // Douyu Data Logic
@@ -129,7 +298,6 @@ const categoryGroups = computed<CategoryGroup[]>(() => {
         .map(c2 => ({
           id: c2.shortName, // Use shortName for Douyu ID
           title: c2.cate2Name,
-          // Store extra info if needed by finding it later
         }))
     }))
   } else {
@@ -222,18 +390,31 @@ const initCommonData = () => {
 watch(activePlatform, (newPlatform) => {
   selectedCategory.value = null
   selectedCategoryInfo.value = null
+  sidebarSelectedCate1Id.value = null
 
   if (newPlatform === 'douyu') {
     initDouyuData()
   } else {
-    // Watch for categoriesData change (if dynamic, though currently static for most)
-    // Actually categoriesData is computed based on activePlatform, so it updates immediately.
-    // We just need to set default selection.
     initCommonData()
   }
 }, { immediate: true })
 
-// Also watch categoriesData for Common platforms in case it loads asynchronously (though currently static imports)
+watch(categoryGroups, (newGroups) => {
+  if (newGroups.length > 0) {
+    if (!sidebarSelectedCate1Id.value) {
+      sidebarSelectedCate1Id.value = newGroups[0].id
+    }
+    
+    // Auto-select first category if nothing is selected
+    if (!currentSelectedId.value) {
+      const firstGroup = newGroups[0]
+      if (firstGroup.items.length > 0) {
+        handleCategorySelect(firstGroup.items[0])
+      }
+    }
+  }
+}, { immediate: true })
+
 watch(categoriesData, () => {
   if (!isDouyu.value) {
     initCommonData()

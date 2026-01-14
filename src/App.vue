@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-screen overflow-hidden bg-neutral-900 text-neutral-200">
+  <div class="flex flex-col h-screen overflow-hidden bg-neutral-950 text-neutral-200">
    
     <Navbar v-show="!shouldHidePlayerChrome" :theme="theme" :active-platform="activePlatform"
       @theme-toggle="toggleTheme" @select-anchor="handleSelectAnchorFromSearch" />

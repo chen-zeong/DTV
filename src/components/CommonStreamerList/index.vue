@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full w-full flex-col overflow-hidden mb-6 p-4 min-h-[600px]">
+  <div class="flex h-full w-full flex-col overflow-hidden ">
     <div v-if="isLoading && rooms.length === 0"
       class="flex flex-1 flex-col items-center justify-center gap-3 p-6  min-h-[400px]">
       <LoadingDots />
@@ -13,22 +13,23 @@
       <p>请选择一个分类开始浏览</p>
     </div>
 
-    <div v-else ref="scrollComponentRef"
-      class="flex-1 overflow-y-auto   [--card-radius:18px]  [&::-webkit-scrollbar-thumb]:rounded-[10px]"
-      @scroll.passive="handleScrollerScroll">
-      <div class="grid gap-5 pb-3 grid-cols-4" :style="{ '--items-per-row': itemsPerRow }">
+    <div
+      ref="scrollComponentRef"
+      class="flex-1 [--card-radius:18px]"
+    >
+      <div class="grid gap-x-4 gap-y-8 pb-3 grid-cols-3" :style="{ '--items-per-row': itemsPerRow }">
         <div v-for="room in rooms" :key="room.room_id"
           class="relative transition-transform duration-200 will-change-transform"
           :class="isScrolling ? 'hover:translate-y-0' : ''" @click="goToPlayer(room.room_id)">
           <div
             class="group flex cursor-pointer flex-col overflow-hidden rounded-sm border-neutral-50  transition-all duration-200  ">
             <div class="relative w-full overflow-hidden aspect-video">
-              <div class="relative h-full w-full">
+              <div class="relative h-full w-full ">
                 <SmoothImage :src="room.room_cover || ''" :alt="room.title" class="h-full w-full" />
                 <div class="pointer-events-none absolute inset-0 "></div>
                 <span
-                  class="absolute right-3 top-3 flex items-center gap-2 rounded-full border   px-2.5 py-1 text-[10px] font-semibold">
-                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                  class="absolute right-2 top-2 text-neutral-200  flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs ">
+                  <svg class="size-3" viewBox="0 0 24 24" fill="currentColor">
                     <path
                       d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
                   </svg>
@@ -36,25 +37,33 @@
                 </span>
               </div>
             </div>
-            <div class="flex items-center gap-3   px-4 py-2">
+            <div class="gap-1.5  absolute flex items-center bottom-7 left-1.5">
               <div class="flex-shrink-0">
                 <SmoothImage :src="room.avatar || ''" :alt="room.nickname"
-                  class="size-12 rounded-full border object-cover transition-colors duration-300 " />
+                  class="size-8 rounded-full border object-cover transition-colors duration-300 " />
               </div>
               <div class="min-w-0 flex-1">
-                <h3 class="mb-1 truncate text-[14px]  leading-[1.2]" :title="room.title">{{
-                  room.title }}</h3>
+                
                 <div class="flex min-w-0 items-center">
                   <span class="block truncate text-xs ">{{ room.nickname || '主播' }}</span>
                 </div>
               </div>
             </div>
+            <h3 class=" truncate text-xs  pt-2" :title="room.title">{{
+              room.title }}</h3>
           </div>
         </div>
       </div>
-    </div>
-    <div v-if="isLoadingMore" class="flex flex-col items-center justify-center gap-3 p-6">
-      <LoadingDots />
+      
+      <!-- Bottom Sentinel for Infinite Loading -->
+      <div ref="loadMoreSentinel" class="h-10 w-full flex items-center justify-center py-4">
+        <div v-if="isLoadingMore || (isLoading && rooms.length > 0)">
+          <LoadingDots />
+        </div>
+        <div v-else-if="!hasMore && rooms.length > 0" class="text-xs text-neutral-500">
+          已经到底啦
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -62,7 +71,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useResizeObserver } from '@vueuse/core';
+import { useResizeObserver, useIntersectionObserver } from '@vueuse/core';
 import type { CategorySelectedEvent } from '../../platforms/common/categoryTypes'
 import { useHuyaLiveRooms } from './composables/useHuyaLiveRooms.ts'
 import { useDouyinLiveRooms } from './composables/useDouyinLiveRooms.ts'
@@ -84,11 +93,25 @@ const props = defineProps<{
   platformName?: 'huya' | 'douyin' | 'douyu' | 'bilibili' | string;
   defaultPageSize?: number;
   douyuCategory?: DouyuCategorySelection | null;
+  isScrolling?: boolean; // Prop from parent
 }>();
 
 const router = useRouter();
-const scrollComponentRef = ref<any | null>(null);
+const scrollComponentRef = ref<HTMLElement | null>(null);
+const loadMoreSentinel = ref<HTMLElement | null>(null);
 const containerWidth = ref(0);
+
+// Infinite Loading Logic
+useIntersectionObserver(
+  loadMoreSentinel,
+  ([{ isIntersecting }]) => {
+    if (isIntersecting && hasMore.value && !isLoading.value && !isLoadingMore.value) {
+      loadMoreRooms();
+    }
+  },
+  { threshold: 0.1 }
+);
+
 const categoryHref = computed(() => props.selectedCategory?.cate2Href || null);
 const platformName = computed(() => props.platformName ?? 'huya');
 const douyuCategoryId = computed(() => props.douyuCategory?.id || null);
@@ -174,61 +197,6 @@ const itemsPerRow = computed(() => {
   return Math.max(1, Math.floor((width + gridGap) / (minCardWidth + gridGap)));
 });
 
-
-const isScrolling = ref(false);
-let scrollStopTimer: number | null = null;
-
-const handleScrollerScroll = (event: Event) => {
-  const target = event.target as HTMLElement | null;
-  if (!target || !hasMore.value || isLoading.value || isLoadingMore.value) return;
-  const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 260;
-  if (nearBottom) loadMoreRooms();
-  isScrolling.value = true;
-  if (scrollStopTimer !== null) window.clearTimeout(scrollStopTimer);
-  scrollStopTimer = window.setTimeout(() => {
-    isScrolling.value = false;
-    scrollStopTimer = null;
-  }, 120);
-};
-
-const maybeEnsureContentFillsViewport = () => {
-  const rootEl = scrollElement.value;
-  if (!rootEl || !hasMore.value || isLoading.value || isLoadingMore.value) return;
-  const needsMore = rootEl.scrollHeight - rootEl.clientHeight <= 100;
-  if (needsMore) loadMoreRooms();
-};
-
-const scheduleEnsureContentFill = () => {
-  if (typeof window === 'undefined') return;
-  if (resizeRaf) cancelAnimationFrame(resizeRaf);
-  if (ensureTimer) {
-    window.clearTimeout(ensureTimer);
-    ensureTimer = null;
-  }
-  resizeRaf = window.requestAnimationFrame(() => {
-    resizeRaf = null;
-    nextTick(() => maybeEnsureContentFillsViewport());
-  });
-  ensureTimer = window.setTimeout(() => {
-    ensureTimer = null;
-    maybeEnsureContentFillsViewport();
-  }, 160);
-};
-
-onMounted(() => {
-  if (typeof window !== 'undefined') window.addEventListener('resize', scheduleEnsureContentFill);
-  nextTick(() => {
-    scheduleEnsureContentFill();
-  });
-});
-
-onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') window.removeEventListener('resize', scheduleEnsureContentFill);
-  if (resizeRaf) cancelAnimationFrame(resizeRaf);
-  if (ensureTimer) window.clearTimeout(ensureTimer);
-  if (scrollStopTimer !== null) window.clearTimeout(scrollStopTimer);
-});
-
 const lastSelectionKey = ref<string | null>(null);
 
 const getSelectionKey = (category: CategorySelectedEvent | null | undefined): string | null => {
@@ -246,9 +214,6 @@ watch([() => props.selectedCategory, () => props.douyuCategory, platformName], (
   lastSelectionKey.value = nextKey;
 
   if (isSameSelection && rooms.value.length > 0) {
-    nextTick(() => {
-      scheduleEnsureContentFill();
-    });
     return;
   }
 
@@ -262,14 +227,7 @@ watch([() => props.selectedCategory, () => props.douyuCategory, platformName], (
     else if (platformName.value === 'bilibili') bilibiliComposable.rooms.value = [];
     else huyaComposable.rooms.value = [];
   }
-  nextTick(() => {
-    scheduleEnsureContentFill();
-  });
 }, { immediate: true, deep: true });
-
-watch([rooms, isLoading, isLoadingMore], () => {
-  if (!isLoading.value && !isLoadingMore.value) scheduleEnsureContentFill();
-});
 
 const goToPlayer = (roomId: string) => {
   if (roomId && props.playerRouteName) {

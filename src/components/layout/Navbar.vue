@@ -2,9 +2,13 @@
   <nav class="sticky top-0 z-50 flex py-2 items-center px-5 " data-tauri-drag-region :style="{
     paddingRight: shouldShowWindowsControls && !isMacPreview ? '160px' : '20px',
   }">
-    <div class="flex w-full items-center gap-4" data-tauri-drag-region>
+
+
+    <div class="flex w-full items-center gap-2" data-tauri-drag-region>
       <div class="flex flex-1"> </div>
+      <div class="size-10 rounded-full bg-white/30"></div>
       <div class="relative flex-none" data-tauri-drag-region>
+       
         <div class="relative w-130 max-w-full" ref="searchContainerRef" data-tauri-drag-region="false">
           <div
             class="relative z-1000 flex h-10 w-full items-center gap-2 rounded-full bg-neutral-700   px-4 text-sm   transition-transform duration-200"
