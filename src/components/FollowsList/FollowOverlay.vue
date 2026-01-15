@@ -19,7 +19,7 @@
         >
           <div
             ref="panelRef"
-            class="fixed z-[1201] w-[min(1180px,calc(100vw-48px))] [transform:translateZ(0)] border"
+            class="fixed z-1200 w-[min(1180px,calc(100vw-48px))] [transform:translateZ(0)] border"
             :style="{
               top: `${panelTop}px`,
               left: `${panelLeft}px`,

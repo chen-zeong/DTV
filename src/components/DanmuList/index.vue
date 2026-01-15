@@ -2,6 +2,32 @@
   <div
     class="flex h-full max-h-full w-full flex-col overflow-hidden rounded-tr-2xl rounded-br-2xl border border-l-0 max-lg:rounded-[12px] max-lg:border-l"
   >
+    <!-- Header -->
+    <div
+      class="flex h-10 min-h-[40px] w-full items-center justify-between border-b border-border-main bg-surface-mid/50 px-3"
+    >
+      <span class="text-xs font-medium text-text-main">弹幕列表</span>
+      <button
+        @click="$emit('collapse')"
+        class="flex h-6 w-6 items-center justify-center rounded-md text-text-muted hover:bg-surface-high hover:text-text-main"
+        title="收起列表"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
+    </div>
+
     <div
       class="relative max-h-full min-h-0 flex-1 overflow-y-auto px-3 py-2.5"
       ref="danmakuListEl"
@@ -36,12 +62,12 @@
         title="点击复制弹幕"
       >
         <div
-          class="flex flex-wrap items-center gap-1.5 text-[0.72rem] tracking-[0.01em] text-[rgba(204,212,236,0.72)]"
+          class="flex flex-wrap items-center gap-1.5 text-[0.72rem] tracking-[0.01em] text-text-muted"
           v-if="!danmaku.isSystem"
         >
           <span
             v-if="danmaku.badgeName"
-            class="inline-flex items-center rounded-full bg-[linear-gradient(135deg,rgba(92,153,255,0.75),rgba(236,112,214,0.68))] px-2 py-0.5 text-[0.64rem] text-white shadow-[0_6px_14px_rgba(100,140,255,0.24)]"
+            class="inline-flex items-center rounded-full bg-[linear-gradient(135deg,rgba(92,153,255,0.75),rgba(236,112,214,0.68))] px-2 py-0.5 text-[0.64rem] text-white shadow-sm"
           >
             <span>{{ danmaku.badgeName }}</span>
             <span
@@ -54,9 +80,7 @@
             class="font-semibold"
             :style="{ color: danmaku.color || userColor(danmaku.nickname) }"
           >
-            <span
-              v-if="danmaku.level"
-              class="mr-1 text-[0.7rem] text-[rgba(166,183,219,0.85)]"
+            <span v-if="danmaku.level" class="mr-1 text-[0.7rem] opacity-80"
               >[Lv.{{ danmaku.level }}]</span
             >
             {{ danmaku.nickname }}
@@ -64,12 +88,12 @@
         </div>
         <div class="inline-flex max-w-full text-[0.8rem] leading-[1.4]">
           <span
-            class="inline-flex w-fit max-w-full items-center rounded-[12px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[0.84rem] leading-[1.45] [overflow-wrap:break-word] whitespace-pre-wrap text-[rgba(244,246,255,0.94)] [text-shadow:0_1px_2px_rgba(6,9,18,0.6)] [word-wrap:break-word]"
+            class="inline-flex w-fit max-w-full items-center rounded-[12px] border border-border-main bg-surface-mid/50 px-2.5 py-1.5 text-[0.84rem] leading-[1.45] [overflow-wrap:break-word] whitespace-pre-wrap text-text-main [word-wrap:break-word]"
             :class="
               danmaku.isSystem && danmaku.type === 'success'
-                ? 'border-0 bg-transparent p-0 font-semibold text-[#49df85] [text-shadow:none]'
+                ? 'border-0 bg-transparent p-0 font-semibold text-[#49df85]'
                 : danmaku.isSystem
-                  ? 'text-[rgba(210,240,220,0.95)]'
+                  ? 'text-green-600 dark:text-green-400'
                   : ''
             "
           >
@@ -105,6 +129,10 @@ interface DanmakuUIMessage {
   type?: string;
   room_id?: string; // 补充房间ID以便 key 生成更稳定
 }
+
+defineEmits<{
+  (e: "collapse"): void;
+}>();
 
 const props = defineProps<{
   roomId: string | null;

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { FollowedStreamer, LiveStatus } from "../platforms/common/types";
+import type { FollowedStreamer } from "../platforms/common/types";
 import { Platform } from "../platforms/common/types";
 import { refreshDouyuFollowedStreamer } from "../platforms/douyu/followListHelper";
 import { refreshDouyinFollowedStreamer } from "../platforms/douyin/followListHelper";

@@ -6,7 +6,7 @@
       class="relative z-[1] grid [grid-template-columns:auto_minmax(0,1fr)_auto] items-center gap-5 max-lg:gap-[18px] max-md:gap-4"
     >
       <div
-        class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl border-[rgba(255,255,255,0.22)] bg-[linear-gradient(135deg,rgba(96,156,255,0.5),rgba(219,134,255,0.34))] shadow-[0_14px_28px_rgba(9,12,24,0.55)] hover:-translate-y-1 hover:border-[rgba(255,255,255,0.38)] hover:shadow-[0_18px_32px_rgba(9,12,24,0.62)]"
+        class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl border border-border-main bg-surface-mid shadow-md transition-all hover:-translate-y-1"
       >
         <img
           v-if="avatarUrl && !showAvatarText"
@@ -17,7 +17,7 @@
         />
         <div
           v-else
-          class="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#ff4757,#ff6b81)] text-lg text-white"
+          class="flex h-full w-full items-center justify-center bg-brand text-lg text-white"
         >
           {{ computedNickname.charAt(0).toUpperCase() }}
         </div>
@@ -25,27 +25,24 @@
 
       <div class="flex min-w-0 flex-col gap-2.5">
         <h3
-          class="line-clamp-2 text-left text-[1.05rem] leading-[1.35] tracking-[0.25px] text-[rgba(250,251,255,0.98)] [text-shadow:0_8px_20px_rgba(8,11,20,0.5)]"
+          class="line-clamp-2 text-left text-[1.05rem] leading-[1.35] font-bold tracking-[0.25px] text-text-main"
           :title="computedRoomTitle"
         >
           {{ computedRoomTitle }}
         </h3>
-        <div
-          class="flex flex-wrap items-center gap-4 text-[rgba(202,210,232,0.82)]"
-        >
+        <div class="flex flex-wrap items-center gap-4 text-text-dim">
           <span
-            class="text-[0.88rem] tracking-[0.03em] text-[rgba(214,223,255,0.9)]"
+            class="text-[0.88rem] font-medium tracking-[0.03em] text-text-main"
             >{{ computedNickname }}</span
           >
           <span
-            class="inline-flex items-center rounded-full border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.1)] px-2.5 py-[3px] text-[0.72rem] leading-[1.3] tracking-[0.05em] text-white"
-            :class="
-              statusClass === 'live'
-                ? 'border-[rgba(53,210,122,0.5)] bg-[linear-gradient(135deg,#35d27a,#23b263)]'
-                : statusClass === 'looping'
-                  ? 'border-[rgba(128,145,255,0.4)] bg-[linear-gradient(135deg,#8091ff,#a071ff)]'
-                  : 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.12)] text-[rgba(225,229,243,0.78)]'
-            "
+            class="inline-flex items-center rounded-full border border-border-main bg-surface-high/50 px-2.5 py-[3px] text-[0.72rem] leading-[1.3] tracking-[0.05em] text-text-main"
+            :class="{
+              'border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400':
+                statusClass === 'live',
+              'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400':
+                statusClass === 'looping',
+            }"
             >{{ getStatusText }}</span
           >
           <!-- Bilibili login button -->
@@ -54,16 +51,14 @@
             class="inline-flex items-center gap-2"
           >
             <button
-              class="inline-flex items-center gap-1.5 rounded-md bg-[rgba(255,255,255,0.06)] px-2.5 py-1 text-[0.75rem] hover:-translate-y-0.5 active:scale-95"
+              class="inline-flex items-center gap-1.5 rounded-md bg-surface-high/50 px-2.5 py-1 text-[0.75rem] text-text-muted transition-colors hover:bg-surface-high hover:text-text-main active:scale-95"
               @click="handleBilibiliLogin"
               :disabled="isLoggingIn"
               :title="
                 hasRequiredBilibiliCookie ? '点击重新登录' : '登录以同步 Cookie'
               "
             >
-              <span v-if="isLoggingIn" class="text-[var(--secondary-text)]"
-                >登录中...</span
-              >
+              <span v-if="isLoggingIn">登录中...</span>
               <span
                 v-else-if="hasRequiredBilibiliCookie"
                 class="inline-flex items-center gap-1"
@@ -81,33 +76,33 @@
                 </svg>
                 已登录
               </span>
-              <span v-else class="text-[var(--secondary-text)]"> 登录 </span>
+              <span v-else> 登录 </span>
             </button>
             <button
               v-if="hasRequiredBilibiliCookie && !isLoggingIn"
-              class="rounded-md border-transparent bg-transparent px-2 py-1 text-[0.75rem] hover:-translate-y-0.5 active:scale-95"
+              class="rounded-md border-transparent bg-transparent px-2 py-1 text-[0.75rem] text-text-muted transition-colors hover:text-text-main active:scale-95"
               @click="handleBilibiliLogout"
             >
               退出
             </button>
-            <span v-if="loginError" class="text-[0.72rem]">{{
+            <span v-if="loginError" class="text-[0.72rem] text-red-500">{{
               loginError
             }}</span>
           </span>
           <span
             v-if="computedViewerCount > 0"
-            class="inline-flex items-center gap-1.5 rounded-full border-[rgba(255,255,255,0.12)] bg-[rgba(12,16,28,0.65)] px-3 py-1 text-[0.78rem] text-[rgba(216,224,253,0.88)] shadow-[0_12px_24px_rgba(8,10,20,0.35)] [backdrop-filter:blur(10px)] [-webkit-backdrop-filter:blur(10px)]"
+            class="inline-flex items-center gap-1.5 rounded-full border border-border-main bg-surface-high/80 px-3 py-1 text-[0.78rem] text-text-main shadow-sm backdrop-blur-sm"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="1em"
               height="1em"
               viewBox="0 0 24 24"
-              class="h-[13px] w-[13px] opacity-90"
+              class="h-[13px] w-[13px] text-brand"
             >
               <path
                 fill="currentColor"
-                d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3"
+                d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5 5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3"
               />
             </svg>
             {{ formattedViewerCount }}
@@ -117,27 +112,27 @@
 
       <div class="ml-auto flex flex-shrink-0 items-center justify-end">
         <div
-          class="relative flex min-w-[210px] items-stretch overflow-hidden rounded-[14px] border border-[rgba(255,255,255,0.12)] bg-[rgba(15,18,28,0.9)] p-0.5 shadow-[0_14px_28px_rgba(9,12,24,0.5)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)]"
+          class="relative flex min-w-[210px] items-stretch overflow-hidden rounded-[14px] border border-border-main bg-surface-mid/90 p-0.5 shadow-md backdrop-blur-md"
           ref="idFollowContainerRef"
         >
           <span
-            class="absolute top-[3px] bottom-[3px] rounded-[12px] bg-[rgba(114,169,255,0.92)]"
+            class="absolute top-[3px] bottom-[3px] rounded-[12px] bg-brand/90 transition-all duration-300"
           ></span>
           <span
-            class="relative z-[1] flex max-w-[140px] min-w-[90px] flex-1 items-center justify-center overflow-hidden rounded-[12px] px-3.5 py-2 text-[0.78rem] text-ellipsis whitespace-nowrap text-[rgba(210,220,246,0.85)]"
+            class="relative z-[1] flex max-w-[140px] min-w-[90px] flex-1 items-center justify-center overflow-hidden rounded-[12px] px-3.5 py-2 text-[0.78rem] text-ellipsis whitespace-nowrap text-text-muted transition-colors duration-300"
             ref="streamerIdRef"
-            :class="{ 'text-white': isFollowing }"
+            :class="{ 'font-bold text-white dark:text-app-bg': isFollowing }"
             >ID:{{ props.roomId }}</span
           >
           <button
-            class="relative z-[1] flex min-w-[92px] items-center justify-center gap-2 rounded-[12px] px-3.5 py-2 text-[0.82rem] whitespace-nowrap text-[rgba(230,235,255,0.92)]"
+            class="relative z-[1] flex min-w-[92px] items-center justify-center gap-2 rounded-[12px] px-3.5 py-2 text-[0.82rem] font-bold whitespace-nowrap text-text-main transition-colors duration-300"
             ref="followBtnRef"
-            :class="{ 'text-white': !isFollowing }"
+            :class="{ 'text-white dark:text-app-bg': !isFollowing }"
             @click="toggleFollow"
           >
             <span class="relative flex h-4 w-4 items-center justify-center">
               <span
-                class="absolute inset-0 flex items-center justify-center"
+                class="absolute inset-0 flex items-center justify-center transition-all"
                 :class="
                   isFollowing
                     ? 'scale-50 -rotate-90 opacity-0'
@@ -157,7 +152,7 @@
                 </svg>
               </span>
               <span
-                class="absolute inset-0 flex items-center justify-center"
+                class="absolute inset-0 flex items-center justify-center transition-all"
                 :class="
                   isFollowing
                     ? 'scale-100 rotate-0 opacity-100'

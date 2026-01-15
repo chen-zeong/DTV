@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="flex h-screen flex-col overflow-hidden bg-app-bg text-text-main"
-  >
+  <div class="flex h-screen flex-col overflow-hidden bg-app-bg text-text-main">
     <Navbar
       v-show="!shouldHidePlayerChrome"
       :theme="theme"
@@ -10,9 +8,7 @@
       @select-anchor="handleSelectAnchorFromSearch"
     />
 
-    <div
-      class="flex min-h-0 flex-1 overflow-hidden"
-    >
+    <div class="flex min-h-0 flex-1 overflow-hidden">
       <main
         class="relative min-h-0 flex-1 overflow-y-auto"
         :class="{ 'p-0': isPlayerRoute }"
@@ -24,7 +20,10 @@
           @fullscreen-change="handleFullscreenChange"
         >
           <keep-alive :include="['PlatformHomeView']">
-            <component :is="Component" :key="route.name === 'UniversalPlayer' ? route.path : 'home'" />
+            <component
+              :is="Component"
+              :key="route.name === 'UniversalPlayer' ? route.path : 'home'"
+            />
           </keep-alive>
         </router-view>
       </main>

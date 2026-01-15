@@ -1,30 +1,41 @@
 <template>
   <div
-    class="flex h-full w-full overflow-hidden bg-app-bg text-text-main p-4 gap-4"
+    class="flex h-full w-full gap-4 overflow-hidden bg-app-bg p-4 text-text-main"
   >
     <!-- Left Column: Navigation / Library -->
     <div
       class="scrollbar-none flex h-full min-h-0 flex-col gap-4 overflow-y-auto border-r border-border-main bg-surface-low/30 p-4 transition-[width,padding,opacity] duration-300 ease-in-out"
       :class="isLeftCollapsed ? 'w-16 items-center px-2' : 'w-72'"
     >
-      <div class="flex items-center justify-between px-2 w-full" :class="{ 'flex-col gap-4': isLeftCollapsed }">
-        <h2 v-if="!isLeftCollapsed" class="text-lg font-bold truncate">收藏列表</h2>
-        <div class="flex items-center gap-1" :class="{ 'flex-col': isLeftCollapsed }">
-          <button 
+      <div
+        class="flex w-full items-center justify-between px-2"
+        :class="{ 'flex-col gap-4': isLeftCollapsed }"
+      >
+        <h2 v-if="!isLeftCollapsed" class="truncate text-lg font-bold">
+          收藏列表
+        </h2>
+        <div
+          class="flex items-center gap-1"
+          :class="{ 'flex-col': isLeftCollapsed }"
+        >
+          <button
             v-if="!isLeftCollapsed"
-            @click="showCollectionSearch = !showCollectionSearch" 
-            class="p-1.5 rounded-md hover:bg-surface-high text-text-muted hover:text-text-main"
-            :class="{ 'text-brand bg-brand/10': showCollectionSearch }"
+            @click="showCollectionSearch = !showCollectionSearch"
+            class="rounded-md p-1.5 text-text-muted hover:bg-surface-high hover:text-text-main"
+            :class="{ 'bg-brand/10 text-brand': showCollectionSearch }"
           >
             <Search class="size-4" />
           </button>
-          
-          <button 
+
+          <button
             @click="isLeftCollapsed = !isLeftCollapsed"
-            class="p-1.5 rounded-md hover:bg-surface-high text-text-muted hover:text-text-main"
+            class="rounded-md p-1.5 text-text-muted hover:bg-surface-high hover:text-text-main"
             title="收起/展开"
           >
-            <PanelLeft class="size-5 transition-transform duration-300" :class="{ 'rotate-180': isLeftCollapsed }" />
+            <PanelLeft
+              class="size-5 transition-transform duration-300"
+              :class="{ 'rotate-180': isLeftCollapsed }"
+            />
           </button>
         </div>
       </div>
@@ -33,121 +44,257 @@
         <div class="flex flex-col gap-4 px-2">
           <div class="flex items-center justify-between">
             <div class="relative" ref="collectionSortPopoverRef">
-              <button 
-                @click="showCollectionSortPopover = !showCollectionSortPopover" 
-                class="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-surface-high text-xs font-bold text-text-muted hover:text-text-main"
+              <button
+                @click="showCollectionSortPopover = !showCollectionSortPopover"
+                class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold text-text-muted hover:bg-surface-high hover:text-text-main"
                 :class="{ 'text-brand': showCollectionSortPopover }"
               >
                 {{ sortLabel }}
                 <ChevronDown class="size-3" />
               </button>
-              
+
               <!-- Sort & View Popover -->
-              <div v-if="showCollectionSortPopover" class="absolute left-0 top-full mt-2 z-50 w-48 bg-surface-low border border-border-strong rounded-xl shadow-lg p-2 backdrop-blur-xl">
-                <div class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted border-b border-border-main mb-1">
+              <div
+                v-if="showCollectionSortPopover"
+                class="absolute top-full left-0 z-50 mt-2 w-48 rounded-xl border border-border-strong bg-surface-low p-2 shadow-lg backdrop-blur-xl"
+              >
+                <div
+                  class="mb-1 border-b border-border-main px-3 py-2 text-[10px] font-black tracking-widest text-text-muted uppercase"
+                >
                   排序
                 </div>
-                <div class="flex flex-col gap-0.5 mb-2">
-                  <button @click="collectionSortMode = 'recent_view'; showCollectionSortPopover = false" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-high text-xs font-medium" :class="collectionSortMode === 'recent_view' ? 'text-brand bg-brand/10' : 'text-text-dim'">
+                <div class="mb-2 flex flex-col gap-0.5">
+                  <button
+                    @click="
+                      collectionSortMode = 'recent_view';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium hover:bg-surface-high"
+                    :class="
+                      collectionSortMode === 'recent_view'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-dim'
+                    "
+                  >
                     <Clock class="size-3.5" /> 最近观看
                   </button>
-                  <button @click="collectionSortMode = 'recent_follow'; showCollectionSortPopover = false" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-high text-xs font-medium" :class="collectionSortMode === 'recent_follow' ? 'text-brand bg-brand/10' : 'text-text-dim'">
+                  <button
+                    @click="
+                      collectionSortMode = 'recent_follow';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium hover:bg-surface-high"
+                    :class="
+                      collectionSortMode === 'recent_follow'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-dim'
+                    "
+                  >
                     <Plus class="size-3.5" /> 最近关注
                   </button>
-                  <button @click="collectionSortMode = 'alphabetical'; showCollectionSortPopover = false" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-high text-xs font-medium" :class="collectionSortMode === 'alphabetical' ? 'text-brand bg-brand/10' : 'text-text-dim'">
+                  <button
+                    @click="
+                      collectionSortMode = 'alphabetical';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium hover:bg-surface-high"
+                    :class="
+                      collectionSortMode === 'alphabetical'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-dim'
+                    "
+                  >
                     <ArrowDownAZ class="size-3.5" /> 字母排序
                   </button>
                 </div>
 
-                <div class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted border-b border-border-main mb-1">
+                <div
+                  class="mb-1 border-b border-border-main px-3 py-2 text-[10px] font-black tracking-widest text-text-muted uppercase"
+                >
                   视图
                 </div>
                 <div class="grid grid-cols-2 gap-1">
-                  <button @click="collectionViewMode = 'current'; showCollectionSortPopover = false" class="flex items-center justify-center p-2 rounded-lg hover:bg-surface-high" :class="collectionViewMode === 'current' ? 'text-brand bg-brand/10' : 'text-text-muted'" title="默认视图">
+                  <button
+                    @click="
+                      collectionViewMode = 'current';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center justify-center rounded-lg p-2 hover:bg-surface-high"
+                    :class="
+                      collectionViewMode === 'current'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-muted'
+                    "
+                    title="默认视图"
+                  >
                     <LayoutGrid class="size-4" />
                   </button>
-                  <button @click="collectionViewMode = 'list'; showCollectionSortPopover = false" class="flex items-center justify-center p-2 rounded-lg hover:bg-surface-high" :class="collectionViewMode === 'list' ? 'text-brand bg-brand/10' : 'text-text-muted'" title="列表视图">
+                  <button
+                    @click="
+                      collectionViewMode = 'list';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center justify-center rounded-lg p-2 hover:bg-surface-high"
+                    :class="
+                      collectionViewMode === 'list'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-muted'
+                    "
+                    title="列表视图"
+                  >
                     <List class="size-4" />
                   </button>
-                  <button @click="collectionViewMode = 'card2'; showCollectionSortPopover = false" class="flex items-center justify-center p-2 rounded-lg hover:bg-surface-high text-[10px] font-black" :class="collectionViewMode === 'card2' ? 'text-brand bg-brand/10' : 'text-text-muted'" title="双列卡片">
+                  <button
+                    @click="
+                      collectionViewMode = 'card2';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center justify-center rounded-lg p-2 text-[10px] font-black hover:bg-surface-high"
+                    :class="
+                      collectionViewMode === 'card2'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-muted'
+                    "
+                    title="双列卡片"
+                  >
                     2×2
                   </button>
-                  <button @click="collectionViewMode = 'card3'; showCollectionSortPopover = false" class="flex items-center justify-center p-2 rounded-lg hover:bg-surface-high text-[10px] font-black" :class="collectionViewMode === 'card3' ? 'text-brand bg-brand/10' : 'text-text-muted'" title="三列卡片">
+                  <button
+                    @click="
+                      collectionViewMode = 'card3';
+                      showCollectionSortPopover = false;
+                    "
+                    class="flex items-center justify-center rounded-lg p-2 text-[10px] font-black hover:bg-surface-high"
+                    :class="
+                      collectionViewMode === 'card3'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-muted'
+                    "
+                    title="三列卡片"
+                  >
                     3×3
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <div v-if="showCollectionSearch" class="relative">
-            <input 
+            <input
               v-model="collectionSearchQuery"
-              type="text" 
+              type="text"
               placeholder="搜索收藏..."
-              class="w-full bg-surface-mid border border-border-main rounded-md px-3 py-1.5 text-xs outline-none focus:border-brand"
+              class="w-full rounded-md border border-border-main bg-surface-mid px-3 py-1.5 text-xs outline-none focus:border-brand"
               autofocus
             />
           </div>
         </div>
 
         <!-- Collection List Area -->
-        <div 
-          class="flex flex-col gap-1 min-h-0"
-          :class="{ 
+        <div
+          class="flex min-h-0 flex-col gap-1"
+          :class="{
             'grid grid-cols-2 gap-2 px-2': collectionViewMode === 'card2',
-            'grid grid-cols-3 gap-1 px-1': collectionViewMode === 'card3'
+            'grid grid-cols-3 gap-1 px-1': collectionViewMode === 'card3',
           }"
         >
-          <div v-if="filteredSortedCollection.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
-            <p class="text-text-muted text-xs">没有找到收藏主播</p>
+          <div
+            v-if="filteredSortedCollection.length === 0"
+            class="flex flex-col items-center justify-center py-12 text-center"
+          >
+            <p class="text-xs text-text-muted">没有找到收藏主播</p>
           </div>
-          
+
           <template v-else>
-            <div v-for="value in filteredSortedCollection" :key="value.id"
+            <div
+              v-for="value in filteredSortedCollection"
+              :key="value.id"
               class="group flex cursor-pointer"
               :class="[
-                collectionViewMode === 'current' ? 'items-center gap-3 p-2 rounded-lg hover:bg-surface-high' : '',
-                collectionViewMode === 'list' ? 'items-center gap-2 p-1.5 rounded hover:bg-surface-high' : '',
-                (collectionViewMode === 'card2' || collectionViewMode === 'card3') ? 'flex-col gap-2 p-2 rounded-xl bg-surface-mid/50 border border-transparent hover:border-brand/30 hover:bg-surface-high shadow-sm' : ''
+                collectionViewMode === 'current'
+                  ? 'items-center gap-3 rounded-lg p-2 hover:bg-surface-high'
+                  : '',
+                collectionViewMode === 'list'
+                  ? 'items-center gap-2 rounded p-1.5 hover:bg-surface-high'
+                  : '',
+                collectionViewMode === 'card2' || collectionViewMode === 'card3'
+                  ? 'flex-col gap-2 rounded-xl border border-transparent bg-surface-mid/50 p-2 shadow-sm hover:border-brand/30 hover:bg-surface-high'
+                  : '',
               ]"
-              @click="handleSelectHistory(value)">
-              
-                          <div class="relative shrink-0">
-                            <SmoothImage 
-                              class="rounded-full border border-border-main shadow-sm" 
-                              :class="[
-                                collectionViewMode === 'current' ? 'size-12' : '',
-                                collectionViewMode === 'list' ? 'size-8' : '',
-                                collectionViewMode === 'card2' ? 'size-full aspect-square rounded-lg' : '',
-                                collectionViewMode === 'card3' ? 'size-full aspect-square rounded-lg' : ''
-                              ]"
-                              :src="value.avatarUrl || ''"
-                              :alt="value.nickname" 
-                            />
-                            <!-- Online Signal Dot -->
-                            <div 
-                              v-if="value.liveStatus === 'LIVE' || value.isLive || value.liveStatus === 'REPLAY'"
-                              class="absolute bottom-0 right-0 size-3 rounded-full border-2 border-app-bg shadow-sm"
-                              :class="value.liveStatus === 'REPLAY' ? 'bg-amber-500' : 'bg-green-500'"
-                            ></div>
-                          </div>
-                          
-                          <div class="flex min-w-0 flex-1 flex-col" :class="{ 'items-center text-center': collectionViewMode === 'card2' || collectionViewMode === 'card3' }">                <p class="truncate text-sm font-semibold text-text-main transition-colors group-hover:text-brand" :class="{ 'text-xs': collectionViewMode === 'list' || collectionViewMode === 'card3' }">
+              @click="handleSelectHistory(value)"
+            >
+              <div class="relative shrink-0">
+                <SmoothImage
+                  class="rounded-full border border-border-main shadow-sm"
+                  :class="[
+                    collectionViewMode === 'current' ? 'size-12' : '',
+                    collectionViewMode === 'list' ? 'size-8' : '',
+                    collectionViewMode === 'card2'
+                      ? 'aspect-square size-full rounded-lg'
+                      : '',
+                    collectionViewMode === 'card3'
+                      ? 'aspect-square size-full rounded-lg'
+                      : '',
+                  ]"
+                  :src="value.avatarUrl || ''"
+                  :alt="value.nickname"
+                />
+                <!-- Online Signal Dot -->
+                <div
+                  v-if="
+                    value.liveStatus === 'LIVE' ||
+                    value.isLive ||
+                    value.liveStatus === 'REPLAY'
+                  "
+                  class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-app-bg shadow-sm"
+                  :class="
+                    value.liveStatus === 'REPLAY'
+                      ? 'bg-amber-500'
+                      : 'bg-green-500'
+                  "
+                ></div>
+              </div>
+
+              <div
+                class="flex min-w-0 flex-1 flex-col"
+                :class="{
+                  'items-center text-center':
+                    collectionViewMode === 'card2' ||
+                    collectionViewMode === 'card3',
+                }"
+              >
+                <p
+                  class="truncate text-sm font-semibold text-text-main transition-colors group-hover:text-brand"
+                  :class="{
+                    'text-xs':
+                      collectionViewMode === 'list' ||
+                      collectionViewMode === 'card3',
+                  }"
+                >
                   {{ value.nickname }}
                 </p>
-                <p v-if="collectionViewMode !== 'list'" class="truncate text-xs text-text-muted" :class="{ 'text-[10px]': collectionViewMode === 'card3' }">
+                <p
+                  v-if="collectionViewMode !== 'list'"
+                  class="truncate text-xs text-text-muted"
+                  :class="{ 'text-[10px]': collectionViewMode === 'card3' }"
+                >
                   {{ value.roomTitle || "正在直播" }}
                 </p>
               </div>
 
               <!-- Delete Button -->
-              <button 
-                @click.stop="followStore.unfollowStreamer(value.platform, value.id)"
-                class="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-red-500/20 text-text-muted hover:text-red-500 transition-all ml-auto"
-                :class="{ 
-                  'absolute top-1 right-1 bg-surface-low/80 backdrop-blur-sm shadow-sm': collectionViewMode === 'card2' || collectionViewMode === 'card3',
-                  'ml-auto flex-shrink-0': collectionViewMode === 'current' || collectionViewMode === 'list'
+              <button
+                @click.stop="
+                  followStore.unfollowStreamer(value.platform, value.id)
+                "
+                class="ml-auto rounded-full p-1.5 text-text-muted opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-500"
+                :class="{
+                  'absolute top-1 right-1 bg-surface-low/80 shadow-sm backdrop-blur-sm':
+                    collectionViewMode === 'card2' ||
+                    collectionViewMode === 'card3',
+                  'ml-auto flex-shrink-0':
+                    collectionViewMode === 'current' ||
+                    collectionViewMode === 'list',
                 }"
                 title="取消关注"
               >
@@ -158,21 +305,36 @@
         </div>
       </template>
       <template v-else>
-        <div class="flex flex-col gap-4 mt-4 opacity-100 transition-opacity">
-          <div v-for="value in filteredSortedCollection.slice(0, 8)" :key="value.id"
-               class="relative group size-10 rounded-full border border-border-main cursor-pointer hover:border-brand shadow-sm"
-               @click="handleSelectHistory(value)">
-            <SmoothImage class="size-full rounded-full overflow-hidden" :src="value.avatarUrl || ''" :alt="value.nickname" />
+        <div class="mt-4 flex flex-col gap-4 opacity-100 transition-opacity">
+          <div
+            v-for="value in filteredSortedCollection.slice(0, 8)"
+            :key="value.id"
+            class="group relative size-10 cursor-pointer rounded-full border border-border-main shadow-sm hover:border-brand"
+            @click="handleSelectHistory(value)"
+          >
+            <SmoothImage
+              class="size-full overflow-hidden rounded-full"
+              :src="value.avatarUrl || ''"
+              :alt="value.nickname"
+            />
             <!-- Online Signal Dot -->
-            <div 
-              v-if="value.liveStatus === 'LIVE' || value.isLive || value.liveStatus === 'REPLAY'"
-              class="absolute bottom-0 right-0 size-3 rounded-full border-2 border-app-bg shadow-sm"
-              :class="value.liveStatus === 'REPLAY' ? 'bg-amber-500' : 'bg-green-500'"
+            <div
+              v-if="
+                value.liveStatus === 'LIVE' ||
+                value.isLive ||
+                value.liveStatus === 'REPLAY'
+              "
+              class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-app-bg shadow-sm"
+              :class="
+                value.liveStatus === 'REPLAY' ? 'bg-amber-500' : 'bg-green-500'
+              "
             ></div>
             <!-- Delete overlay on hover -->
-            <button 
-              @click.stop="followStore.unfollowStreamer(value.platform, value.id)"
-              class="absolute inset-0 flex items-center justify-center bg-red-500/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            <button
+              @click.stop="
+                followStore.unfollowStreamer(value.platform, value.id)
+              "
+              class="absolute inset-0 flex items-center justify-center rounded-full bg-red-500/80 opacity-0 transition-opacity group-hover:opacity-100"
             >
               <Trash2 class="size-4 text-white" />
             </button>
@@ -184,7 +346,7 @@
     <!-- Center Column: Main Feed -->
     <div
       ref="centerColumnRef"
-      class="scrollbar-none relative flex-1 h-full min-h-0 overflow-y-auto bg-panel-gradient"
+      class="scrollbar-none bg-panel-gradient relative h-full min-h-0 flex-1 overflow-y-auto"
       @scroll="handleCenterScroll"
     >
       <!-- Spotify-like Sticky Header -->
@@ -205,7 +367,9 @@
               'opacity-100': !isHeaderCollapsed,
             }"
           >
-            <h1 class="text-6xl font-black tracking-tighter text-text-main truncate">
+            <h1
+              class="truncate text-6xl font-black tracking-tighter text-text-main"
+            >
               {{ currentCategoryName || "英雄联盟" }}
             </h1>
           </div>
@@ -219,7 +383,7 @@
               <button
                 v-for="cate in dynamicCate3List"
                 :key="cate.id"
-                class="rounded-full border border-border-main px-4 py-1.5 text-sm font-bold whitespace-nowrap border border-border-main transition-all"
+                class="rounded-full border border-border-main px-4 py-1.5 text-sm font-bold whitespace-nowrap transition-all"
                 :class="
                   currentSelectedCate3Id === cate.id
                     ? 'border-text-main bg-text-main text-app-bg'
@@ -278,22 +442,33 @@
       class="scrollbar-none flex h-full min-h-0 flex-col gap-8 overflow-y-auto border-l border-border-main bg-surface-low/30 p-6 transition-[width,padding,opacity] duration-300 ease-in-out"
       :class="isRightCollapsed ? 'w-16 items-center px-2' : 'w-72'"
     >
-      <div class="flex items-center justify-between w-full" :class="{ 'flex-col gap-4': isRightCollapsed }">
-        <p v-if="!isRightCollapsed" class="text-xs font-black tracking-widest text-text-muted uppercase truncate">
+      <div
+        class="flex w-full items-center justify-between"
+        :class="{ 'flex-col gap-4': isRightCollapsed }"
+      >
+        <p
+          v-if="!isRightCollapsed"
+          class="truncate text-xs font-black tracking-widest text-text-muted uppercase"
+        >
           控制面板
         </p>
-        <button 
+        <button
           @click="isRightCollapsed = !isRightCollapsed"
-          class="p-1.5 rounded-md hover:bg-surface-high text-text-muted hover:text-text-main"
+          class="rounded-md p-1.5 text-text-muted hover:bg-surface-high hover:text-text-main"
           title="收起/展开"
         >
-          <PanelRight class="size-5 transition-transform duration-300" :class="{ 'rotate-180': isRightCollapsed }" />
+          <PanelRight
+            class="size-5 transition-transform duration-300"
+            :class="{ 'rotate-180': isRightCollapsed }"
+          />
         </button>
       </div>
 
       <template v-if="!isRightCollapsed">
         <div class="flex flex-col gap-4">
-          <p class="text-xs font-black tracking-widest text-text-muted uppercase">
+          <p
+            class="text-xs font-black tracking-widest text-text-muted uppercase"
+          >
             选择平台
           </p>
           <div class="grid grid-cols-2 gap-2">
@@ -308,14 +483,20 @@
               "
               @click="handlePlatformChange(plt.id)"
             >
-              <img :src="plt.icon" :alt="plt.name" class="size-5 rounded-md object-contain" />
+              <img
+                :src="plt.icon"
+                :alt="plt.name"
+                class="size-5 rounded-md object-contain"
+              />
               <span class="truncate">{{ plt.name }}</span>
             </button>
           </div>
         </div>
 
         <div class="flex flex-col gap-4">
-          <p class="text-xs font-black tracking-widest text-text-muted uppercase">
+          <p
+            class="text-xs font-black tracking-widest text-text-muted uppercase"
+          >
             快速分类
           </p>
 
@@ -358,12 +539,21 @@
         </div>
       </template>
       <template v-else>
-        <div class="flex flex-col gap-4 mt-4 opacity-100 transition-opacity">
-          <div v-for="plt in platforms" :key="plt.id"
-               class="size-10 rounded-lg border border-border-main p-2 flex items-center justify-center cursor-pointer hover:bg-surface-high shadow-sm"
-               :class="{ 'bg-brand/10 border-brand/30': plt.id === activePlatform }"
-               @click="handlePlatformChange(plt.id)">
-            <img :src="plt.icon" :alt="plt.name" class="size-6 object-contain" />
+        <div class="mt-4 flex flex-col gap-4 opacity-100 transition-opacity">
+          <div
+            v-for="plt in platforms"
+            :key="plt.id"
+            class="flex size-10 cursor-pointer items-center justify-center rounded-lg border border-border-main p-2 shadow-sm hover:bg-surface-high"
+            :class="{
+              'border-brand/30 bg-brand/10': plt.id === activePlatform,
+            }"
+            @click="handlePlatformChange(plt.id)"
+          >
+            <img
+              :src="plt.icon"
+              :alt="plt.name"
+              class="size-6 object-contain"
+            />
           </div>
         </div>
       </template>
@@ -375,8 +565,6 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
-  MagnetIcon,
-  DotSquare,
   Search,
   ChevronDown,
   LayoutGrid,
@@ -402,7 +590,6 @@ import type { CategorySelectedEvent as CommonCategorySelectedEvent } from "../pl
 import {
   type UiPlatform,
   type FollowedStreamer,
-  Platform,
 } from "../platforms/common/types";
 
 // Import platform icons
@@ -425,25 +612,31 @@ const { width: windowWidth } = useWindowSize();
 const isLeftCollapsed = ref(false);
 const isRightCollapsed = ref(false);
 
-watch(windowWidth, (newWidth) => {
-  if (newWidth < 1024) {
-    isLeftCollapsed.value = true;
-  } else if (newWidth > 1200) {
-    isLeftCollapsed.value = false;
-  }
-}, { immediate: true });
+watch(
+  windowWidth,
+  (newWidth) => {
+    if (newWidth < 1024) {
+      isLeftCollapsed.value = true;
+    } else if (newWidth > 1200) {
+      isLeftCollapsed.value = false;
+    }
+  },
+  { immediate: true },
+);
 
 const collectionSearchQuery = ref("");
 const showCollectionSearch = ref(false);
-const collectionSortMode = ref<"recent_view" | "recent_follow" | "alphabetical">(
-  "recent_view",
+const collectionSortMode = ref<
+  "recent_view" | "recent_follow" | "alphabetical"
+>("recent_view");
+const collectionViewMode = ref<"list" | "card2" | "card3" | "current">(
+  "current",
 );
-const collectionViewMode = ref<"list" | "card2" | "card3" | "current">("current");
 const showCollectionSortPopover = ref(false);
 const collectionSortPopoverRef = ref<HTMLElement | null>(null);
 
 onClickOutside(collectionSortPopoverRef, () => {
-  showCollectionSortPopover = false;
+  showCollectionSortPopover.value = false;
 });
 
 const filteredSortedCollection = computed(() => {
@@ -629,7 +822,7 @@ const categoryGroups = computed<CategoryGroup[]>(() => {
     return categoriesData.value.map((c1) => ({
       id: c1.href,
       title: c1.title,
-      items: c1.subcategories.map((c2) => ({
+      items: c1.subcategories.map((c2:any) => ({
         id: c2.href,
         title: c2.title,
       })),

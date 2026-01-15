@@ -34,14 +34,12 @@
           d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
         ></path>
       </svg>
-      <span
-        class="flex-1 truncate text-[14px] font-bold tracking-[0.02em]"
-        >{{ folder.name }}</span
-      >
-      <span
-        class="rounded-[20px] border px-2 text-[10px] font-extrabold"
-        >{{ folder.streamerIds.length }}</span
-      >
+      <span class="flex-1 truncate text-[14px] font-bold tracking-[0.02em]">{{
+        folder.name
+      }}</span>
+      <span class="rounded-[20px] border px-2 text-[10px] font-extrabold">{{
+        folder.streamerIds.length
+      }}</span>
       <motion.span
         class="inline-flex h-3 w-3 items-center justify-center text-[#94a3b8]"
         :animate="{ rotate: folder.expanded ? 180 : 0 }"
@@ -106,7 +104,7 @@
               :handleImgError="handleImgError"
               :getLiveIndicatorClass="getLiveIndicatorClass"
               :proxyBase="proxyBase"
-              @clickItem="(s) => emit('selectAnchor', s)"
+              @clickItem="(s:any) => emit('selectAnchor', s)"
             />
           </li>
         </ul>
@@ -119,7 +117,7 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { AnimatePresence, motion } from "motion-v";
 import type { FollowedStreamer } from "../../platforms/common/types";
-import { useFollowStore, type FollowFolder } from "../../stores/followStore";
+import {  type FollowFolder } from "../../stores/followStore";
 
 const props = defineProps<{
   folder: FollowFolder;

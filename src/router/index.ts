@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
-import PlatformHomeView from "../pages/PlatformHomeView.vue";
-import UniversalPlayerView from "../pages/UniversalPlayerView.vue";
-import { Platform } from "../platforms/common/types";
+import type { Platform } from "../platforms/common/types";
+
+const PlatformHomeView = () => import("../pages/PlatformHomeView.vue");
+const UniversalPlayerView = () => import("../pages/UniversalPlayerView.vue");
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,8 +17,9 @@ const router = createRouter({
       name: "UniversalPlayer",
       component: UniversalPlayerView,
       props: (route) => ({
-        roomId: route.params.roomId,
-        platform: (route.params.platform as string).toUpperCase() as Platform,
+        roomId: String(route.params.roomId ?? ""),
+        platform: String(route.params.platform ?? "")
+          .toUpperCase() as Platform,
       }),
     },
   ],

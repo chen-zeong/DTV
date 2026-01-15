@@ -22,7 +22,9 @@
     <div ref="scrollComponentRef" class="flex-1 [--card-radius:18px]">
       <div
         class="grid gap-x-4 gap-y-8 pb-3"
-        :style="{ gridTemplateColumns: `repeat(${itemsPerRow}, minmax(0, 1fr))` }"
+        :style="{
+          gridTemplateColumns: `repeat(${itemsPerRow}, minmax(0, 1fr))`,
+        }"
       >
         <div
           v-for="room in rooms"
@@ -32,7 +34,7 @@
           @click="goToPlayer(room.room_id)"
         >
           <div
-            class="group flex cursor-pointer flex-col overflow-hidden rounded-sm  border-border-main  hover:border-border-strong z-9999 hover:-translate-y-2 duration-100"
+            class="group z-9999 flex cursor-pointer flex-col overflow-hidden rounded-sm border-border-main duration-100 hover:-translate-y-2 hover:border-border-strong"
           >
             <div class="relative aspect-video w-full overflow-hidden">
               <div class="relative h-full w-full">
@@ -58,25 +60,31 @@
                   </svg>
                   {{ room.viewer_count_str || "0" }}
                 </span>
-                <div class="flex items-center gap-2  absolute bottom-1 left-1.5 ">
+                <div class="absolute bottom-1 left-1.5 flex items-center gap-2">
                   <div class="relative shrink-0">
-                    <SmoothImage :src="room.avatar || ''" :alt="room.nickname"
-                      class="size-8 rounded-full border border-border-main object-cover shadow-sm" />
+                    <SmoothImage
+                      :src="room.avatar || ''"
+                      :alt="room.nickname"
+                      class="size-8 rounded-full border border-border-main object-cover shadow-sm"
+                    />
                   </div>
                   <div class="min-w-0 flex-1">
-
                     <div class="flex items-center gap-1.5">
-                      <span class="truncate text-[11px] font-medium text-text-muted hover:text-brand">
+                      <span
+                        class="truncate text-[11px] font-medium text-text-muted hover:text-brand"
+                      >
                         {{ room.nickname || "主播" }}
                       </span>
                     </div>
                   </div>
-
                 </div>
               </div>
             </div>
-            
-            <h3 class="mb-0.5 pt-2 pl-3 truncate text-[13px]  text-text-main" :title="room.title">
+
+            <h3
+              class="mb-0.5 truncate pt-2 pl-3 text-[13px] text-text-main"
+              :title="room.title"
+            >
               {{ room.title }}
             </h3>
           </div>
@@ -103,13 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-  computed,
-} from "vue";
+import { ref, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useResizeObserver, useIntersectionObserver } from "@vueuse/core";
 import type { CategorySelectedEvent } from "../../platforms/common/categoryTypes";
@@ -233,8 +235,8 @@ const hasMore = computed(() => selectedComposable.value.hasMore.value);
 const loadInitialRooms = () => selectedComposable.value.loadInitialRooms();
 const loadMoreRooms = () => selectedComposable.value.loadMoreRooms();
 
-let resizeRaf: number | null = null;
-let ensureTimer: number | null = null;
+// let resizeRaf: number | null = null;
+// let ensureTimer: number | null = null;
 const minCardWidth = 180;
 const gridGap = 18;
 
@@ -250,7 +252,10 @@ useResizeObserver(scrollElement, (entries) => {
 
 const itemsPerRow = computed(() => {
   const width = containerWidth.value || minCardWidth;
-  const calculated = Math.max(1, Math.floor((width + gridGap) / (minCardWidth + gridGap)));
+  const calculated = Math.max(
+    1,
+    Math.floor((width + gridGap) / (minCardWidth + gridGap)),
+  );
   return Math.min(calculated, 5);
 });
 

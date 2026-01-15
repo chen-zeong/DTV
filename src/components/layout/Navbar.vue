@@ -21,7 +21,7 @@
       >
         <button
           type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
+          class="flex size-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
           aria-label="首页"
           @click="goHome"
         >
@@ -29,7 +29,8 @@
         </button>
 
         <div
-          class="relative w-130 max-w-full"
+          class="relative max-w-full transition-all duration-300 ease-in-out"
+          :class="playerStore.currentStreamer ? 'w-90' : 'w-130'"
           ref="searchContainerRef"
           data-tauri-drag-region="false"
         >
@@ -240,12 +241,40 @@
             </div>
           </div>
         </div>
+        <Transition
+          enter-active-class="transition-all duration-300 ease-out"
+          enter-from-class="opacity-0 -translate-x-2 scale-95"
+          enter-to-class="opacity-100 translate-x-0 scale-100"
+          leave-active-class="transition-all duration-200 ease-in"
+          leave-from-class="opacity-100 translate-x-0 scale-100"
+          leave-to-class="opacity-0 -translate-x-2 scale-95"
+        >
+          <NavbarStreamerInfo
+            v-if="playerStore.currentStreamer"
+            :room-id="playerStore.currentStreamer.roomId"
+            :platform="playerStore.currentStreamer.platform"
+            :title="playerStore.currentStreamer.title"
+            :anchor-name="playerStore.currentStreamer.anchorName"
+            :avatar="playerStore.currentStreamer.avatar"
+            :is-live="playerStore.currentStreamer.isLive"
+          />
+        </Transition>
       </div>
 
       <div
         class="flex flex-1 items-center justify-end gap-2"
         data-tauri-drag-region="false"
       >
+      <!-- todo 窗口置顶现在 只能维持在当前桌面，切换桌面无效 -->
+        <!-- <button
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high transition-all"
+          :class="{ 'text-brand border-brand/30 bg-brand/10': isAlwaysOnTop }"
+          @click="toggleAlwaysOnTop"
+          :title="isAlwaysOnTop ? '取消置顶' : '窗口置顶'"
+        >
+          <Pin :size="18" :class="{ 'fill-current': isAlwaysOnTop }" />
+        </button> -->
         <button
           type="button"
           class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
@@ -258,7 +287,9 @@
             type="button"
             class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
             @click="changeThemeColor"
-            :class="{ 'text-brand border-brand/30 bg-brand/10': showColorPalette }"
+            :class="{
+              'border-brand/30 bg-brand/10 text-brand': showColorPalette,
+            }"
             title="切换主题色"
           >
             <Palette :size="18" />
@@ -267,9 +298,11 @@
           <!-- Color Palette Popover -->
           <div
             v-if="showColorPalette"
-            class="absolute right-0 top-[calc(100%+12px)] z-[1001] w-48 rounded-xl border border-border-strong bg-surface-low/95 p-3 shadow-2xl backdrop-blur-xl dark:bg-neutral-900/95"
+            class="absolute top-[calc(100%+12px)] right-0 z-[1001] w-48 rounded-xl border border-border-strong bg-surface-low/95 p-3 shadow-2xl backdrop-blur-xl dark:bg-neutral-900/95"
           >
-            <div class="mb-3 px-1 text-[10px] font-black uppercase tracking-widest text-text-muted">
+            <div
+              class="mb-3 px-1 text-[10px] font-black tracking-widest text-text-muted uppercase"
+            >
               选择主题色
             </div>
             <div class="grid grid-cols-4 gap-2">
@@ -278,26 +311,44 @@
                 :key="color.value"
                 @click="selectThemeColor(color.value)"
                 class="size-8 rounded-full border-2 transition-transform hover:scale-110 active:scale-95"
-                :style="{ backgroundColor: color.value, borderColor: themeStore.primaryColor === color.value ? 'white' : 'transparent' }"
+                :style="{
+                  backgroundColor: color.value,
+                  borderColor:
+                    themeStore.primaryColor === color.value
+                      ? 'white'
+                      : 'transparent',
+                }"
                 :title="color.name"
               ></button>
             </div>
 
             <!-- RGB Picker -->
-            <div class="mt-4 pt-3 border-t border-white/5 flex flex-col gap-2">
-              <div class="px-1 text-[10px] font-black uppercase tracking-widest text-text-muted">
+            <div class="mt-4 flex flex-col gap-2 border-t border-white/5 pt-3">
+              <div
+                class="px-1 text-[10px] font-black tracking-widest text-text-muted uppercase"
+              >
                 自定义 RGB
               </div>
-              <div class="flex items-center gap-3 bg-surface-mid p-2 rounded-lg border border-border-main">
-                <input 
-                  type="color" 
+              <div
+                class="flex items-center gap-3 rounded-lg border border-border-main bg-surface-mid p-2"
+              >
+                <input
+                  type="color"
                   :value="themeStore.primaryColor"
-                  @input="(e) => selectThemeColor((e.target as HTMLInputElement).value)"
-                  class="size-10 rounded border-0 bg-transparent cursor-pointer"
+                  @input="
+                    (e) =>
+                      selectThemeColor((e.target as HTMLInputElement).value)
+                  "
+                  class="size-10 cursor-pointer rounded border-0 bg-transparent"
                 />
-                <div class="flex flex-col min-w-0">
-                  <span class="text-[10px] font-mono text-text-muted uppercase">Hex Code</span>
-                  <span class="text-xs font-bold text-text-main font-mono truncate uppercase">{{ themeStore.primaryColor }}</span>
+                <div class="flex min-w-0 flex-col">
+                  <span class="font-mono text-[10px] text-text-muted uppercase"
+                    >Hex Code</span
+                  >
+                  <span
+                    class="truncate font-mono text-xs font-bold text-text-main uppercase"
+                    >{{ themeStore.primaryColor }}</span
+                  >
                 </div>
               </div>
             </div>
@@ -326,6 +377,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+// import { getCurrentWindow } from "@tauri-apps/api/window";
 import { platform as detectPlatform } from "@tauri-apps/plugin-os";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useRoute, useRouter } from "vue-router";
@@ -340,13 +392,16 @@ import {
   Hash,
   Home,
   Palette,
+  // Pin,
 } from "lucide-vue-next";
 import { onClickOutside } from "@vueuse/core";
 import WindowsWindowControls from "../window-controls/WindowsWindowControls.vue";
+import NavbarStreamerInfo from "./NavbarStreamerInfo.vue";
 import { useThemeStore } from "../../stores/theme";
-import { useFollowStore } from "../../stores/followStore";
+// import { useFollowStore } from "../../stores/followStore";
+import { usePlayerStore } from "../../stores/playerStore";
 import { Platform, type UiPlatform } from "../../platforms/common/types";
-import type { FollowedStreamer } from "../../platforms/common/types";
+// import type { FollowedStreamer } from "../../platforms/common/types";
 import { huyaCategoriesData } from "../../platforms/huya/huyaCategoriesData";
 import { douyinCategoriesData } from "../../platforms/douyin/douyinCategoriesData";
 import { biliCategoriesData } from "../../platforms/bilibili/biliCategoriesData";
@@ -472,9 +527,11 @@ const isSearchFocused = ref(false);
 const searchContainerRef = ref<HTMLElement | null>(null);
 const colorPaletteRef = ref<HTMLElement | null>(null);
 const showColorPalette = ref(false);
+// const isAlwaysOnTop = ref(false);
 
 const themeStore = useThemeStore();
-const followStore = useFollowStore();
+// const followStore = useFollowStore();
+const playerStore = usePlayerStore();
 const effectiveTheme = computed(() => themeStore.getEffectiveTheme());
 const route = useRoute();
 const router = useRouter();
@@ -496,6 +553,17 @@ const availableColors = [
 const goHome = () => {
   router.push({ name: "PlatformHome" });
 };
+
+// const toggleAlwaysOnTop = async () => {
+//   try {
+//     const win = getCurrentWindow();
+//     const nextState = !isAlwaysOnTop.value;
+//     await win.setAlwaysOnTop(nextState);
+//     isAlwaysOnTop.value = nextState;
+//   } catch (error) {
+//     console.error("[Navbar] Failed to set always on top:", error);
+//   }
+// };
 
 const changeThemeColor = () => {
   showColorPalette.value = !showColorPalette.value;
@@ -598,6 +666,13 @@ const placeholderText = computed(() => {
 onMounted(async () => {
   try {
     detectedPlatform.value = await detectPlatform();
+    // Initialize Always On Top state
+    // Note: isAlwaysOnTop() might not be available in all contexts or versions, check docs. 
+    // Tauri v2 Window has isAlwaysOnTop(): Promise<boolean>??
+    // Actually, looking at docs, it seems there is no direct getter for this property in some versions or it's named differently?
+    // Let's assume there isn't a simple getter exposed in the generic Window interface without verifying. 
+    // But wait, standard APIs usually have it. 
+    // Let's wrap it in try-catch to be safe.
   } catch (error) {
     console.error("[Navbar] Failed to detect platform", error);
     if (typeof navigator !== "undefined") {

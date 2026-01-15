@@ -8,7 +8,7 @@
     >
       <div
         ref="avatarRef"
-        class="relative flex-shrink-0"
+        class="relative shrink-0"
         :class="big ? 'h-10 w-10' : 'h-8 w-8'"
       >
         <img
@@ -61,7 +61,7 @@
           class="h-2 w-2 rounded-full"
           :class="{
             'bg-[#10b981]': getLiveIndicatorClass(streamer) === 'is-live',
-            'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]':
+            'bg-red-700 shadow-[0_0_8px_#f59e0b]':
               getLiveIndicatorClass(streamer) === 'is-replay',
             'bg-[var(--border-color)]':
               getLiveIndicatorClass(streamer) === 'is-offline',
@@ -74,7 +74,7 @@
         class="h-2 w-2 rounded-full"
         :class="{
           'bg-[#10b981]': getLiveIndicatorClass(streamer) === 'is-live',
-          'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]':
+          'bg-red-700 shadow-[0_0_8px_#f59e0b]':
             getLiveIndicatorClass(streamer) === 'is-replay',
           'bg-[var(--border-color)]':
             getLiveIndicatorClass(streamer) === 'is-offline',

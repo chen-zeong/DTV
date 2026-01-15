@@ -3,28 +3,6 @@
     class="player-page"
     :class="{ 'web-fs': isInWebFullscreen || isInNativePlayerFullscreen }"
   >
-    <button
-      v-if="!isInWebFullscreen"
-      @click="handleClosePlayerClick"
-      class="player-close-btn"
-      title="关闭播放器"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    </button>
-
     <div class="player-layout">
       <div class="main-content">
         <div v-if="!roomId" class="empty-player">
@@ -111,34 +89,51 @@
           </button>
         </div>
         <div v-else class="player-container">
-          <StreamerInfo
-            v-if="props.roomId"
-            :room-id="props.roomId"
-            :platform="props.platform"
-            :title="playerTitle"
-            :anchor-name="playerAnchorName"
-            :avatar="playerAvatar"
-            :is-followed="props.isFollowed"
-            :is-live="playerIsLive"
-            @follow="$emit('follow', $event)"
-            @unfollow="$emit('unfollow', $event)"
-            class="streamer-info"
-            v-show="!isInWebFullscreen"
-            :class="{ 'hidden-panel': isInWebFullscreen }"
-          />
           <div class="video-container">
             <div ref="playerContainerRef" class="video-player"></div>
           </div>
         </div>
+
+        <Transition name="fade">
+          <button
+            v-if="
+              isDanmuSidebarCollapsed &&
+              roomId &&
+              !isInWebFullscreen &&
+              !isFullScreen &&
+              showDanmuPanel
+            "
+            @click="toggleDanmuSidebar"
+            class="expand-sidebar-btn"
+            title="展开弹幕列表"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+        </Transition>
       </div>
 
       <DanmuList
         v-if="roomId && !isLoadingStream && !streamError && showDanmuPanel"
         :room-id="props.roomId"
         :messages="danmakuMessages"
-        v-show="!isFullScreen"
+        @collapse="toggleDanmuSidebar"
         class="danmu-panel"
-        :class="{ 'hidden-panel': isFullScreen }"
+        :class="{
+          'hidden-panel': isFullScreen,
+          collapsed: isDanmuSidebarCollapsed,
+        }"
       />
     </div>
   </div>
@@ -153,6 +148,8 @@ import {
   reactive,
   ref,
   shallowRef,
+  // Transition,
+  watch,
 } from "vue";
 import Player from "xgplayer";
 import FlvPlugin from "xgplayer-flv";
@@ -217,12 +214,14 @@ import LoadingDots from "../Common/LoadingDots.vue";
 
 import { invoke } from "@tauri-apps/api/core";
 import { useImageProxy } from "../FollowsList/useProxy";
+import { usePlayerStore } from "../../stores/playerStore";
 
 // Ensure image proxy helpers are available in this component
 const { ensureProxyStarted, proxify } = useImageProxy();
 
 const props = defineProps<PlayerProps>();
 
+const playerStore = usePlayerStore();
 const emit = defineEmits<{
   (e: "follow", streamer: any): void;
   (e: "unfollow", roomId: string): void;
@@ -233,12 +232,17 @@ const emit = defineEmits<{
 }>();
 
 const isClosing = ref(false);
+const isDanmuSidebarCollapsed = ref(false);
 const MIN_DANMU_WIDTH = 1100;
 const windowWidth = ref(typeof window !== "undefined" ? window.innerWidth : 0);
 const updateWindowWidth = () => {
   windowWidth.value = typeof window !== "undefined" ? window.innerWidth : 0;
 };
 const showDanmuPanel = computed(() => windowWidth.value >= MIN_DANMU_WIDTH);
+
+const toggleDanmuSidebar = () => {
+  isDanmuSidebarCollapsed.value = !isDanmuSidebarCollapsed.value;
+};
 
 const playerContainerRef = ref<HTMLDivElement | null>(null);
 const playerInstance = shallowRef<Player | null>(null);
@@ -714,10 +718,10 @@ async function mountXgPlayer(
   });
 }
 
-function handleClosePlayerClick() {
-  isClosing.value = true;
-  emit("close-player");
-}
+// function handleClosePlayerClick() {
+//   isClosing.value = true;
+//   emit("close-player");
+// }
 
 async function initializePlayerAndStream(
   pRoomId: string,
@@ -1131,7 +1135,25 @@ onMounted(async () => {
   persistCurrentDanmuPreferences();
 });
 
+watch(
+  [playerTitle, playerAnchorName, playerAvatar, playerIsLive],
+  () => {
+    if (props.roomId && props.platform) {
+      playerStore.setStreamerInfo({
+        roomId: props.roomId,
+        platform: props.platform,
+        title: playerTitle.value ?? "",
+        anchorName: playerAnchorName.value ?? "",
+        avatar: playerAvatar.value ?? "",
+        isLive: playerIsLive.value ?? false,
+      });
+    }
+  },
+  { immediate: true },
+);
+
 onUnmounted(async () => {
+  playerStore.clearStreamerInfo();
   if (typeof window !== "undefined") {
     window.removeEventListener("resize", updateWindowWidth);
   }
