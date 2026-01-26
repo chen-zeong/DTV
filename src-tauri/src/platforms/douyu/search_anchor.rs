@@ -1,4 +1,4 @@
-use md5::Digest; // For hasher
+use crate::platforms::common::signing::hash::md5_hex;
 use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -21,14 +21,12 @@ pub async fn perform_anchor_search(keyword: &str) -> Result<String, Box<dyn std:
         .default_headers(default_headers)
         .build()?;
 
-    let mut hasher = md5::Md5::new();
-    hasher.update(
-        SystemTime::now()
+    let did = md5_hex(
+        &SystemTime::now()
             .duration_since(UNIX_EPOCH)?
             .as_nanos()
             .to_string(),
     );
-    let did = format!("{:x}", hasher.finalize());
 
     let url = format!(
         "https://www.douyu.com/japi/search/api/searchUser?kw={}&page=1&pageSize=20&filterType=0",

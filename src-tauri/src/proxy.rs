@@ -75,7 +75,7 @@ async fn image_proxy_handler(
                         .insert_header(("Cache-Control", "no-store"))
                         .body(bytes),
                     Err(e) => {
-                        eprintln!("[Rust/proxy.rs image] Failed to read bytes: {}", e);
+                        tracing::error!("[Rust/proxy.rs image] Failed to read bytes: {}", e);
                         HttpResponse::InternalServerError()
                             .body(format!("Failed to read image bytes: {}", e))
                     }
@@ -86,7 +86,7 @@ async fn image_proxy_handler(
                     .text()
                     .await
                     .unwrap_or_else(|e| format!("Failed to read error body from upstream: {}", e));
-                eprintln!(
+                tracing::error!(
                     "[Rust/proxy.rs image] Upstream request to {} failed with status: {}. Body: {}",
                     url, status_from_reqwest, error_text
                 );
@@ -101,7 +101,7 @@ async fn image_proxy_handler(
             }
         }
         Err(e) => {
-            eprintln!(
+            tracing::error!(
                 "[Rust/proxy.rs image] Failed to send request to upstream {}: {}",
                 url, e
             );
@@ -114,17 +114,25 @@ async fn image_proxy_handler(
 // Your actual proxy logic - this is a simplified placeholder
 async fn flv_proxy_handler(
     _req: HttpRequest,
+    path: web::Path<(String, String)>, // (platform, room_id)
     stream_url_store: web::Data<StreamUrlStore>,
     client: web::Data<Client>,
 ) -> impl Responder {
-    let url = stream_url_store.url.lock().unwrap().clone();
+    let (platform, room_id) = path.into_inner();
+    let room_id = room_id.trim_end_matches(".flv").to_string();
+    
+    let url = {
+        let urls = stream_url_store.urls.lock().unwrap();
+        urls.get(&(platform.clone(), room_id.clone())).cloned().unwrap_or_default()
+    };
+
     if url.is_empty() {
-        return HttpResponse::NotFound().body("Stream URL is not set or empty.");
+        return HttpResponse::NotFound().body(format!("Stream URL for {}/{} is not set or empty.", platform, room_id));
     }
 
-    println!(
-        "[Rust/proxy.rs handler] Incoming FLV proxy request -> {}",
-        url
+    tracing::debug!(
+        "[Rust/proxy.rs handler] Incoming FLV proxy request for {}/{} -> {}",
+        platform, room_id, url
     );
 
     let mut req = client
@@ -159,7 +167,7 @@ async fn flv_proxy_handler(
                     .insert_header(("Accept-Ranges", "bytes"));
 
                 let byte_stream = upstream_response.bytes_stream().map_err(|e| {
-                    eprintln!(
+                    tracing::error!(
                         "[Rust/proxy.rs handler] Error reading bytes from upstream: {}",
                         e
                     );
@@ -176,7 +184,7 @@ async fn flv_proxy_handler(
                     .text()
                     .await
                     .unwrap_or_else(|e| format!("Failed to read error body from upstream: {}", e));
-                eprintln!(
+                tracing::error!(
                     "[Rust/proxy.rs handler] Upstream request to {} failed with status: {}. Body: {}",
                     url, status_from_reqwest, error_text
                 );
@@ -192,7 +200,7 @@ async fn flv_proxy_handler(
             }
         }
         Err(e) => {
-            eprintln!(
+            tracing::error!(
                 "[Rust/proxy.rs handler] Failed to send request to upstream {} with reqwest: {}",
                 url, e
             );
@@ -211,21 +219,17 @@ pub async fn start_proxy(
     stream_url_store: State<'_, StreamUrlStore>,
 ) -> Result<String, String> {
     let port = find_free_port().await;
-    let current_stream_url = stream_url_store.url.lock().unwrap().clone();
 
-    if current_stream_url.is_empty() {
-        return Err("Stream URL is not set in store. Cannot start proxy.".to_string());
+    // If the server is already running, just return the base URL
+    {
+        let handle = server_handle_state.0.lock().unwrap();
+        if handle.is_some() {
+            return Ok(format!("http://127.0.0.1:{}", port));
+        }
     }
 
     // stream_url_data_for_actix can be created once and cloned, as StreamUrlStore is Arc based and Send + Sync
     let stream_url_data_for_actix = web::Data::new(stream_url_store.inner().clone());
-    // REMOVED: let awc_client_for_actix = web::Data::new(Client::default());
-
-    // Ensure MutexGuard is dropped before .await
-    let existing_handle_to_stop = { server_handle_state.0.lock().unwrap().take() };
-    if let Some(existing_handle) = existing_handle_to_stop {
-        existing_handle.stop(false).await;
-    }
 
     let server = match HttpServer::new(move || {
         let app_data_stream_url = stream_url_data_for_actix.clone();
@@ -248,7 +252,7 @@ pub async fn start_proxy(
             .app_data(app_data_stream_url)
             .app_data(app_data_reqwest_client)
             .wrap(actix_cors::Cors::permissive())
-            .route("/live.flv", web::get().to(flv_proxy_handler))
+            .route("/live/{platform}/{room_id}", web::get().to(flv_proxy_handler))
             .route("/image", web::get().to(image_proxy_handler))
     })
     .keep_alive(Duration::from_secs(120))
@@ -256,30 +260,44 @@ pub async fn start_proxy(
     {
         Ok(srv) => srv,
         Err(e) => {
+            // If address already in use, assume server is running
+            if e.kind() == ErrorKind::AddrInUse {
+                return Ok(format!("http://127.0.0.1:{}", port));
+            }
             let err_msg = format!(
                 "[Rust/proxy.rs] Failed to bind server to port {}: {}",
                 port, e
             );
-            eprintln!("{}", err_msg);
+            tracing::error!("{}", err_msg);
             return Err(err_msg);
         }
     }
     .run();
 
     let server_handle_for_state = server.handle();
-    *server_handle_state.0.lock().unwrap() = Some(server_handle_for_state);
+    {
+        let mut handle_guard = server_handle_state.0.lock().unwrap();
+        *handle_guard = Some(server_handle_for_state);
+    }
 
     // Use tauri::async_runtime::spawn directly
     tauri::async_runtime::spawn(async move {
         if let Err(e) = server.await {
-            eprintln!("[Rust/proxy.rs] Proxy server run error: {}", e);
+            tracing::error!("[Rust/proxy.rs] Proxy server run error: {}", e);
         } else {
-            println!("[Rust/proxy.rs] Proxy server on port {} shut down.", port);
+            tracing::info!("[Rust/proxy.rs] Proxy server on port {} shut down.", port);
         }
     });
 
-    let proxy_url = format!("http://127.0.0.1:{}/live.flv", port);
-    Ok(proxy_url)
+    Ok(format!("http://127.0.0.1:{}", port))
+}
+
+pub async fn get_proxy_url(
+    platform: &str,
+    room_id: &str,
+) -> String {
+    let port = find_free_port().await;
+    format!("http://127.0.0.1:{}/live/{}/{}.flv", port, platform, room_id)
 }
 
 #[tauri::command]
@@ -317,7 +335,7 @@ pub async fn start_static_proxy_server(
             .app_data(app_data_stream_url)
             .app_data(app_data_reqwest_client)
             .wrap(actix_cors::Cors::permissive())
-            .route("/live.flv", web::get().to(flv_proxy_handler))
+            .route("/live/{platform}/{room_id}", web::get().to(flv_proxy_handler))
             .route("/image", web::get().to(image_proxy_handler))
     })
     .keep_alive(Duration::from_secs(120))
@@ -327,7 +345,7 @@ pub async fn start_static_proxy_server(
         Err(e) => {
             // If address already in use, assume server is running and return OK base URL
             if e.kind() == ErrorKind::AddrInUse {
-                eprintln!(
+                tracing::warn!(
                     "[Rust/proxy.rs] Port {} already in use; assuming static proxy running.",
                     port
                 );
@@ -337,7 +355,7 @@ pub async fn start_static_proxy_server(
                 "[Rust/proxy.rs] Failed to bind server to port {}: {}",
                 port, e
             );
-            eprintln!("{}", err_msg);
+            tracing::error!("{}", err_msg);
             return Err(err_msg);
         }
     }
@@ -347,9 +365,9 @@ pub async fn start_static_proxy_server(
 
     tauri::async_runtime::spawn(async move {
         if let Err(e) = server.await {
-            eprintln!("[Rust/proxy.rs] Proxy server run error: {}", e);
+            tracing::error!("[Rust/proxy.rs] Proxy server run error: {}", e);
         } else {
-            println!("[Rust/proxy.rs] Proxy server on port {} shut down.", port);
+            tracing::info!("[Rust/proxy.rs] Proxy server on port {} shut down.", port);
         }
     });
 
@@ -363,9 +381,9 @@ pub async fn stop_proxy(server_handle_state: State<'_, ProxyServerHandle>) -> Re
 
     if let Some(handle) = handle_to_stop {
         handle.stop(false).await; // Changed to non-graceful shutdown
-        println!("[Rust/proxy.rs] stop_proxy: Initiated non-graceful shutdown.");
+        tracing::info!("[Rust/proxy.rs] stop_proxy: Initiated non-graceful shutdown.");
     } else {
-        println!("[Rust/proxy.rs] stop_proxy command: No proxy server was running or handle already taken.");
+        tracing::info!("[Rust/proxy.rs] stop_proxy command: No proxy server was running or handle already taken.");
     }
     Ok(())
 }

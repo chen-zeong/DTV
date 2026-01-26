@@ -1,8 +1,38 @@
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+#[derive(Clone, Debug)]
+pub struct WbiKeysCache {
+    pub img_key: String,
+    pub sub_key: String,
+    pub expires_at: Instant,
+}
 
 #[derive(Default, Clone)]
 pub struct BilibiliState {
     pub w_webid: Arc<Mutex<Option<String>>>,
+    pub wbi_keys: Arc<Mutex<Option<WbiKeysCache>>>,
+}
+
+impl BilibiliState {
+    pub fn get_cached_wbi_keys(&self) -> Option<(String, String)> {
+        let guard = self.wbi_keys.lock().ok()?;
+        let cache = guard.as_ref()?;
+        if Instant::now() >= cache.expires_at {
+            return None;
+        }
+        Some((cache.img_key.clone(), cache.sub_key.clone()))
+    }
+
+    pub fn set_wbi_keys(&self, img_key: String, sub_key: String, ttl: Duration) {
+        if let Ok(mut guard) = self.wbi_keys.lock() {
+            *guard = Some(WbiKeysCache {
+                img_key,
+                sub_key,
+                expires_at: Instant::now() + ttl,
+            });
+        }
+    }
 }
 
 #[tauri::command]

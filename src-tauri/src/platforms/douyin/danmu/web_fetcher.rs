@@ -2,7 +2,6 @@ use crate::platforms::common::http_client::HttpClient;
 use crate::platforms::douyin::web_api::{
     fetch_room_data, normalize_douyin_live_id, DouyinRoomData, DEFAULT_USER_AGENT,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::{self, Value};
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -10,16 +9,6 @@ use tokio::sync::Mutex;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, REFERER, USER_AGENT};
-
-// New struct for frontend
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DouyinFollowListRoomInfo {
-    pub web_rid: String,
-    pub nickname: String,
-    pub room_name: String, // Title of the room
-    pub avatar_url: String,
-    pub status: i32, // 0 for live, other values indicate not live or error
-}
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -73,7 +62,7 @@ impl DouyinLiveWebFetcher {
         let live_id = self.live_id.clone();
         let cookies = self.dy_cookie.as_deref();
         // 直接使用和 douyin_rust 相同的接口 + a_bogus，避免 HTML 解析失败。
-        match fetch_room_data(&self.http_client, &live_id, cookies).await {
+        match fetch_room_data(&self.http_client, &live_id, cookies, false).await {
             Ok(DouyinRoomData { room }) => {
                 let room_id = room
                     .get("id_str")
@@ -388,45 +377,4 @@ impl DouyinLiveWebFetcher {
     //     println!("Connect_websocket logic will be moved elsewhere.");
     //     Ok(())
     // }
-}
-
-// New Tauri command
-#[tauri::command]
-pub async fn fetch_douyin_room_info(live_id: String) -> Result<DouyinFollowListRoomInfo, String> {
-    println!(
-        "[fetch_douyin_room_info] Fetching details for web_id: {}",
-        live_id
-    );
-    let normalized_id = normalize_douyin_live_id(&live_id);
-
-    let http_client = HttpClient::new_direct_connection()
-        .map_err(|e| format!("Failed to create direct connection HttpClient: {}", e))?;
-
-    let DouyinRoomData { room } = fetch_room_data(&http_client, &normalized_id, None)
-        .await
-        .map_err(|e| format!("Failed to fetch Douyin room data: {}", e))?;
-
-    let web_rid = crate::platforms::douyin::douyin_streamer_detail::extract_web_rid(&room)
-        .unwrap_or_else(|| normalized_id.clone());
-    let nickname = crate::platforms::douyin::douyin_streamer_detail::extract_anchor_name(&room)
-        .unwrap_or_else(|| format!("主播{}", web_rid));
-    let room_name = room
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let avatar_url =
-        crate::platforms::douyin::douyin_streamer_detail::extract_avatar(&room).unwrap_or_default();
-    let status = room
-        .get("status")
-        .and_then(|v| v.as_i64())
-        .unwrap_or_default() as i32;
-
-    Ok(DouyinFollowListRoomInfo {
-        web_rid,
-        nickname,
-        room_name,
-        avatar_url,
-        status,
-    })
 }

@@ -1,5 +1,5 @@
 // src/auth.rs
-use md5::{Digest, Md5};
+use crate::platforms::common::signing::hash::md5_hex;
 use reqwest::header::HeaderMap;
 #[allow(unused_imports)]
 use reqwest::StatusCode;
@@ -76,10 +76,7 @@ fn _encode_wbi(
         .map(|(k, v)| format!("{}={}", get_url_encoded(k), get_url_encoded(v)))
         .collect::<Vec<_>>()
         .join("&");
-    let mut hasher = Md5::new();
-    hasher.update((query.clone() + &mixin_key).as_bytes());
-    let digest = hasher.finalize();
-    let web_sign = format!("{:x}", digest);
+    let web_sign = md5_hex(&(query.clone() + &mixin_key));
     query + &format!("&w_rid={}", web_sign)
 }
 

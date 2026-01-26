@@ -2,11 +2,11 @@
   <div class="flex h-screen flex-col overflow-hidden bg-app-bg text-text-main">
     <Navbar
       v-show="!shouldHidePlayerChrome"
-      :theme="theme"
       :active-platform="activePlatform"
-      @theme-toggle="toggleTheme"
       @select-anchor="handleSelectAnchorFromSearch"
     />
+
+    <PlayerManager @fullscreen-change="handleFullscreenChange" />
 
     <div class="flex min-h-0 flex-1 overflow-hidden">
       <main
@@ -19,10 +19,10 @@
           @unfollow="handleUnfollowStore"
           @fullscreen-change="handleFullscreenChange"
         >
-          <keep-alive :include="['PlatformHomeView']">
+          <keep-alive :include="['ChannelList', 'StreamRoom']">
             <component
               :is="Component"
-              :key="route.name === 'UniversalPlayer' ? route.path : 'home'"
+              :key="route.name === 'StreamRoom' ? route.path : 'home'"
             />
           </keep-alive>
         </router-view>
@@ -35,11 +35,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Navbar from "./components/layout/Navbar.vue";
-import type { UiPlatform } from "./platforms/common/types";
-import { useThemeStore } from "./stores/theme";
-import { useFollowStore } from "./stores/followStore";
-import { Platform } from "./platforms/common/types";
-import type { FollowedStreamer } from "./platforms/common/types";
+import PlayerManager from "./features/player/components/PlayerManager.vue";
+import type { UiPlatform } from "./types/app/platform";
+import { Platform } from "./types/app/platform";
+import type { FollowedStreamer } from "./types/models/streamer";
+import { useFollowStore } from "./store/followStore";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import "./styles/global.css";
@@ -52,9 +52,6 @@ const isPlayerFullscreen = ref(false);
 const isWindowMaximized = ref(false);
 const currentWindow = typeof window !== "undefined" ? getCurrentWindow() : null;
 let unlistenResize: UnlistenFn | null = null;
-
-const themeStore = useThemeStore();
-const theme = computed(() => themeStore.getEffectiveTheme());
 
 const routePlatform = computed<UiPlatform>(() => {
   const platform = route.params.platform as string | undefined;
@@ -95,20 +92,16 @@ onBeforeUnmount(async () => {
 });
 
 const isPlayerRoute = computed(() => {
-  return route.name === "UniversalPlayer";
+  return route.name === "StreamRoom";
 });
 
 const shouldHidePlayerChrome = computed(
   () => isPlayerRoute.value && isPlayerFullscreen.value,
 );
 
-const toggleTheme = () => {
-  themeStore.setUserPreference(theme.value === "light" ? "dark" : "light");
-};
-
 const handleSelectAnchor = (streamer: FollowedStreamer) => {
   router.push({
-    name: "UniversalPlayer",
+    name: "StreamRoom",
     params: {
       platform: streamer.platform.toLowerCase(),
       roomId: streamer.id,

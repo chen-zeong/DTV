@@ -3,6 +3,7 @@ pub mod fetch_douyu_main_categories;
 pub mod fetch_douyu_room_info;
 pub mod live_list;
 pub mod search_anchor;
+pub mod sign_worker;
 pub mod stream_url;
 pub mod three_cate;
 pub mod types;

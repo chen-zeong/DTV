@@ -19,81 +19,6 @@ enum ConnectionOutcome {
     Disconnected,
 }
 
-async fn fetch_huya_ids(room_id: &str) -> Result<(i64, i64), String> {
-    let url = format!(
-        "https://mp.huya.com/cache.php?m=Live&do=profileRoom&roomid={}&showSecret=1",
-        room_id
-    );
-    let client = reqwest::Client::builder()
-        .no_proxy()
-        .build()
-        .map_err(|e| e.to_string())?;
-    let resp = client
-        .get(url)
-        .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
-        .header("Accept", "*/*")
-        .header("Origin", "https://www.huya.com")
-        .header("Referer", "https://www.huya.com/")
-        .send().await.map_err(|e| e.to_string())?;
-    let text = resp.text().await.map_err(|e| e.to_string())?;
-    let v: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-
-    let status = v.get("status").and_then(|x| x.as_i64()).unwrap_or(0);
-    if status != 200 {
-        return Err("房间未开播或无流信息，无法获取弹幕参数".to_string());
-    }
-
-    let data = v.get("data").ok_or_else(|| "缺少data".to_string())?;
-    let ayyuid = data
-        .get("profileInfo")
-        .and_then(|x| x.get("yyid"))
-        .and_then(|x| x.as_i64())
-        .unwrap_or(0);
-
-    let base_list = data
-        .get("stream")
-        .and_then(|x| x.get("baseSteamInfoList"))
-        .and_then(|x| x.as_array())
-        .cloned()
-        .unwrap_or_default();
-
-    let top_sid = if let Some(first) = base_list.get(0) {
-        first
-            .get("lChannelId")
-            .and_then(|x| x.as_i64())
-            .unwrap_or(0)
-    } else {
-        0
-    };
-
-    if top_sid == 0 {
-        return Err("未找到频道ID，房间可能未开播".to_string());
-    }
-
-    println!(
-        "[Huya Danmaku] fetch_huya_ids: room_id={} yyid={} topSid={}",
-        room_id, ayyuid, top_sid
-    );
-    Ok((ayyuid, top_sid))
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct HuyaJoinParams {
-    pub yyid: i64,
-    pub top_sid: i64,
-}
-
-#[tauri::command]
-pub async fn fetch_huya_join_params(room_id: String) -> Result<HuyaJoinParams, String> {
-    match fetch_huya_ids(&room_id).await {
-        Ok((ayyuid, top_sid)) => Ok(HuyaJoinParams {
-            yyid: ayyuid,
-            top_sid,
-        }),
-        Err(e) => Err(e),
-    }
-}
-
 #[tauri::command]
 pub async fn start_huya_danmaku_listener(
     payload: crate::platforms::common::GetStreamUrlPayload,
@@ -578,4 +503,3 @@ fn decode_msg_tars(data: &[u8]) -> anyhow::Result<Option<(String, String)>> {
     }
     Ok(ret)
 }
-

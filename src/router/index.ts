@@ -1,25 +1,34 @@
 import { createRouter, createWebHistory } from "vue-router";
-import type { Platform } from "../platforms/common/types";
+import type { Platform } from "../types/app/platform";
 
-const PlatformHomeView = () => import("../pages/PlatformHomeView.vue");
-const UniversalPlayerView = () => import("../pages/UniversalPlayerView.vue");
+const ChannelList = () => import("../pages/ChannelList.vue");
+const StreamRoom = () => import("../pages/StreamRoom.vue");
+const MultiView = () => import("../pages/MultiView.vue");
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: "/:platform?",
-      name: "PlatformHome",
-      component: PlatformHomeView,
+      path: "/",
+      redirect: "/channels/douyu",
     },
     {
-      path: "/player/:platform/:roomId",
-      name: "UniversalPlayer",
-      component: UniversalPlayerView,
+      path: "/channels/:platform",
+      name: "ChannelList",
+      component: ChannelList,
+    },
+    {
+      path: "/multi",
+      name: "MultiView",
+      component: MultiView,
+    },
+    {
+      path: "/room/:platform/:roomId",
+      name: "StreamRoom",
+      component: StreamRoom,
       props: (route) => ({
         roomId: String(route.params.roomId ?? ""),
-        platform: String(route.params.platform ?? "")
-          .toUpperCase() as Platform,
+        platform: String(route.params.platform ?? "").toUpperCase() as Platform,
       }),
     },
   ],

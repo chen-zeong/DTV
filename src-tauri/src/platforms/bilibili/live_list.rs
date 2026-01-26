@@ -1,4 +1,5 @@
-use md5::{Digest, Md5};
+use crate::platforms::common::signing::hash::md5_hex;
+use crate::platforms::common::signing::query::join_kv_pairs;
 
 // 引入 generate_bilibili_w_webid 以便在缺失时后端自动初始化
 use crate::platforms::bilibili::state::{generate_bilibili_w_webid, BilibiliState};
@@ -52,16 +53,10 @@ pub async fn fetch_bilibili_live_list(
     let secret = "ea1db124af3c7062474693fa704f4ff8";
     let sign_string = format!(
         "{}{}",
-        pairs
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect::<Vec<_>>()
-            .join("&"),
+        join_kv_pairs(pairs.iter().map(|(k, v)| (*k, v.as_str()))),
         secret
     );
-    let mut hasher = Md5::new();
-    hasher.update(sign_string.as_bytes());
-    let w_rid = format!("{:x}", hasher.finalize());
+    let w_rid = md5_hex(&sign_string);
 
     let mut params: Vec<(String, String)> =
         pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect();
@@ -69,11 +64,7 @@ pub async fn fetch_bilibili_live_list(
 
     let ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
     let url = "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList";
-    let query_str = params
-        .iter()
-        .map(|(k, v)| format!("{}={}", k, v))
-        .collect::<Vec<_>>()
-        .join("&");
+    let query_str = join_kv_pairs(params.iter().map(|(k, v)| (k.as_str(), v.as_str())));
     let full_url = format!("{}?{}", url, query_str);
 
     println!("[Bilibili] Fetch live list: w_webid={}, area_id={}, parent_area_id={}, page={}, wts={}, w_rid={}", w_webid, area_id, parent_area_id, page, wts, &params.iter().find(|(k,_)| k=="w_rid").map(|(_,v)| v.clone()).unwrap_or_default());

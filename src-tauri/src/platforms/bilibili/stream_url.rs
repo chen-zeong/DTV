@@ -1,12 +1,13 @@
 use reqwest::header::{HeaderMap, HeaderValue, COOKIE, REFERER, USER_AGENT};
 use serde_json::Value;
-use tauri::{command, AppHandle, State};
+use tauri::{AppHandle, State};
 
 use crate::platforms::common::types::StreamVariant;
-use crate::proxy::{start_proxy, ProxyServerHandle};
+use crate::proxy::{start_proxy, ProxyServerHandle, get_proxy_url};
 use crate::StreamUrlStore;
 
-#[command]
+use crate::platforms::common::errors::DtvError;
+
 pub async fn get_bilibili_live_stream_url_with_quality(
     app_handle: AppHandle,
     stream_url_store: State<'_, StreamUrlStore>,
@@ -14,7 +15,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
     payload: crate::platforms::common::GetStreamUrlPayload,
     quality: String,
     cookie: Option<String>,
-) -> Result<crate::platforms::common::LiveStreamInfo, String> {
+) -> Result<crate::platforms::common::LiveStreamInfo, DtvError> {
     let room_id = payload.args.room_id_str.clone();
     if room_id.trim().is_empty() {
         return Ok(crate::platforms::common::LiveStreamInfo {
@@ -46,14 +47,14 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             match HeaderValue::from_str(c_trimmed) {
                 Ok(val) => {
                     headers.insert(COOKIE, val);
-                    eprintln!("[Bilibili] Cookie header set (content hidden)");
+                    tracing::debug!("[Bilibili] Cookie header set (content: {})", crate::platforms::common::logging::mask_sensitive(c_trimmed));
                 }
                 Err(err) => {
-                    eprintln!("[Bilibili] Invalid cookie header, skipping. Error: {}", err);
+                    tracing::warn!("[Bilibili] Invalid cookie header, skipping. Error: {}", err);
                 }
             }
         } else {
-            eprintln!("[Bilibili] Cookie provided is empty after trimming, skipping insertion.");
+            tracing::debug!("[Bilibili] Cookie provided is empty after trimming, skipping insertion.");
         }
     }
 
@@ -66,14 +67,14 @@ pub async fn get_bilibili_live_stream_url_with_quality(
         .default_headers(headers)
         .no_proxy()
         .build()
-        .map_err(|e| format!("Failed to build client: {}", e))?;
+        .map_err(|e| DtvError::internal(format!("Failed to build client: {}", e)))?;
 
     // Helper: request playinfo with optional qn
     async fn request_playinfo(
         client: &reqwest::Client,
         room_id: &str,
         qn: Option<i32>,
-    ) -> Result<Value, String> {
+    ) -> Result<Value, DtvError> {
         let url = "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo";
         let mut params = vec![
             ("room_id", room_id.to_string()),
@@ -92,17 +93,17 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             .query(&params)
             .send()
             .await
-            .map_err(|e| format!("PlayInfo request failed: {}", e))?;
+            .map_err(|e| DtvError::network(format!("PlayInfo request failed: {}", e)))?;
         let status = resp.status();
         let text = resp
             .text()
             .await
-            .map_err(|e| format!("Read text failed: {}", e))?;
+            .map_err(|e| DtvError::network(format!("Read text failed: {}", e)))?;
         if !status.is_success() {
-            return Err(format!("PlayInfo status: {} body: {}", status, text));
+            return Err(DtvError::api(format!("PlayInfo status: {} body: {}", status, text)));
         }
         serde_json::from_str::<Value>(&text)
-            .map_err(|e| format!("JSON parse failed: {} | body: {}", e, text))
+            .map_err(|e| DtvError::api(format!("JSON parse failed: {} | body: {}", e, text)))
     }
 
     // 1) First request to get qn mapping
@@ -153,9 +154,9 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             .map(|(q, d)| format!("{}:{}", q, d))
             .collect::<Vec<_>>()
             .join(", ");
-        eprintln!("[Bilibili] qn_map for room {} => [{}]", room_id, qn_str);
+        tracing::debug!("[Bilibili] qn_map for room {} => [{}]", room_id, qn_str);
     } else {
-        eprintln!("[Bilibili] qn_map is empty for room {}", room_id);
+        tracing::debug!("[Bilibili] qn_map is empty for room {}", room_id);
     }
     if !accept_qn.is_empty() {
         let accept_str = accept_qn
@@ -163,7 +164,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             .map(|q| q.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        eprintln!("[Bilibili] accept_qn => [{}]", accept_str);
+        tracing::debug!("[Bilibili] accept_qn => [{}]", accept_str);
     }
 
     // Choose qn by desired quality text（更严格的匹配与优先规则）
@@ -225,7 +226,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             .find(|(q, _)| *q == qn)
             .map(|(_, d)| d.clone())
     });
-    eprintln!(
+    tracing::info!(
         "[Bilibili] selected quality '{}' -> qn={:?}, desc={:?}",
         quality, selected_qn, selected_desc
     );
@@ -239,13 +240,13 @@ pub async fn get_bilibili_live_stream_url_with_quality(
         .get(&room_init_url)
         .send()
         .await
-        .map_err(|e| format!("room_init failed: {}", e))?;
+        .map_err(|e| DtvError::network(format!("room_init failed: {}", e)))?;
     let init_text = init_resp
         .text()
         .await
-        .map_err(|e| format!("room_init read text failed: {}", e))?;
+        .map_err(|e| DtvError::network(format!("room_init read text failed: {}", e)))?;
     let init_json: Value = serde_json::from_str(&init_text)
-        .map_err(|e| format!("room_init json failed: {} | {}", e, init_text))?;
+        .map_err(|e| DtvError::api(format!("room_init json failed: {} | {}", e, init_text)))?;
     let live_status = init_json["data"]["live_status"].as_i64().unwrap_or(0);
     if live_status != 1 {
         return Ok(crate::platforms::common::LiveStreamInfo {
@@ -352,13 +353,13 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             match client.get(candidate).send().await {
                 Ok(resp) => {
                     if resp.status().is_success() {
-                        eprintln!(
+                        tracing::debug!(
                             "[Bilibili] Verified HLS candidate for room {} -> {}",
                             room_id, candidate
                         );
                         return Some(candidate.clone());
                     } else {
-                        eprintln!(
+                        tracing::warn!(
                             "[Bilibili] HLS candidate returned status {} for room {} -> {}",
                             resp.status(),
                             room_id,
@@ -367,7 +368,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
                     }
                 }
                 Err(err) => {
-                    eprintln!(
+                    tracing::error!(
                         "[Bilibili] Failed to probe HLS candidate for room {} -> {} ({})",
                         room_id, candidate, err
                     );
@@ -393,7 +394,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
         variants_for_response = variants.clone();
 
         if let Some(flv_url) = flv_candidate {
-            eprintln!(
+            tracing::info!(
                 "[Bilibili] Attempt {} obtained FLV stream for room {}, stop retrying",
                 attempt_display, room_id
             );
@@ -402,7 +403,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
         }
 
         if hls_candidates.is_empty() {
-            eprintln!(
+            tracing::warn!(
                 "[Bilibili] Attempt {} returned no HLS candidates for room {}",
                 attempt_display, room_id
             );
@@ -417,7 +418,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             .partition(|url| url.contains("d1--cn"));
 
         if let Some(url) = verify_hls_candidates(&client, &room_id, &preferred_candidates).await {
-            eprintln!(
+            tracing::info!(
                 "[Bilibili] Selected HLS stream containing 'd1--cn' on attempt {} for room {}",
                 attempt_display, room_id
             );
@@ -434,7 +435,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
 
         if attempt == MAX_HLS_RETRY {
             if let Some(url) = fallback_hls_url.clone() {
-                eprintln!(
+                tracing::info!(
                     "[Bilibili] Using non 'd1--cn' HLS stream after {} attempts for room {}",
                     attempt_display, room_id
                 );
@@ -445,7 +446,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             } else if let Some(url) =
                 verify_hls_candidates(&client, &room_id, &other_candidates).await
             {
-                eprintln!(
+                tracing::info!(
                     "[Bilibili] Final attempt picked non 'd1--cn' HLS stream for room {}",
                     room_id
                 );
@@ -457,7 +458,7 @@ pub async fn get_bilibili_live_stream_url_with_quality(
 
     if selected_stream.is_none() {
         if let Some(url) = fallback_hls_url.clone() {
-            eprintln!(
+            tracing::info!(
                 "[Bilibili] Falling back to cached non 'd1--cn' HLS stream for room {}",
                 room_id
             );
@@ -491,13 +492,13 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             // FLV：写入到 Store 并启动代理
             let proxied_url = {
                 {
-                    let mut current_url_in_store = stream_url_store.url.lock().unwrap();
-                    *current_url_in_store = real_url.clone();
+                    let mut urls = stream_url_store.urls.lock().unwrap();
+                    urls.insert(("bilibili".to_string(), room_id.clone()), real_url.clone());
                 }
                 match start_proxy(app_handle, proxy_server_handle, stream_url_store).await {
-                    Ok(proxy) => Some(proxy),
+                    Ok(_) => Some(get_proxy_url("bilibili", &room_id).await),
                     Err(e) => {
-                        eprintln!("[Bilibili] Failed to start proxy: {}", e);
+                        tracing::error!("[Bilibili] Failed to start proxy: {}", e);
                         None
                     }
                 }
@@ -523,17 +524,10 @@ pub async fn get_bilibili_live_stream_url_with_quality(
             })
         }
         SelectedStream::Hls(real_url) => {
-            // HLS：无需本地代理，若存在旧的 FLV 代理则关闭并清空存储
+            // HLS：无需本地代理，不再全局关闭代理服务器，避免影响其他直播间
             {
-                let handle_to_stop = { proxy_server_handle.0.lock().unwrap().take() };
-                if let Some(handle) = handle_to_stop {
-                    handle.stop(false).await;
-                    eprintln!("[Bilibili] Stopped existing FLV proxy before using HLS stream");
-                }
-            }
-            {
-                let mut current_url_in_store = stream_url_store.url.lock().unwrap();
-                *current_url_in_store = String::new();
+                let mut urls = stream_url_store.urls.lock().unwrap();
+                urls.remove(&("bilibili".to_string(), room_id.clone()));
             }
 
             Ok(crate::platforms::common::LiveStreamInfo {

@@ -1,7 +1,10 @@
 use crate::platforms::common::http_client::HttpClient;
-use crate::platforms::douyin::a_bogus::generate_a_bogus;
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_ENCODING, COOKIE, REFERER, USER_AGENT};
+use crate::platforms::common::http_headers::{headers_with_user_agent_and_referer, insert_cookie};
+use crate::platforms::douyin::signed_url::global_builder;
+use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
 use serde_json::Value;
+
+use crate::platforms::common::errors::DtvError;
 
 // Use the tested cookie from douyin_rust sample to improve API success.
 const DEFAULT_COOKIE: &str =
@@ -110,12 +113,14 @@ async fn fetch_room_from_api(
     http_client: &HttpClient,
     web_id: &str,
     cookies: Option<&str>,
-) -> Result<DouyinRoomData, String> {
-    let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, HeaderValue::from_static(DEFAULT_USER_AGENT));
-    headers.insert(REFERER, HeaderValue::from_str(&format!("https://live.douyin.com/{web_id}")).map_err(|e| format!("Invalid Referer: {e}"))?);
+    include_stream: bool,
+) -> Result<DouyinRoomData, DtvError> {
+    let mut headers = headers_with_user_agent_and_referer(
+        DEFAULT_USER_AGENT,
+        &format!("https://live.douyin.com/{web_id}"),
+    ).map_err(|e| DtvError::internal(e))?;
     headers.insert(ACCEPT_ENCODING, HeaderValue::from_static("identity"));
-    headers.insert(COOKIE, HeaderValue::from_str(cookies.unwrap_or(DEFAULT_COOKIE)).map_err(|e| format!("Invalid cookie header value: {}", e))?);
+    insert_cookie(&mut headers, Some(cookies.unwrap_or(DEFAULT_COOKIE))).map_err(|e| DtvError::internal(e))?;
 
     let params = vec![
         ("aid", "6383"),
@@ -130,31 +135,31 @@ async fn fetch_room_from_api(
         ("web_rid", web_id),
         ("msToken", ""),
     ];
-    let query = serde_urlencoded::to_string(&params)
-        .map_err(|e| format!("Failed to encode Douyin enter params: {}", e))?;
-    let sign = generate_a_bogus(&query, DEFAULT_USER_AGENT);
-    let api = format!(
-        "https://live.douyin.com/webcast/room/web/enter/?{}&a_bogus={}",
-        query,
-        sign
-    );
+    let api = global_builder().build_signed_url(
+        "https://live.douyin.com/webcast/room/web/enter/",
+        params
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+        DEFAULT_USER_AGENT,
+    ).map_err(|e| DtvError::internal(e))?;
     let json: Value = http_client
         .inner
         .get(&api)
         .headers(headers)
         .send()
         .await
-        .map_err(|e| format!("Failed to request Douyin web enter API: {}", e))?
+        .map_err(|e| DtvError::network(format!("Failed to request Douyin web enter API: {}", e)))?
         .json()
         .await
-        .map_err(|e| format!("Failed to parse Douyin web enter response: {}", e))?;
+        .map_err(|e| DtvError::api(format!("Failed to parse Douyin web enter response: {}", e)))?;
 
     let room = json
         .get("data")
         .and_then(|d| d.get("data"))
         .and_then(|arr| arr.get(0))
         .cloned()
-        .ok_or_else(|| "Douyin web enter API did not return room data".to_string())?;
+        .ok_or_else(|| DtvError::api("Douyin web enter API did not return room data".to_string()))?;
 
     let anchor_name = json
         .get("data")
@@ -169,7 +174,9 @@ async fn fetch_room_from_api(
             obj.insert("anchor_name".to_string(), Value::String(name));
         }
     }
-    merge_origin_stream(&mut room_mut);
+    if include_stream {
+        merge_origin_stream(&mut room_mut);
+    }
     Ok(DouyinRoomData { room: room_mut })
 }
 
@@ -231,10 +238,11 @@ pub async fn fetch_room_data(
     http_client: &HttpClient,
     raw_id: &str,
     cookies: Option<&str>,
-) -> Result<DouyinRoomData, String> {
+    include_stream: bool,
+) -> Result<DouyinRoomData, DtvError> {
     let web_id = normalize_douyin_live_id(raw_id);
     // 简化逻辑：直接走网页版接口 + a_bogus，避免 HTML 解析失败。
-    fetch_room_from_api(http_client, &web_id, cookies).await
+    fetch_room_from_api(http_client, &web_id, cookies, include_stream).await
 }
 
 pub fn choose_flv_stream(room: &Value, desired_quality: &str) -> Option<(String, String)> {

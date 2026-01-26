@@ -3,7 +3,7 @@ use std::error::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose, Engine as _};
-use md5::{Digest, Md5};
+use crate::platforms::common::signing::hash::md5_hex;
 use rand::Rng;
 use regex::Regex;
 use reqwest::header::{
@@ -14,6 +14,9 @@ use serde_json::Value;
 use tauri::State;
 
 use crate::platforms::common::FollowHttpClient;
+use crate::platforms::common::signing::query::join_kv_pairs;
+
+use crate::platforms::common::errors::DtvError;
 
 const IOS_MOBILE_UA: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
 const DESKTOP_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0";
@@ -37,13 +40,6 @@ pub struct HuyaUnifiedResponse {
     pub is_live: bool,
     pub flv_tx_urls: Vec<HuyaUnifiedStreamEntry>,
     pub selected_url: Option<String>,
-}
-
-fn md5_hex(input: &str) -> String {
-    let mut hasher = Md5::new();
-    hasher.update(input.as_bytes());
-    let digest = hasher.finalize();
-    format!("{:x}", digest)
 }
 
 fn current_millis() -> i64 {
@@ -144,11 +140,7 @@ fn generate_web_anti_code(stream_name: &str, anti_code: &str) -> Result<String, 
         ("codec", "264".to_string()),
     ];
 
-    Ok(parts
-        .into_iter()
-        .map(|(k, v)| format!("{k}={v}"))
-        .collect::<Vec<String>>()
-        .join("&"))
+    Ok(join_kv_pairs(parts))
 }
 
 #[allow(dead_code)]
@@ -179,11 +171,11 @@ async fn check_live_status(
 }
 
 #[derive(Clone, Debug)]
-struct RoomDetail {
-    status: bool,
-    title: Option<String>,
-    nick: Option<String>,
-    avatar180: Option<String>,
+pub struct RoomDetail {
+    pub status: bool,
+    pub title: Option<String>,
+    pub nick: Option<String>,
+    pub avatar180: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -198,7 +190,7 @@ struct HuyaWebStreamData {
     candidates: Vec<WebStreamCandidate>,
 }
 
-async fn fetch_room_detail(
+pub async fn fetch_room_detail(
     client: &reqwest::Client,
     room_id: &str,
 ) -> Result<RoomDetail, Box<dyn Error + Send + Sync>> {
@@ -268,11 +260,11 @@ async fn fetch_web_stream_data(
     match fetch_web_stream_data_with_headers(client, room_id, false).await {
         Ok(data) if !data.candidates.is_empty() => Ok(data),
         Ok(_) => {
-            println!("[Huya] Desktop UA response contained no stream candidates, retrying with mobile headers.");
+            tracing::warn!("[Huya] Desktop UA response contained no stream candidates, retrying with mobile headers.");
             fetch_web_stream_data_with_headers(client, room_id, true).await
         }
         Err(err) => {
-            eprintln!(
+            tracing::error!(
                 "[Huya] Desktop UA request failed ({:?}), retrying with mobile headers.",
                 err
             );
@@ -564,22 +556,21 @@ fn build_flv_tx_urls(candidate: Option<&WebStreamCandidate>) -> Vec<HuyaUnifiedS
     entries
 }
 
-#[tauri::command]
 pub async fn get_huya_unified_cmd(
     room_id: String,
     quality: Option<String>,
     line: Option<String>,
     follow_http: State<'_, FollowHttpClient>,
-) -> Result<HuyaUnifiedResponse, String> {
+) -> Result<HuyaUnifiedResponse, DtvError> {
     let client = &follow_http.0.inner;
 
     let detail = fetch_room_detail(client, &room_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| DtvError::api(e.to_string()))?;
 
     let web_stream = fetch_web_stream_data(client, &room_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| DtvError::api(e.to_string()))?;
 
     let ratio = resolve_ratio(quality.as_deref());
     let preferred_line = normalize_huya_line(line.as_deref());
@@ -601,7 +592,7 @@ pub async fn get_huya_unified_cmd(
     };
     let tx_entries = build_flv_tx_urls(web_stream.candidates.get(selected_index));
     let is_live = detail.status || web_stream.is_live;
-    println!(
+    tracing::debug!(
         "[Huya] requested quality: {:?}, resolved ratio: {:?}, preferred line: {:?}, selected line: {:?}",
         quality,
         ratio,

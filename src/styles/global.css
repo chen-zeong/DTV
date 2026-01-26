@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
 @theme {
   --color-app-bg: var(--bg-primary);
   --color-surface-low: var(--surface-1);
@@ -41,63 +39,10 @@
 }
 
 :root {
-  /* Light Mode (Eye-Friendly & Tinted) */
-  --bg-primary: color-mix(in srgb, var(--accent) 2%, #f8fafc);
-  --bg-secondary: color-mix(in srgb, var(--accent) 4%, #f1f5f9);
-  --bg-tertiary: color-mix(in srgb, var(--accent) 6%, #e2e8f0);
-
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-
-  --accent: #8b5cf6;
-  --accent-hover: color-mix(in srgb, var(--accent), black 15%);
-  --accent-glow: color-mix(in srgb, var(--accent), transparent 85%);
-
-  --border: color-mix(in srgb, var(--accent) 10%, rgba(15, 23, 42, 0.08));
-  --border-strong: color-mix(
-    in srgb,
-    var(--accent) 20%,
-    rgba(15, 23, 42, 0.15)
-  );
-
-  --glass-bg: color-mix(in srgb, var(--accent) 5%, rgba(255, 255, 255, 0.85));
-  --glass-border: color-mix(in srgb, var(--accent) 15%, rgba(15, 23, 42, 0.1));
-  --glass-blur: blur(20px);
-
-  --shadow-low: 0 2px 8px
-    color-mix(in srgb, var(--accent) 10%, rgba(0, 0, 0, 0.04));
-  --shadow-md: 0 8px 24px
-    color-mix(in srgb, var(--accent) 15%, rgba(0, 0, 0, 0.06));
-  --shadow-lg: 0 16px 48px
-    color-mix(in srgb, var(--accent) 20%, rgba(0, 0, 0, 0.08));
-
-  --surface-1: #ffffff;
-  --surface-2: color-mix(in srgb, var(--accent) 3%, #f8fafc);
-  --surface-3: color-mix(in srgb, var(--accent) 6%, #f1f5f9);
-
-  --sidebar-width: 264px;
-  --sidebar-collapsed-width: 72px;
-  --navbar-height: 64px;
-
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-
-  --panel-gradient: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--accent), transparent 92%) 0%,
-    var(--bg-primary) 100%
-  );
-}
-
-[data-theme="dark"] {
-  /* Dark Mode */
-  --bg-primary: #0b0b12;
-  --bg-secondary: #141424;
-  --bg-tertiary: #1a1a2d;
+  /* Dark Mode by Default */
+  --bg-primary: rgba(11, 11, 18, 0.1);
+  --bg-secondary: rgba(20, 20, 36, 0.7);
+  --bg-tertiary: rgba(26, 26, 45, 0.7);
 
   --text-primary: #f5f3ff;
   --text-secondary: #b8b4d6;
@@ -121,6 +66,16 @@
   --surface-2: color-mix(in srgb, var(--accent), black 90%);
   --surface-3: color-mix(in srgb, var(--accent), black 82%);
 
+  --sidebar-width: 264px;
+  --sidebar-collapsed-width: 72px;
+  --navbar-height: 56px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
   --panel-gradient: radial-gradient(
     120% 120% at 10% 0%,
     color-mix(in srgb, var(--accent), transparent 70%) 0%,
@@ -137,7 +92,7 @@ body {
 }
 
 body {
-  background-color: var(--bg-primary);
+  background-color: transparent;
   color: var(--text-primary);
   font-family: "OPPO Sans", sans-serif;
 }

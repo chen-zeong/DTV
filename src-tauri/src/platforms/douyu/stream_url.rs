@@ -1,4 +1,3 @@
-use deno_core::{JsRuntime, RuntimeOptions};
 use html_escape::decode_html_entities;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -7,9 +6,11 @@ use reqwest::{
 };
 use serde::Deserialize;
 use serde_json::Value;
-#[cfg(target_os = "linux")]
-use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::platforms::douyu::sign_worker;
+
+use crate::platforms::common::errors::DtvError;
 
 #[derive(Deserialize, Debug)]
 struct BetardRoomInfo {
@@ -60,17 +61,6 @@ struct DouYu {
 const DEFAULT_DOUYU_CDN: &str = "ws-h5";
 const DEFAULT_DOUYU_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
 const DEFAULT_DOUYU_DID: &str = "10000000000000000000000000001501";
-const CRYPTO_JS: &str = include_str!("cryptojs.min.js");
-
-#[cfg(target_os = "linux")]
-static JS_RUNTIME_INIT: Once = Once::new();
-
-fn ensure_js_runtime_platform_initialized() {
-    #[cfg(target_os = "linux")]
-    JS_RUNTIME_INIT.call_once(|| {
-        JsRuntime::init_platform(None);
-    });
-}
 
 fn normalize_douyu_cdn(input: Option<&str>) -> &'static str {
     match input
@@ -109,37 +99,6 @@ impl DouYu {
             rid: rid.to_string(),
             client,
         })
-    }
-
-    async fn execute_js_sign(
-        &self,
-        script: &str,
-        rid: &str,
-        did: &str,
-        ts: i64,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        ensure_js_runtime_platform_initialized();
-        let mut runtime = JsRuntime::new(RuntimeOptions::default());
-
-        runtime.execute_script(
-            "[douyu]",
-            deno_core::FastString::from(String::from(CRYPTO_JS)),
-        )?;
-        runtime.execute_script("[douyu]", deno_core::FastString::from(script.to_string()))?;
-
-        let rid_js = serde_json::to_string(rid)?;
-        let did_js = serde_json::to_string(did)?;
-        let call_expr = format!("ub98484234({rid_js},{did_js},{ts});");
-        let js_result =
-            runtime.execute_script("[douyu]", deno_core::FastString::from(call_expr))?;
-
-        let params = {
-            let scope = &mut runtime.handle_scope();
-            let result = js_result.open(scope);
-            result.to_rust_string_lossy(scope)
-        };
-
-        Ok(params)
     }
 
     async fn fetch_room_detail(&self) -> Result<(String, bool), Box<dyn std::error::Error>> {
@@ -195,9 +154,9 @@ impl DouYu {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let crptext = self.get_h5_enc(room_id).await?;
         let ts = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        let params = self
-            .execute_js_sign(&crptext, room_id, &self.did, ts)
-            .await?;
+        let params = sign_worker::execute_js_sign(&crptext, room_id, &self.did, ts)
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
         Ok(params)
     }
 
@@ -341,53 +300,35 @@ impl DouYu {
             .unwrap_or_else(|| normalize_douyu_cdn(requested).to_string())
     }
 
-    pub async fn get_real_url(&self, cdn: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
-        let (real_room_id, is_live) = self.fetch_room_detail().await?;
-        if !is_live {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "主播未开播",
-            )));
-        }
-
-        let sign_data = self.build_sign_params(&real_room_id).await?;
-        let play_info = self.get_play_qualities(&real_room_id, &sign_data).await?;
-        let best_rate = play_info
-            .variants
-            .iter()
-            .map(|variant| variant.rate)
-            .max()
-            .unwrap_or(0);
-        let selected_cdn = Self::select_cdn(cdn, &play_info.cdns);
-        self.get_play_url(&real_room_id, &sign_data, best_rate, &selected_cdn)
-            .await
-    }
-
     pub async fn get_real_url_with_quality(
         &self,
         quality: &str,
         cdn: Option<&str>,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        let (real_room_id, is_live) = self.fetch_room_detail().await?;
+    ) -> Result<String, DtvError> {
+        let (real_room_id, is_live) = self.fetch_room_detail()
+            .await
+            .map_err(|e| DtvError::api(e.to_string()))?;
         if !is_live {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "主播未开播",
-            )));
+            return Err(DtvError::offline("主播未开播"));
         }
 
-        let sign_data = self.build_sign_params(&real_room_id).await?;
-        let play_info = self.get_play_qualities(&real_room_id, &sign_data).await?;
+        let sign_data = self.build_sign_params(&real_room_id)
+            .await
+            .map_err(|e| DtvError::api(e.to_string()))?;
+        let play_info = self.get_play_qualities(&real_room_id, &sign_data)
+            .await
+            .map_err(|e| DtvError::api(e.to_string()))?;
         let selected_rate = Self::resolve_rate_for_quality(quality, &play_info.variants)
             .or_else(|| play_info.variants.iter().map(|v| v.rate).max())
             .unwrap_or(0);
-        println!(
+        tracing::debug!(
             "[Douyu Stream URL] Requested quality '{}', resolved rate {} (variants: {:?})",
             quality, selected_rate, play_info.variants
         );
         let selected_cdn = Self::select_cdn(cdn, &play_info.cdns);
         self.get_play_url(&real_room_id, &sign_data, selected_rate, &selected_cdn)
             .await
+            .map_err(|e| DtvError::api(e.to_string()))
     }
 
     fn resolve_rate_for_quality(quality: &str, variants: &[DouyuRateVariant]) -> Option<i32> {
@@ -494,21 +435,12 @@ impl DouYu {
     }
 }
 
-pub async fn get_stream_url(
-    room_id: &str,
-    cdn: Option<&str>,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let douyu = DouYu::new(room_id).await?;
-    let url = douyu.get_real_url(cdn).await?;
-    Ok(url)
-}
-
 pub async fn get_stream_url_with_quality(
     room_id: &str,
     quality: &str,
     cdn: Option<&str>,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let douyu = DouYu::new(room_id).await?;
+) -> Result<String, DtvError> {
+    let douyu = DouYu::new(room_id).await.map_err(|e| DtvError::internal(e.to_string()))?;
     let url = douyu.get_real_url_with_quality(quality, cdn).await?;
     Ok(url)
 }

@@ -7,7 +7,10 @@ pub enum SupportedPlatformRust {
     Douyu,
     #[serde(rename = "bilibili")]
     Bilibili,
-    // Add other platforms as they are supported
+    #[serde(rename = "douyin")]
+    Douyin,
+    #[serde(rename = "huya")]
+    Huya,
 }
 
 // Struct mirroring TypeScript CommonPlatformCategory

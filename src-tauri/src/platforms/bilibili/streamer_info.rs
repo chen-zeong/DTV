@@ -1,12 +1,17 @@
 use crate::platforms::common::FollowHttpClient;
-use md5;
-use md5::{Digest, Md5};
-use reqwest::header::{HeaderMap, HeaderValue, COOKIE, REFERER, USER_AGENT};
+use reqwest::header::HeaderMap;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::command;
 use tauri::State;
+
+use crate::platforms::bilibili::state::BilibiliState;
+use crate::platforms::common::signing::hash::md5_hex;
+use crate::platforms::common::signing::query::join_kv_pairs_urlencoded_sorted;
+use crate::platforms::common::http_headers::{headers_with_user_agent_and_referer, insert_cookie};
+
+use crate::platforms::common::errors::DtvError;
 
 // WBI mixin key mapping table (same as Python implementation)
 const MIXIN_KEY_ENC_TAB: [usize; 64] = [
@@ -25,23 +30,28 @@ fn get_mixin_key(origin: &str) -> String {
     out.chars().take(32).collect()
 }
 
-async fn get_wbi_keys(
+async fn get_wbi_keys_cached(
+    state: &BilibiliState,
     client: &reqwest::Client,
     headers: &HeaderMap,
-) -> Result<(String, String), String> {
+) -> Result<(String, String), DtvError> {
+    if let Some((img_key, sub_key)) = state.get_cached_wbi_keys() {
+        return Ok((img_key, sub_key));
+    }
+
     let url = "https://api.bilibili.com/x/web-interface/nav";
     let resp = client
         .get(url)
         .headers(headers.clone())
         .send()
         .await
-        .map_err(|e| format!("Failed to get WBI keys: {}", e))?;
+        .map_err(|e| DtvError::network(format!("Failed to get WBI keys: {}", e)))?;
     let text = resp
         .text()
         .await
-        .map_err(|e| format!("Failed to read WBI keys text: {}", e))?;
+        .map_err(|e| DtvError::network(format!("Failed to read WBI keys text: {}", e)))?;
     let json: Value = serde_json::from_str(&text)
-        .map_err(|e| format!("Failed to parse WBI keys JSON: {} | {}", e, text))?;
+        .map_err(|e| DtvError::api(format!("Failed to parse WBI keys JSON: {} | {}", e, text)))?;
     let wbi_img = json["data"]["wbi_img"].clone();
     let img_url = wbi_img["img_url"].as_str().unwrap_or("");
     let sub_url = wbi_img["sub_url"].as_str().unwrap_or("");
@@ -60,8 +70,10 @@ async fn get_wbi_keys(
     };
 
     if img_key.is_empty() || sub_key.is_empty() {
-        return Err("WBI keys not found".to_string());
+        return Err(DtvError::api("WBI keys not found".to_string()));
     }
+
+    state.set_wbi_keys(img_key.clone(), sub_key.clone(), Duration::from_secs(12 * 60 * 60));
     Ok((img_key, sub_key))
 }
 
@@ -85,26 +97,21 @@ fn build_wbi_sign(room_id: &str, img_key: &str, sub_key: &str) -> (String, Strin
     qp.insert("wts".to_string(), wts.clone());
 
     // Sort keys and sanitize values
-    let mut keys: Vec<String> = qp.keys().cloned().collect();
-    keys.sort();
-    let mut query_parts: Vec<String> = Vec::new();
-    for k in keys.iter() {
-        let v = sanitize_value(qp.get(k).map(|s| s.as_str()).unwrap_or(""));
-        query_parts.push(format!("{}={}", k, urlencoding::encode(&v)));
-    }
-    let query = query_parts.join("&");
-    let mut hasher = Md5::new();
-    hasher.update(format!("{}{}", query, mixin_key).as_bytes());
-    let w_rid = format!("{:x}", hasher.finalize());
+    let pairs = qp
+        .iter()
+        .map(|(k, v)| (k.clone(), sanitize_value(v)))
+        .collect::<Vec<_>>();
+    let query = join_kv_pairs_urlencoded_sorted(pairs);
+    let w_rid = md5_hex(&format!("{}{}", query, mixin_key));
     (wts, w_rid)
 }
 
-#[command]
 pub async fn fetch_bilibili_streamer_info(
     payload: crate::platforms::common::GetStreamUrlPayload,
     cookie: Option<String>,
     follow_http: State<'_, FollowHttpClient>,
-) -> Result<crate::platforms::common::LiveStreamInfo, String> {
+    state: State<'_, BilibiliState>,
+) -> Result<crate::platforms::common::LiveStreamInfo, DtvError> {
     let room_id = payload.args.room_id_str.clone();
     if room_id.trim().is_empty() {
         return Ok(crate::platforms::common::LiveStreamInfo {
@@ -124,25 +131,13 @@ pub async fn fetch_bilibili_streamer_info(
     let ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
 
     // Build headers (include optional cookie)
-    let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, HeaderValue::from_str(ua).unwrap());
-    headers.insert(
-        REFERER,
-        HeaderValue::from_static("https://live.bilibili.com/"),
-    );
-    if let Some(c) = cookie.as_ref() {
-        if !c.is_empty() {
-            headers.insert(
-                COOKIE,
-                HeaderValue::from_str(c).unwrap_or(HeaderValue::from_static("")),
-            );
-        }
-    }
+    let mut headers = headers_with_user_agent_and_referer(ua, "https://live.bilibili.com/").map_err(|e| DtvError::internal(e))?;
+    insert_cookie(&mut headers, cookie.as_deref()).map_err(|e| DtvError::internal(e))?;
 
     let client = &follow_http.0.inner;
 
     // Get WBI keys and build sign
-    let (img_key, sub_key) = get_wbi_keys(client, &headers).await?;
+    let (img_key, sub_key) = get_wbi_keys_cached(&state, client, &headers).await?;
     let (wts, w_rid) = build_wbi_sign(&room_id, &img_key, &sub_key);
 
     // Call getInfoByRoom API with signed params
@@ -155,12 +150,12 @@ pub async fn fetch_bilibili_streamer_info(
         .query(&params)
         .send()
         .await
-        .map_err(|e| format!("Room info request failed: {}", e))?;
+        .map_err(|e| DtvError::network(format!("Room info request failed: {}", e)))?;
     let status = resp.status();
     let text = resp
         .text()
         .await
-        .map_err(|e| format!("Read text failed: {}", e))?;
+        .map_err(|e| DtvError::network(format!("Read text failed: {}", e)))?;
     if !status.is_success() {
         return Ok(crate::platforms::common::LiveStreamInfo {
             title: None,
@@ -176,7 +171,7 @@ pub async fn fetch_bilibili_streamer_info(
         });
     }
     let j: Value = serde_json::from_str(&text)
-        .map_err(|e| format!("Room info JSON parse failed: {} | body: {}", e, text))?;
+        .map_err(|e| DtvError::api(format!("Room info JSON parse failed: {} | body: {}", e, text)))?;
     let data = j["data"].clone();
 
     let base_info = data["anchor_info"]["base_info"].clone();

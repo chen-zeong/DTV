@@ -11,36 +11,21 @@ use crate::StreamUrlStore;
 use regex::Regex;
 use reqwest::header::{HeaderMap, HeaderValue, REFERER, USER_AGENT};
 use serde_json::Value;
-use tauri::{command, AppHandle, State};
+use tauri::{AppHandle, State};
+
+use crate::platforms::common::errors::DtvError;
 
 const QUALITY_OD: &str = "OD";
 const QUALITY_BD: &str = "BD";
 const QUALITY_UHD: &str = "UHD";
-#[command]
-pub async fn get_douyin_live_stream_url(
-    app_handle: AppHandle,
-    stream_url_store: State<'_, StreamUrlStore>,
-    proxy_server_handle: State<'_, ProxyServerHandle>,
-    payload: GetStreamUrlPayload,
-) -> Result<CommonLiveStreamInfo, String> {
-    get_douyin_live_stream_url_with_quality(
-        app_handle,
-        stream_url_store,
-        proxy_server_handle,
-        payload,
-        QUALITY_OD.to_string(),
-    )
-    .await
-}
 
-#[command]
 pub async fn get_douyin_live_stream_url_with_quality(
     _app_handle: AppHandle,
     _stream_url_store: State<'_, StreamUrlStore>,
     _proxy_server_handle: State<'_, ProxyServerHandle>,
     payload: GetStreamUrlPayload,
     quality: String,
-) -> Result<CommonLiveStreamInfo, String> {
+) -> Result<CommonLiveStreamInfo, DtvError> {
     let requested_id = payload.args.room_id_str.trim().to_string();
     if requested_id.is_empty() {
         return Ok(CommonLiveStreamInfo {
@@ -57,20 +42,20 @@ pub async fn get_douyin_live_stream_url_with_quality(
         });
     }
 
-    println!(
+    tracing::debug!(
         "[Douyin Stream Detail] Fetching stream for '{}' with requested quality '{}'",
         requested_id, quality
     );
 
     let http_client = HttpClient::new_direct_connection()
-        .map_err(|e| format!("Failed to create direct connection HttpClient: {}", e))?;
+        .map_err(|e| DtvError::internal(format!("Failed to create direct connection HttpClient: {}", e)))?;
 
     let normalized_id = normalize_douyin_live_id(&requested_id);
-    let DouyinRoomData { mut room } = fetch_room_data(&http_client, &normalized_id, None).await?;
+    let DouyinRoomData { mut room } = fetch_room_data(&http_client, &normalized_id, None, true).await?;
     let origin_from_html = fetch_origin_flv_from_live_page(&http_client, &normalized_id)
         .await
         .unwrap_or_else(|err| {
-            println!(
+            tracing::warn!(
                 "[Douyin Stream Detail] Failed to fetch live page for origin stream: {}",
                 err
             );
@@ -116,10 +101,10 @@ pub async fn get_douyin_live_stream_url_with_quality(
         .or_else(|| choose_flv_stream(&room, target_quality))
         .or_else(|| first_flv_stream(&room))
         .ok_or_else(|| {
-            "[Douyin Stream Detail] No FLV streams available in stream_url.flv_pull_url".to_string()
+            DtvError::api("[Douyin Stream Detail] No FLV streams available in stream_url.flv_pull_url".to_string())
         })?;
     let (selected_key, real_url) = selected;
-    println!(
+    tracing::debug!(
         "[Douyin Stream Detail] Selected FLV stream key='{}' url='{}'",
         selected_key, real_url
     );

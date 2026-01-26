@@ -43,6 +43,7 @@ window-vibrancy = "0.7.1"
  actix-cors = "0.7"
  awc = { version = "3.4.0", features = ["tls-rustls-0_22"] }
  bytes = "1"
+ tracing = { version = "0.1", features = ["log"] }
  log = "0.4"
  thiserror = "1.0"
  base64 = "0.21"
@@ -63,6 +64,7 @@ window-vibrancy = "0.7.1"
  
  specta = { version = "2.0.0-rc.9", features = ["serde", "derive", "function"] }
  tauri-plugin-os = "2.3.0"
+ tauri-plugin-log = "2.0.0"
  tungstenite = { version = "0.21", features = ["native-tls"] }
  brotlic = "0.8"
  cookie = "0.18"

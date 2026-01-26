@@ -8,22 +8,23 @@ use tauri::State;
 
 use crate::platforms::common::FollowHttpClient;
 
+use crate::platforms::common::errors::DtvError;
+
 // Define the structure to be returned to TypeScript
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct DouyuFollowInfo {
-    room_id: String,
-    room_name: Option<String>,
-    nickname: Option<String>,
-    avatar_url: Option<String>,
-    video_loop: Option<i64>,
-    show_status: Option<i64>,
+    pub room_id: String,
+    pub room_name: Option<String>,
+    pub nickname: Option<String>,
+    pub avatar_url: Option<String>,
+    pub video_loop: Option<i64>,
+    pub show_status: Option<i64>,
 }
 
-#[tauri::command]
 pub async fn fetch_douyu_room_info(
     room_id: String,
     follow_http: State<'_, FollowHttpClient>,
-) -> Result<DouyuFollowInfo, String> {
+) -> Result<DouyuFollowInfo, DtvError> {
     let mut headers = HeaderMap::new();
     headers.insert(
         "Accept",
@@ -52,30 +53,30 @@ pub async fn fetch_douyu_room_info(
     let response = match response_result {
         Ok(res) => res,
         Err(e) => {
-            return Err(format!(
+            return Err(DtvError::network(format!(
                 "Network request failed for room {}: {}",
                 room_id,
                 e.to_string()
-            ))
+            )))
         }
     };
 
     if !response.status().is_success() {
-        return Err(format!(
+        return Err(DtvError::api(format!(
             "API request for room {} failed with status: {}",
             room_id,
             response.status()
-        ));
+        )));
     }
 
     let full_json_value = match response.json::<Value>().await {
         Ok(val) => val,
         Err(e) => {
-            return Err(format!(
+            return Err(DtvError::api(format!(
                 "Failed to parse JSON for room {}: {}. Ensure API returns valid JSON.",
                 room_id,
                 e.to_string()
-            ))
+            )))
         }
     };
     let room_data_ref = full_json_value
@@ -88,10 +89,10 @@ pub async fn fetch_douyu_room_info(
     let room_data = match room_data_ref {
         Some(data) => data,
         None => {
-            return Err(format!(
+            return Err(DtvError::api(format!(
                 "Could not locate room data block in JSON response for room {}",
                 room_id
-            ))
+            )))
         }
     };
 

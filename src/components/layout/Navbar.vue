@@ -1,6 +1,6 @@
 <template>
   <nav
-    class="sticky top-0 z-50 flex items-center border-b border-border-main bg-surface-low/80 px-5 py-2 shadow-md backdrop-blur-md"
+    class="sticky top-0 z-50 flex items-center border-b border-border-main bg-surface-low/40 px-5 py-2 backdrop-blur-md"
     data-tauri-drag-region
     :style="{
       paddingRight:
@@ -27,6 +27,45 @@
         >
           <Home :size="18" />
         </button>
+
+        <div class="relative" ref="gridMenuRef">
+          <button
+            type="button"
+            class="flex size-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
+            :class="{ 'text-brand border-brand/30 bg-brand/10': route.name === 'MultiView' }"
+            aria-label="分屏模式"
+            title="切换分屏模式"
+            @click="showGridMenu = !showGridMenu"
+          >
+            <LayoutGrid :size="18" />
+          </button>
+
+          <!-- Grid Selection Menu -->
+          <div
+            v-if="showGridMenu"
+            class="absolute top-[calc(100%+12px)] right-0 z-[1001] w-32 rounded-xl border border-border-strong bg-surface-low/95 p-2 shadow-2xl backdrop-blur-xl"
+          >
+            <div
+              class="mb-2 px-2 py-1 text-[10px] font-black tracking-widest text-text-muted uppercase"
+            >
+              分屏布局
+            </div>
+            <div class="flex flex-col gap-1">
+              <button
+                v-for="mode in [4, 6, 9]"
+                :key="mode"
+                @click="switchGridMode(mode)"
+                class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-colors hover:bg-surface-high"
+                :class="playerStore.gridMode === mode ? 'text-brand bg-brand/10' : 'text-text-main'"
+              >
+                <div class="grid gap-0.5 size-4" :class="mode === 4 ? 'grid-cols-2' : 'grid-cols-3'">
+                  <span v-for="i in mode" :key="i" class="bg-current rounded-[1px] opacity-50"></span>
+                </div>
+                <span>{{ mode }}宫格</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div
           class="relative max-w-full transition-all duration-300 ease-in-out"
@@ -175,27 +214,20 @@
                   <div class="flex flex-col items-end gap-1.5">
                     <span
                       class="rounded border border-border-main bg-surface-mid px-2 py-0.5 text-[10px] font-black tracking-[0.5px] uppercase group-hover:border-brand/30 group-hover:bg-brand/20 group-hover:text-brand"
-                      :style="
-                        anchor.platform === Platform.DOUYU
-                          ? 'color: #ff7a1c'
-                          : anchor.platform === Platform.DOUYIN
-                            ? 'color: #fe2c55'
-                            : anchor.platform === Platform.HUYA
-                              ? 'color: #f5a623'
-                              : anchor.platform === Platform.BILIBILI
-                                ? 'color: #fb7299'
-                                : ''
-                      "
+                      :style="{
+                        color:
+                          anchor.platform === Platform.DOUYU
+                            ? '#ff7a1c'
+                            : anchor.platform === Platform.DOUYIN
+                              ? '#fe2c55'
+                              : anchor.platform === Platform.HUYA
+                                ? '#f5a623'
+                                : anchor.platform === Platform.BILIBILI
+                                  ? '#fb7299'
+                                  : '',
+                      }"
                     >
-                      {{
-                        anchor.platform === Platform.DOUYU
-                          ? "斗鱼"
-                          : anchor.platform === Platform.DOUYIN
-                            ? "抖音"
-                            : anchor.platform === Platform.HUYA
-                              ? "虎牙"
-                              : anchor.platform
-                      }}
+                      {{ PLATFORM_MAP[anchor.platform.toLowerCase() as UiPlatform]?.name || anchor.platform }}
                     </span>
                     <span
                       class="flex items-center gap-1 font-mono text-[9px] text-text-muted"
@@ -241,40 +273,34 @@
             </div>
           </div>
         </div>
-        <Transition
-          enter-active-class="transition-all duration-300 ease-out"
-          enter-from-class="opacity-0 -translate-x-2 scale-95"
-          enter-to-class="opacity-100 translate-x-0 scale-100"
-          leave-active-class="transition-all duration-200 ease-in"
-          leave-from-class="opacity-100 translate-x-0 scale-100"
-          leave-to-class="opacity-0 -translate-x-2 scale-95"
+        <TransitionGroup
+          name="list"
+          tag="div"
+          class="scrollbar-none flex items-center gap-2 overflow-x-auto"
         >
-          <NavbarStreamerInfo
-            v-if="playerStore.currentStreamer"
-            :room-id="playerStore.currentStreamer.roomId"
-            :platform="playerStore.currentStreamer.platform"
-            :title="playerStore.currentStreamer.title"
-            :anchor-name="playerStore.currentStreamer.anchorName"
-            :avatar="playerStore.currentStreamer.avatar"
-            :is-live="playerStore.currentStreamer.isLive"
+          <NavbarPlayerTab
+            v-for="(streamer, index) in playerStore.activeStreamers"
+            :key="`${streamer.platform}:${streamer.roomId}`"
+            :room-id="streamer.roomId"
+            :platform="streamer.platform"
+            :anchor-name="streamer.anchorName"
+            :avatar="streamer.avatar"
+            :is-live="streamer.isLive"
+            :is-muted="!!streamer.isMuted"
+            :is-active="isTabActive(streamer.platform, streamer.roomId)"
+            @select="switchToPlayer(streamer)"
+            @close="closePlayer(streamer)"
+            @toggle-mute="playerStore.toggleMute(streamer.platform, streamer.roomId)"
+            @dragstart="onDragStart(index)"
+            @drop="onDrop(index)"
           />
-        </Transition>
+        </TransitionGroup>
       </div>
 
       <div
         class="flex flex-1 items-center justify-end gap-2"
         data-tauri-drag-region="false"
       >
-      <!-- todo 窗口置顶现在 只能维持在当前桌面，切换桌面无效 -->
-        <!-- <button
-          type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high transition-all"
-          :class="{ 'text-brand border-brand/30 bg-brand/10': isAlwaysOnTop }"
-          @click="toggleAlwaysOnTop"
-          :title="isAlwaysOnTop ? '取消置顶' : '窗口置顶'"
-        >
-          <Pin :size="18" :class="{ 'fill-current': isAlwaysOnTop }" />
-        </button> -->
         <button
           type="button"
           class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
@@ -298,7 +324,7 @@
           <!-- Color Palette Popover -->
           <div
             v-if="showColorPalette"
-            class="absolute top-[calc(100%+12px)] right-0 z-[1001] w-48 rounded-xl border border-border-strong bg-surface-low/95 p-3 shadow-2xl backdrop-blur-xl dark:bg-neutral-900/95"
+            class="absolute top-[calc(100%+12px)] right-0 z-[1001] w-48 rounded-xl border border-border-strong bg-surface-low/95 p-3 shadow-2xl backdrop-blur-xl"
           >
             <div
               class="mb-3 px-1 text-[10px] font-black tracking-widest text-text-muted uppercase"
@@ -354,14 +380,6 @@
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-full border border-border-main bg-surface-mid text-text-muted hover:scale-[1.03] hover:bg-surface-high"
-          @click="toggleTheme"
-        >
-          <Sun v-if="effectiveTheme === 'dark'" :size="18" />
-          <Moon v-else :size="18" />
-        </button>
       </div>
 
       <div
@@ -376,36 +394,39 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
-// import { getCurrentWindow } from "@tauri-apps/api/window";
 import { platform as detectPlatform } from "@tauri-apps/plugin-os";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useRoute, useRouter } from "vue-router";
 import {
   Github,
-  Moon,
   Search,
-  Sun,
   X,
   Tag,
   User,
   Hash,
   Home,
   Palette,
-  // Pin,
+  LayoutGrid,
 } from "lucide-vue-next";
 import { onClickOutside } from "@vueuse/core";
 import WindowsWindowControls from "../window-controls/WindowsWindowControls.vue";
-import NavbarStreamerInfo from "./NavbarStreamerInfo.vue";
-import { useThemeStore } from "../../stores/theme";
-// import { useFollowStore } from "../../stores/followStore";
-import { usePlayerStore } from "../../stores/playerStore";
-import { Platform, type UiPlatform } from "../../platforms/common/types";
-// import type { FollowedStreamer } from "../../platforms/common/types";
-import { huyaCategoriesData } from "../../platforms/huya/huyaCategoriesData";
-import { douyinCategoriesData } from "../../platforms/douyin/douyinCategoriesData";
-import { biliCategoriesData } from "../../platforms/bilibili/biliCategoriesData";
+import NavbarPlayerTab from "./NavbarPlayerTab.vue";
+import { useThemeStore } from "../../store/theme";
+import { usePlayerStore } from "../../store/playerStore";
+import { Platform, type UiPlatform } from "../../types/app/platform";
+import { huyaCategoriesData } from "../../services/platforms/huya/huyaCategoriesData";
+import { douyinCategoriesData } from "../../services/platforms/douyin/douyinCategoriesData";
+import { biliCategoriesData } from "../../services/platforms/bilibili/biliCategoriesData";
+import type { Category1, Category2 } from "../../types/models/category";
+import { PLATFORM_MAP } from "../../config/platforms";
 import Fuse from "fuse.js";
+import { 
+  searchDouyuAnchor, 
+  searchHuyaAnchors, 
+  searchBilibiliRooms,
+} from "../../api/search";
+import { startStaticProxyServer } from "../../api/proxy";
+import { getLiveStreamV2 } from "../../api/live";
 
 interface CategorySearchResult {
   type: "category";
@@ -417,26 +438,26 @@ interface CategorySearchResult {
 
 // Prepare categories for indexing once
 const flatCategories = [
-  ...huyaCategoriesData.flatMap((c1) =>
-    (c1.subcategories || []).map((c2: any) => ({
+  ...huyaCategoriesData.flatMap((c1: Category1) =>
+    (c1.subcategories || []).map((c2: Category2) => ({
       name: c2.title,
-      id: String(c2.id || c2.href),
+      id: String((c2 as any).id || c2.href),
       href: c2.href,
       platform: Platform.HUYA,
     })),
   ),
-  ...douyinCategoriesData.flatMap((c1) =>
-    (c1.subcategories || []).map((c2: any) => ({
+  ...douyinCategoriesData.flatMap((c1: Category1) =>
+    (c1.subcategories || []).map((c2: Category2) => ({
       name: c2.title,
       id: String(c2.href),
       href: c2.href,
       platform: Platform.DOUYIN,
     })),
   ),
-  ...biliCategoriesData.flatMap((c1) =>
-    (c1.subcategories || []).map((c2: any) => ({
+  ...biliCategoriesData.flatMap((c1: Category1) =>
+    (c1.subcategories || []).map((c2: Category2) => ({
       name: c2.title,
-      id: String(c2.id || c2.href),
+      id: String((c2 as any).id || c2.href),
       href: c2.href,
       platform: Platform.BILIBILI,
     })),
@@ -453,34 +474,6 @@ const fuse = new Fuse(flatCategories, {
   minMatchCharLength: 1,
 });
 
-interface DouyinApiStreamInfo {
-  title?: string | null;
-  anchor_name?: string | null;
-  avatar?: string | null;
-  status?: number | null;
-  error_message?: string | null;
-  web_rid?: string | null;
-}
-
-interface HuyaAnchorItem {
-  room_id: string;
-  avatar: string;
-  user_name: string;
-  live_status: boolean;
-  title: string;
-}
-
-type BilibiliSearchItem = {
-  room_id: string;
-  title: string;
-  cover: string;
-  anchor: string;
-  avatar: string;
-  watching: string;
-  area: string;
-  is_live: boolean;
-};
-
 interface SearchResultItem {
   platform: Platform;
   roomId: string;
@@ -495,13 +488,11 @@ interface SearchResultItem {
 }
 
 const props = defineProps<{
-  theme: "light" | "dark";
   searchQuery?: string;
   activePlatform: UiPlatform | "all";
 }>();
 
 const emit = defineEmits<{
-  (event: "theme-toggle"): void;
   (event: "search-change", value: string): void;
   (event: "platform-change", value: UiPlatform | "all"): void;
   (
@@ -526,15 +517,26 @@ const isLoadingSearch = ref(false);
 const isSearchFocused = ref(false);
 const searchContainerRef = ref<HTMLElement | null>(null);
 const colorPaletteRef = ref<HTMLElement | null>(null);
+const showGridMenu = ref(false);
+const gridMenuRef = ref<HTMLElement | null>(null);
 const showColorPalette = ref(false);
-// const isAlwaysOnTop = ref(false);
 
 const themeStore = useThemeStore();
-// const followStore = useFollowStore();
 const playerStore = usePlayerStore();
-const effectiveTheme = computed(() => themeStore.getEffectiveTheme());
 const route = useRoute();
 const router = useRouter();
+
+const switchGridMode = (mode: number) => {
+  playerStore.setGridMode(mode);
+  showGridMenu.value = false;
+  if (route.name !== 'MultiView') {
+    router.push({ name: 'MultiView' });
+  }
+};
+
+onClickOutside(gridMenuRef, () => {
+  showGridMenu.value = false;
+});
 
 const availableColors = [
   { name: "红色", value: "#ef4444" },
@@ -551,19 +553,53 @@ const availableColors = [
 ];
 
 const goHome = () => {
-  router.push({ name: "PlatformHome" });
+  router.push({ name: "ChannelList" });
 };
 
-// const toggleAlwaysOnTop = async () => {
-//   try {
-//     const win = getCurrentWindow();
-//     const nextState = !isAlwaysOnTop.value;
-//     await win.setAlwaysOnTop(nextState);
-//     isAlwaysOnTop.value = nextState;
-//   } catch (error) {
-//     console.error("[Navbar] Failed to set always on top:", error);
-//   }
-// };
+const draggedIndex = ref<number | null>(null);
+
+const onDragStart = (index: number) => {
+  draggedIndex.value = index;
+};
+
+const onDrop = (targetIndex: number) => {
+  if (draggedIndex.value === null) return;
+  const list = [...playerStore.activeStreamers];
+  const [movedItem] = list.splice(draggedIndex.value, 1);
+  list.splice(targetIndex, 0, movedItem);
+  playerStore.updateActiveOrder(list);
+  draggedIndex.value = null;
+};
+
+const isTabActive = (platform: string, roomId: string) => {
+  return (
+    route.name === "StreamRoom" &&
+    route.params.platform?.toString().toLowerCase() === platform.toLowerCase() &&
+    route.params.roomId?.toString() === roomId
+  );
+};
+
+const switchToPlayer = (streamer: any) => {
+  router.push({
+    name: "StreamRoom",
+    params: {
+      platform: streamer.platform.toLowerCase(),
+      roomId: streamer.roomId,
+    },
+  });
+};
+
+const closePlayer = (streamer: any) => {
+  playerStore.removeStreamer(streamer.platform, streamer.roomId);
+  // If we closed the active tab, navigate to the new current one or home
+  if (isTabActive(streamer.platform, streamer.roomId)) {
+    if (playerStore.currentStreamer) {
+      switchToPlayer(playerStore.currentStreamer);
+    } else {
+      goHome();
+    }
+  }
+};
 
 const changeThemeColor = () => {
   showColorPalette.value = !showColorPalette.value;
@@ -585,7 +621,7 @@ const performLocalCategorySearch = (query: string): CategorySearchResult[] => {
 
   // 1. Precise substring match (guarantees results like "999" -> "9999")
   const substringMatches = flatCategories.filter(
-    (c) => c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q),
+    (c) => c.id.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q),
   );
 
   // 2. Fuzzy match via Fuse.js
@@ -612,10 +648,6 @@ const performLocalCategorySearch = (query: string): CategorySearchResult[] => {
 };
 
 const selectCategory = (cat: CategorySearchResult) => {
-  // Navigation to platform home with category usually happens via router.
-  // Currently PlatformHomeView manages its own selection based on platform change.
-  // We can pass the category via query params or just rely on platform switch.
-  // For now, let's navigate to the platform.
   router.push({
     name: "PlatformHome",
     params: { platform: cat.platform.toLowerCase() },
@@ -636,7 +668,7 @@ const proxyBase = ref<string | null>(null);
 const ensureProxyStarted = async () => {
   if (!proxyBase.value) {
     try {
-      const base = await invoke<string>("start_static_proxy_server");
+      const base = await startStaticProxyServer();
       proxyBase.value = base;
     } catch (e) {
       console.error("[Navbar] Failed to start static proxy server", e);
@@ -666,13 +698,6 @@ const placeholderText = computed(() => {
 onMounted(async () => {
   try {
     detectedPlatform.value = await detectPlatform();
-    // Initialize Always On Top state
-    // Note: isAlwaysOnTop() might not be available in all contexts or versions, check docs. 
-    // Tauri v2 Window has isAlwaysOnTop(): Promise<boolean>??
-    // Actually, looking at docs, it seems there is no direct getter for this property in some versions or it's named differently?
-    // Let's assume there isn't a simple getter exposed in the generic Window interface without verifying. 
-    // But wait, standard APIs usually have it. 
-    // Let's wrap it in try-catch to be safe.
   } catch (error) {
     console.error("[Navbar] Failed to detect platform", error);
     if (typeof navigator !== "undefined") {
@@ -709,10 +734,6 @@ onBeforeUnmount(() => {
   document.removeEventListener("mousedown", handleDocumentMouseDown);
 });
 
-const toggleTheme = () => {
-  emit("theme-toggle");
-};
-
 const openGithub = async () => {
   try {
     await openUrl("https://github.com/chen-zeong/DTV/releases");
@@ -730,6 +751,7 @@ const openGithub = async () => {
 };
 
 let searchTimeout: number | null = null;
+
 
 const isPureNumeric = (value: string): boolean => /^\d+$/.test(value);
 
@@ -792,26 +814,26 @@ const performSearchBasedOnInput = async () => {
 
 const performDouyinIdSearch = async (userInputRoomId: string) => {
   try {
-    const payloadData = { args: { room_id_str: userInputRoomId } };
-    const douyinInfo = await invoke<DouyinApiStreamInfo>(
-      "fetch_douyin_streamer_info",
-      {
-        payload: payloadData,
-      },
-    );
-    if (douyinInfo?.anchor_name) {
-      const isLive = douyinInfo.status === 2;
-      const webId = (douyinInfo as any).web_rid ?? userInputRoomId;
+    const resp = await getLiveStreamV2({
+      platform: "douyin",
+      room_id: userInputRoomId,
+      debug: false,
+      mode: "meta",
+    });
+
+    if (resp.status !== "error" && resp.room?.anchor_name) {
+      const isLive = resp.status === "live";
+      const webId = resp.room.web_rid ?? userInputRoomId;
       searchResults.value = [
         {
           platform: Platform.DOUYIN,
           roomId: webId,
           webId,
-          userName: douyinInfo.anchor_name || "抖音主播",
-          roomTitle: douyinInfo.title || null,
-          avatar: douyinInfo.avatar || null,
+          userName: resp.room.anchor_name || "抖音主播",
+          roomTitle: resp.room.title || null,
+          avatar: resp.room.avatar || null,
           liveStatus: isLive,
-          rawStatus: douyinInfo.status,
+          rawStatus: isLive ? 2 : 0,
         },
       ];
     }
@@ -825,10 +847,7 @@ const performDouyinIdSearch = async (userInputRoomId: string) => {
 
 const performHuyaSearch = async (keyword: string) => {
   try {
-    const items = await invoke<HuyaAnchorItem[]>("search_huya_anchors", {
-      keyword,
-      page: 1,
-    });
+    const items = await searchHuyaAnchors(keyword);
     await ensureProxyStarted();
     if (Array.isArray(items) && items.length > 0) {
       searchResults.value = items.map(
@@ -851,7 +870,7 @@ const performHuyaSearch = async (keyword: string) => {
 
 const performDouyuSearch = async (keyword: string) => {
   try {
-    const response = await invoke<string>("search_anchor", { keyword });
+    const response = await searchDouyuAnchor(keyword);
     const data = JSON.parse(response);
     if (data.error === 0 && data.data && data.data.relateUser) {
       searchResults.value = data.data.relateUser
@@ -881,13 +900,7 @@ const performDouyuSearch = async (keyword: string) => {
 
 const performBilibiliSearch = async (keyword: string) => {
   try {
-    const response = await invoke<BilibiliSearchItem[]>(
-      "search_bilibili_rooms",
-      {
-        keyword,
-        page: 1,
-      },
-    );
+    const response = await searchBilibiliRooms(keyword);
     await ensureProxyStarted();
     if (Array.isArray(response) && response.length > 0) {
       searchResults.value = response.map((item) => ({
@@ -947,3 +960,15 @@ const tryEnterRoom = (roomId: string) => {
   resetSearchState();
 };
 </script>
+
+<style scoped>
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(-10px) scale(0.9);
+}
+</style>

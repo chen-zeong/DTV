@@ -1,10 +1,9 @@
 use crate::platforms::common::http_client::HttpClient;
-use crate::platforms::douyin::a_bogus::generate_a_bogus;
+use crate::platforms::douyin::signed_url::global_builder;
 use crate::platforms::douyin::web_api::DEFAULT_USER_AGENT;
 use reqwest::header::{HeaderMap, HeaderValue, COOKIE, USER_AGENT};
 use serde::{Deserialize, Serialize};
 use tauri::State; // Removed SET_COOKIE
-use urlencoding::encode;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DouyinRoomCover {
@@ -130,14 +129,11 @@ pub async fn fetch_douyin_partition_rooms(
         ("msToken".to_string(), ms_token.clone()),
     ];
 
-    let query = serde_urlencoded::to_string(&params)
-        .map_err(|e| format!("Failed to encode Douyin partition params: {}", e))?;
-    let sign = generate_a_bogus(&query, DEFAULT_USER_AGENT);
-    let url = format!(
-        "https://live.douyin.com/webcast/web/partition/detail/room/v2/?{}&a_bogus={}",
-        query,
-        encode(&sign)
-    );
+    let url = global_builder().build_signed_url(
+        "https://live.douyin.com/webcast/web/partition/detail/room/v2/",
+        params,
+        DEFAULT_USER_AGENT,
+    )?;
 
     match local_client
         .get_json_with_headers::<DouyinPartitionApiResponse>(&url, Some(headers))

@@ -12,12 +12,8 @@ mod proxy;
 use platforms::common::{DouyinDanmakuState, FollowHttpClient, HuyaDanmakuState};
 use platforms::douyin::danmu::signature::generate_douyin_ms_token;
 use platforms::douyin::fetch_douyin_partition_rooms;
-use platforms::douyin::fetch_douyin_room_info;
-use platforms::douyin::fetch_douyin_streamer_info;
 use platforms::douyin::start_douyin_danmu_listener;
-use platforms::douyin::{get_douyin_live_stream_url, get_douyin_live_stream_url_with_quality};
 use platforms::douyu::fetch_categories;
-use platforms::douyu::fetch_douyu_room_info;
 use platforms::douyu::fetch_three_cate;
 use platforms::douyu::{fetch_live_list, fetch_live_list_for_cate3};
 use platforms::huya::stop_huya_danmaku_listener;
@@ -26,59 +22,12 @@ use platforms::huya::{fetch_huya_live_list, start_huya_danmaku_listener};
 
 #[derive(Default, Clone)]
 pub struct StreamUrlStore {
-    pub url: Arc<Mutex<String>>,
+    pub urls: Arc<Mutex<HashMap<(String, String), String>>>, // (platform, room_id) -> url
 }
 
 // State for managing Douyu danmaku listener handles (stop signals)
 #[derive(Default, Clone)]
 pub struct DouyuDanmakuHandles(Arc<Mutex<HashMap<String, oneshot::Sender<()>>>>);
-
-#[tauri::command]
-async fn get_stream_url_cmd(room_id: String) -> Result<String, String> {
-    // Call the actual function to fetch the stream URL from the new location
-    platforms::douyu::get_stream_url(&room_id, None)
-        .await
-        .map_err(|e| {
-            eprintln!(
-                "[Rust Error] Failed to get stream URL for room {}: {}",
-                room_id,
-                e.to_string()
-            );
-            format!("Failed to get stream URL: {}", e.to_string())
-        })
-}
-
-#[tauri::command]
-async fn get_stream_url_with_quality_cmd(
-    room_id: String,
-    quality: String,
-    line: Option<String>,
-) -> Result<String, String> {
-    platforms::douyu::get_stream_url_with_quality(&room_id, &quality, line.as_deref())
-        .await
-        .map_err(|e| {
-            eprintln!(
-                "[Rust Error] Failed to get stream URL with quality {} for room {}: {}",
-                quality,
-                room_id,
-                e.to_string()
-            );
-            format!("Failed to get stream URL with quality: {}", e.to_string())
-        })
-}
-
-// Legacy Huya stream URL command removed in favor of unified command
-
-// This is the command that should be used for setting stream URL if it interacts with StreamUrlStore
-#[tauri::command]
-async fn set_stream_url_cmd(
-    url: String,
-    state: tauri::State<'_, StreamUrlStore>,
-) -> Result<(), String> {
-    let mut current_url = state.url.lock().unwrap();
-    *current_url = url;
-    Ok(())
-}
 
 // Command to start Douyu danmaku listener
 #[tauri::command]
@@ -156,6 +105,18 @@ fn main() {
     let follow_http_client = FollowHttpClient::new().expect("Failed to create follow http client");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::new()
+            .level(if std::env::var("DTV_DEBUG").map(|v| v == "1").unwrap_or(false) {
+                log::LevelFilter::Debug
+            } else {
+                log::LevelFilter::Info
+            })
+            .targets([
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: None }),
+            ])
+            .build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -166,8 +127,8 @@ fn main() {
                 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
                 if let Some(window) = app.get_webview_window("main") {
                     match apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None) {
-                        Ok(_) => println!("vibrancy applied successfully"),
-                        Err(e) => eprintln!("vibrancy error: {:?}", e),
+                        Ok(_) => tracing::info!("vibrancy applied successfully"),
+                        Err(e) => tracing::error!("vibrancy error: {:?}", e),
                     }
                 }
             }
@@ -183,9 +144,7 @@ fn main() {
         .manage(proxy::ProxyServerHandle::default())
         .manage(platforms::bilibili::state::BilibiliState::default())
         .invoke_handler(tauri::generate_handler![
-            get_stream_url_cmd,
-            get_stream_url_with_quality_cmd,
-            set_stream_url_cmd,
+            platforms::common::live_stream_v2_cmd::get_live_stream_v2,
             search_anchor,
             start_danmaku_listener,      // Douyu danmaku start
             stop_danmaku_listener,       // Douyu danmaku stop
@@ -194,32 +153,22 @@ fn main() {
             stop_huya_danmaku_listener,  // Added Huya danmaku stop command
             platforms::bilibili::danmaku::start_bilibili_danmaku_listener,
             platforms::bilibili::danmaku::stop_bilibili_danmaku_listener,
-            proxy::start_proxy,
-            proxy::stop_proxy,
-            proxy::start_static_proxy_server,
-            fetch_categories,
-            fetch_live_list,
-            fetch_live_list_for_cate3,
-            fetch_douyu_room_info,
-            fetch_three_cate,
-            generate_douyin_ms_token,
-            fetch_douyin_partition_rooms,
-            get_douyin_live_stream_url,
-            get_douyin_live_stream_url_with_quality,
-            fetch_douyin_room_info,
-            fetch_douyin_streamer_info,
-            fetch_huya_live_list,
-            platforms::huya::danmaku::fetch_huya_join_params,
-            platforms::huya::stream_url::get_huya_unified_cmd,
-            platforms::bilibili::state::generate_bilibili_w_webid,
-            platforms::bilibili::live_list::fetch_bilibili_live_list,
-            platforms::bilibili::stream_url::get_bilibili_live_stream_url_with_quality,
-            platforms::bilibili::streamer_info::fetch_bilibili_streamer_info,
-            platforms::bilibili::cookie::get_bilibili_cookie,
-            platforms::bilibili::cookie::bootstrap_bilibili_cookie,
-            platforms::bilibili::search::search_bilibili_rooms,
-            platforms::huya::search::search_huya_anchors,
-        ])
+             proxy::stop_proxy,
+             proxy::start_static_proxy_server,
+             fetch_categories,
+             fetch_live_list,
+             fetch_live_list_for_cate3,
+             fetch_three_cate,
+              generate_douyin_ms_token,
+              fetch_douyin_partition_rooms,
+              fetch_huya_live_list,
+              platforms::bilibili::state::generate_bilibili_w_webid,
+              platforms::bilibili::live_list::fetch_bilibili_live_list,
+              platforms::bilibili::cookie::get_bilibili_cookie,
+              platforms::bilibili::cookie::bootstrap_bilibili_cookie,
+              platforms::bilibili::search::search_bilibili_rooms,
+              platforms::huya::search::search_huya_anchors,
+         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
