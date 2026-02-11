@@ -68,9 +68,9 @@ window-vibrancy = "0.7.1"
  cookie = "0.18"
  html-escape = "0.2"
 
- [profile.release]
- panic = "abort"
- codegen-units = 1
- lto = true
- opt-level = "z"
- strip = true
+[profile.release]
+panic = "unwind"
+codegen-units = 1
+lto = true
+opt-level = "z"
+strip = true

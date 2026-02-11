@@ -612,6 +612,7 @@
   const emit = defineEmits<{
     (e: 'follow', data: { id: string; platform: Platform; nickname: string; avatarUrl: string | null; roomTitle?: string }): void
     (e: 'unfollow', roomId: string): void
+    (e: 'details', data: { title: string; nickname: string; avatarUrl: string | null; isLive: boolean | null }): void
   }>()
   
   const props = defineProps<{
@@ -782,6 +783,18 @@
       isLoggingIn.value = false
     }
   }
+
+  const emitDetails = (details: StreamerDetails | null) => {
+    if (!details) {
+      return
+    }
+    emit('details', {
+      title: details.roomTitle || props.title || '',
+      nickname: details.nickname || props.anchorName || '',
+      avatarUrl: avatarUrl.value || details.avatarUrl || props.avatar || null,
+      isLive: typeof details.isLive === 'boolean' ? details.isLive : (props.isLive ?? null),
+    })
+  }
   
   const fetchRoomDetails = async () => {
     if (props.platform === Platform.DOUYIN) {
@@ -812,6 +825,7 @@
         await ensureProxyStarted();
         avatarUrl.value = proxify(normalizeAvatarUrl(mapped.avatarUrl));
         showAvatarText.value = !avatarUrl.value;
+        emitDetails(mapped);
       } catch (e: any) {
         console.error(`[StreamerInfo] HUYA fetchRoomDetails error for ${props.roomId}:`, e);
         error.value = e?.message || '获取虎牙房间信息失败';
@@ -852,6 +866,7 @@
         await ensureProxyStarted();
         avatarUrl.value = proxify(normalizeAvatarUrl(mapped.avatarUrl));
         showAvatarText.value = !avatarUrl.value;
+        emitDetails(mapped);
       } catch (e: any) {
         console.error(`[StreamerInfo] BILIBILI fetchRoomDetails error for ${props.roomId}:`, e);
         error.value = e?.message || '获取 B 站房间信息失败';
@@ -874,6 +889,7 @@
       if (props.platform === Platform.DOUYU) {
         roomDetails.value = await fetchDouyuStreamerDetails(props.roomId);
         avatarUrl.value = normalizeAvatarUrl(roomDetails.value?.avatarUrl || avatarUrl.value);
+        emitDetails(roomDetails.value);
       } else {
         console.warn(`[StreamerInfo] Unsupported platform: ${props.platform}`);
         throw new Error(`Unsupported platform: ${props.platform}`);

@@ -36,6 +36,7 @@
             :is-followed="props.isFollowed"
             @follow="$emit('follow', $event)"
             @unfollow="$emit('unfollow', $event)"
+            @details="handleStreamerDetails"
             class="streamer-info-offline"
           />
           <div class="offline-message">
@@ -74,6 +75,7 @@
             :is-live="playerIsLive"
             @follow="$emit('follow', $event)"
             @unfollow="$emit('unfollow', $event)"
+            @details="handleStreamerDetails"
             class="streamer-info"
             v-show="!isInWebFullscreen && !isDanmuCollapsed"
             :class="{'hidden-panel': isInWebFullscreen}"
@@ -313,6 +315,19 @@ const isLineSwitching = ref(false);
 const currentLine = ref<string | null>(resolveStoredLine(props.platform));
 const lineOptions = computed(() => getLineOptionsForPlatform(props.platform));
 const getCurrentLineLabel = (key?: string | null) => getLineLabel(lineOptions.value, key);
+
+const handleStreamerDetails = (payload: { title: string; nickname: string; avatarUrl: string | null; isLive: boolean | null }) => {
+  if (payload.title) {
+    playerTitle.value = payload.title;
+  }
+  if (payload.nickname) {
+    playerAnchorName.value = payload.nickname;
+  }
+  playerAvatar.value = payload.avatarUrl ?? playerAvatar.value ?? null;
+  if (typeof payload.isLive === 'boolean') {
+    playerIsLive.value = payload.isLive;
+  }
+};
 
 function resetFullscreenState() {
   isInNativePlayerFullscreen.value = false;
