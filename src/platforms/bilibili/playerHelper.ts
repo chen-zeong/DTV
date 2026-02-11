@@ -167,9 +167,12 @@ export async function startBilibiliDanmakuListener(
       }
     }
 
-    danmakuMessagesRef.value.push(frontendDanmaku);
-    if (danmakuMessagesRef.value.length > 200) {
-      danmakuMessagesRef.value.splice(0, danmakuMessagesRef.value.length - 200);
+    const shouldAppend = renderOptions?.shouldAppendToList ? renderOptions.shouldAppendToList(frontendDanmaku) : true;
+    if (shouldAppend) {
+      danmakuMessagesRef.value.push(frontendDanmaku);
+      if (danmakuMessagesRef.value.length > 200) {
+        danmakuMessagesRef.value.splice(0, danmakuMessagesRef.value.length - 200);
+      }
     }
   });
   return unlisten;

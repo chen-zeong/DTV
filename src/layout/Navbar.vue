@@ -53,11 +53,6 @@
       data-tauri-drag-region="false"
     >
       <div class="navbar-player-island__left">
-        <div class="navbar-player-island__live" aria-hidden="true">
-          <span class="live-wave wave-1"></span>
-          <span class="live-wave wave-2"></span>
-          <span class="live-wave wave-3"></span>
-        </div>
         <img
           v-if="playerIsland.avatarUrl"
           :src="playerIsland.avatarUrl"
@@ -1075,49 +1070,6 @@ const tryEnterRoom = (roomId: string) => {
   gap: 1px;
 }
 
-.navbar-player-island__live {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 2px;
-  width: 14px;
-  height: 14px;
-  margin-right: 1px;
-  flex: 0 0 auto;
-}
-
-.live-wave {
-  width: 3px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  transform-origin: bottom center;
-  animation: island-live-wave 1s ease-in-out infinite;
-}
-
-.live-wave.wave-1 {
-  height: 6px;
-  animation-delay: 0s;
-}
-
-.live-wave.wave-2 {
-  height: 10px;
-  animation-delay: 0.12s;
-}
-
-.live-wave.wave-3 {
-  height: 7px;
-  animation-delay: 0.24s;
-}
-
-@keyframes island-live-wave {
-  0%, 100% {
-    transform: scaleY(0.55);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scaleY(1.05);
-    opacity: 1;
-  }
-}
 
 .navbar-player-island__name {
   color: rgba(248, 250, 252, 0.98);
@@ -1220,11 +1172,6 @@ const tryEnterRoom = (roomId: string) => {
   color: #475569;
 }
 
-:global([data-theme='light']) .live-wave,
-:global(html[data-theme='light']) .live-wave,
-:global(:root[data-theme='light']) .live-wave {
-  background: rgba(15, 23, 42, 0.9);
-}
 
 :global([data-theme='light']) .navbar-player-island__expand,
 :global(html[data-theme='light']) .navbar-player-island__expand,

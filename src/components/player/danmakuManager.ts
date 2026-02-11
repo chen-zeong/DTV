@@ -14,6 +14,8 @@ export interface DanmakuManagerContext {
   danmakuMessages: Ref<DanmakuMessage[]>;
   isDanmuEnabled: Ref<boolean>;
   danmuSettings: DanmuUserSettings;
+  isDanmuListCollapsed: Ref<boolean>;
+  isFullScreen: Ref<boolean>;
   isDanmakuListenerActive: Ref<boolean>;
   unlistenDanmakuFn: Ref<(() => void) | null>;
   props: PlayerProps;
@@ -70,6 +72,7 @@ export const startCurrentDanmakuListener = async (
     const renderOptions = {
       shouldDisplay: (message?: DanmakuMessage) =>
         ctx.isDanmuEnabled.value && !isBlockedMessage(message),
+      shouldAppendToList: () => !ctx.isDanmuListCollapsed.value && !ctx.isFullScreen.value,
       buildCommentOptions: () => ({
         duration: ctx.danmuSettings.duration,
         mode: ctx.danmuSettings.mode,
@@ -93,15 +96,17 @@ export const startCurrentDanmakuListener = async (
 
     if (stopFn) {
       ctx.unlistenDanmakuFn.value = stopFn;
-      const successMessage: DanmakuMessage = {
-        id: `system-conn-${Date.now()}`,
-        nickname: '系统消息',
-        content: '弹幕连接成功！',
-        isSystem: true,
-        type: 'success',
-        color: '#28a745',
-      };
-      ctx.danmakuMessages.value.push(successMessage);
+      if (!ctx.isDanmuListCollapsed.value && !ctx.isFullScreen.value) {
+        const successMessage: DanmakuMessage = {
+          id: `system-conn-${Date.now()}`,
+          nickname: '系统消息',
+          content: '弹幕连接成功！',
+          isSystem: true,
+          type: 'success',
+          color: '#28a745',
+        };
+        ctx.danmakuMessages.value.push(successMessage);
+      }
     } else {
       console.warn(`[Player] Danmaku listener for ${platform}/${roomId} did not return a stop function.`);
       ctx.isDanmakuListenerActive.value = false;
@@ -110,15 +115,17 @@ export const startCurrentDanmakuListener = async (
     console.error(`[Player] Failed to start danmaku listener for ${platform}/${roomId}:`, error);
     ctx.isDanmakuListenerActive.value = false;
 
-    const errorMessage: DanmakuMessage = {
-      id: `system-err-${Date.now()}`,
-      nickname: '系统消息',
-      content: '弹幕连接失败，请尝试刷新播放器。',
-      isSystem: true,
-      type: 'error',
-      color: '#dc3545',
-    };
-    ctx.danmakuMessages.value.push(errorMessage);
+    if (!ctx.isDanmuListCollapsed.value && !ctx.isFullScreen.value) {
+      const errorMessage: DanmakuMessage = {
+        id: `system-err-${Date.now()}`,
+        nickname: '系统消息',
+        content: '弹幕连接失败，请尝试刷新播放器。',
+        isSystem: true,
+        type: 'error',
+        color: '#dc3545',
+      };
+      ctx.danmakuMessages.value.push(errorMessage);
+    }
   }
 };
 

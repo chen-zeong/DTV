@@ -128,9 +128,12 @@ export async function startDouyuDanmakuListener(
           console.warn('[DouyuPlayerHelper] Failed emitting danmu.js comment:', emitError);
         }
       }
-      danmakuMessagesRef.value.push(frontendDanmaku);
-      if (danmakuMessagesRef.value.length > 200) {
-        danmakuMessagesRef.value.splice(0, danmakuMessagesRef.value.length - 200);
+      const shouldAppend = renderOptions?.shouldAppendToList ? renderOptions.shouldAppendToList(frontendDanmaku) : true;
+      if (shouldAppend) {
+        danmakuMessagesRef.value.push(frontendDanmaku);
+        if (danmakuMessagesRef.value.length > 200) {
+          danmakuMessagesRef.value.splice(0, danmakuMessagesRef.value.length - 200);
+        }
       }
     }
   });

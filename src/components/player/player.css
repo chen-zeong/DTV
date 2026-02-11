@@ -82,6 +82,11 @@
   z-index: 1;
 }
 
+.player-container.player-container--solo {
+  border-right: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
 :deep(.xgplayer-controls) {
   display: flex;
   width: 100%;

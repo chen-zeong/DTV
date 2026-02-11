@@ -63,9 +63,9 @@
           <p>{{ streamError }}</p>
           <button @click="retryInitialization" class="retry-btn">再试一次</button>
         </div>
-        <div v-else class="player-container">
+        <div v-else class="player-container" :class="{ 'player-container--solo': !isDanmuVisible }">
           <StreamerInfo
-            v-if="props.roomId"
+            v-if="props.roomId && !isInWebFullscreen && !isDanmuCollapsed"
             :room-id="props.roomId"
             :platform="props.platform"
             :title="playerTitle"
@@ -77,7 +77,6 @@
             @unfollow="$emit('unfollow', $event)"
             @details="handleStreamerDetails"
             class="streamer-info"
-            v-show="!isInWebFullscreen && !isDanmuCollapsed"
             :class="{'hidden-panel': isInWebFullscreen}"
           />
           <div class="video-container">
@@ -87,10 +86,9 @@
       </div>
 
       <DanmuList 
-        v-if="roomId && !isLoadingStream && !streamError && isDanmuVisible" 
+        v-if="roomId && !isLoadingStream && !streamError && isDanmuVisible && !isFullScreen" 
         :room-id="props.roomId"
         :messages="danmakuMessages"
-        v-show="!isFullScreen" 
         class="danmu-panel" 
         :class="{'hidden-panel': isFullScreen}"
         ref="danmuListRef"
@@ -203,6 +201,17 @@ const isDanmuCollapsed = ref(
 const canToggleDanmuPanel = computed(() => showDanmuPanel.value && !!props.roomId && !isLoadingStream.value && !streamError.value);
 const isDanmuVisible = computed(() => canToggleDanmuPanel.value && !isDanmuCollapsed.value);
 const showCompactIsland = computed(() => isDanmuCollapsed.value && canToggleDanmuPanel.value && !isFullScreen.value);
+let islandDispatchRaf: number | null = null;
+let pendingIslandPayload: {
+  visible: boolean;
+  anchorName: string;
+  title: string;
+  avatarUrl: string | null;
+  roomId: string | null;
+  platform: StreamingPlatform | null;
+} | null = null;
+let pendingIslandSignature = '';
+let lastIslandSignature = '';
 
 const collapseDanmuPanel = () => {
   isDanmuCollapsed.value = true;
@@ -226,16 +235,34 @@ const broadcastIslandState = () => {
   if (typeof window === 'undefined') {
     return;
   }
-  window.dispatchEvent(new CustomEvent(PLAYER_ISLAND_EVENT, {
-    detail: {
-      visible: showCompactIsland.value,
-      anchorName: playerAnchorName.value ?? '',
-      title: playerTitle.value ?? '',
-      avatarUrl: playerAvatar.value ?? null,
-      roomId: props.roomId ?? null,
-      platform: props.platform ?? null,
-    },
-  }));
+  const payload = {
+    visible: showCompactIsland.value,
+    anchorName: playerAnchorName.value ?? '',
+    title: playerTitle.value ?? '',
+    avatarUrl: playerAvatar.value ?? null,
+    roomId: props.roomId ?? null,
+    platform: props.platform ?? null,
+  };
+  const signature = JSON.stringify(payload);
+  if (signature === lastIslandSignature) {
+    return;
+  }
+  pendingIslandPayload = payload;
+  pendingIslandSignature = signature;
+  if (islandDispatchRaf !== null) {
+    return;
+  }
+  islandDispatchRaf = window.requestAnimationFrame(() => {
+    islandDispatchRaf = null;
+    if (!pendingIslandPayload) {
+      return;
+    }
+    lastIslandSignature = pendingIslandSignature;
+    window.dispatchEvent(new CustomEvent(PLAYER_ISLAND_EVENT, {
+      detail: pendingIslandPayload,
+    }));
+    pendingIslandPayload = null;
+  });
 };
 
 const playerContainerRef = ref<HTMLDivElement | null>(null);
@@ -820,6 +847,8 @@ const danmakuManagerContext = {
   danmakuMessages,
   isDanmuEnabled,
   danmuSettings,
+  isDanmuListCollapsed: isDanmuCollapsed,
+  isFullScreen,
   isDanmakuListenerActive,
   unlistenDanmakuFn,
   props,
@@ -1053,6 +1082,10 @@ onMounted(async () => {
 onUnmounted(async () => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateWindowWidth);
+    if (islandDispatchRaf !== null) {
+      window.cancelAnimationFrame(islandDispatchRaf);
+      islandDispatchRaf = null;
+    }
   }
   const platformToStop: StreamingPlatform = props.platform;
   const roomIdToStop: string | null = props.roomId;

@@ -572,7 +572,7 @@
   </style>
   
   <script setup lang="ts">
-  import { ref, computed, onMounted, watch, onUpdated, nextTick } from 'vue'
+  import { ref, computed, onBeforeUnmount, onMounted, watch, onUpdated, nextTick } from 'vue'
   import { Platform } from '../../platforms/common/types'
   import type { StreamerDetails } from '../../platforms/common/types'
   import { fetchDouyuStreamerDetails } from '../../platforms/douyu/streamerInfoParser'
@@ -932,6 +932,16 @@
   const streamerIdRef = ref<HTMLElement | null>(null);
   const followBtnRef = ref<HTMLElement | null>(null);
   
+  let highlightUpdateRaf: number | null = null
+  const scheduleHighlightUpdate = () => {
+    if (typeof window === 'undefined') return
+    if (highlightUpdateRaf !== null) return
+    highlightUpdateRaf = window.requestAnimationFrame(() => {
+      highlightUpdateRaf = null
+      updateHighlightVars()
+    })
+  }
+
   const updateHighlightVars = () => {
     if (idFollowContainerRef.value && streamerIdRef.value && followBtnRef.value) {
       const idWidth = streamerIdRef.value.offsetWidth;
@@ -954,7 +964,7 @@
     loadBilibiliCookieFromStorage()
     fetchRoomDetails()
     nextTick(() => {
-      updateHighlightVars();
+      scheduleHighlightUpdate();
     });
   })
   
@@ -988,7 +998,7 @@
 
   watch([() => props.roomId, () => props.platform, isFollowing], () => {
     nextTick(() => {
-      updateHighlightVars();
+      scheduleHighlightUpdate();
     });
   }, { deep: true })
 
@@ -1003,7 +1013,14 @@
 
   onUpdated(() => {
     nextTick(() => {
-      updateHighlightVars();
+      scheduleHighlightUpdate();
     });
+  })
+
+  onBeforeUnmount(() => {
+    if (highlightUpdateRaf !== null && typeof window !== 'undefined') {
+      window.cancelAnimationFrame(highlightUpdateRaf)
+      highlightUpdateRaf = null
+    }
   })
   </script>
