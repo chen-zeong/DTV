@@ -17,14 +17,6 @@ const STORAGE_KEY = 'dtv_custom_categories_v1';
 const normalizeText = (value?: string | null) => (value ?? '').trim();
 
 const buildKey = (platform: CustomPlatform, id: string) => `${platform}:${id}`;
-const toLower = (value?: string | null) => (value ?? '').trim().toLowerCase();
-const shouldPrune = (entry: CustomCategoryEntry) => {
-  const name = toLower(entry.cate2Name);
-  if (entry.platform === 'douyu' && (name === '热门游戏' || name === '穿越火线')) return true;
-  if (entry.platform === 'huya' && name === '英雄联盟') return true;
-  if (entry.platform === 'bilibili' && name === '英雄联盟') return true;
-  return false;
-};
 
 export const useCustomCategoryStore = defineStore('customCategories', {
   state: () => ({
@@ -60,11 +52,6 @@ export const useCustomCategoryStore = defineStore('customCategories', {
           if (Array.isArray(parsed)) {
             this.entries = parsed.filter((item) => item && typeof item.key === 'string');
           }
-        }
-        const pruned = this.entries.filter((entry) => !shouldPrune(entry));
-        if (pruned.length !== this.entries.length) {
-          this.entries = pruned;
-          this.persist();
         }
       } catch (err) {
         console.warn('[CustomCategoryStore] Failed to load categories:', err);
