@@ -4,7 +4,18 @@
       :categories-data="huyaCategoriesData as any"
       @category-selected="onCategorySelected"
       class="huya-category-section"
-    />
+    >
+      <template #actions>
+        <button
+          type="button"
+          class="category-subscribe-btn"
+          :disabled="!canSubscribe"
+          @click="toggleSubscribe"
+        >
+          {{ isSubscribed ? '取消订阅' : '订阅分区' }}
+        </button>
+      </template>
+    </CommonCategory>
     <CommonStreamerList 
       :selected-category="currentSelectedCategory"
       :categories-data="huyaCategoriesData as any"
@@ -20,15 +31,40 @@ defineOptions({
   name: 'HuyaHomeView'
 })
 
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import CommonCategory from '../components/CommonCategory/index.vue'
 import { huyaCategoriesData } from '../platforms/huya/huyaCategoriesData'
 import CommonStreamerList from '../components/CommonStreamerList/index.vue'
 import type { CategorySelectedEvent } from '../platforms/common/categoryTypes.ts'
+import { useCustomCategoryStore } from '../store/customCategoryStore'
 
 const currentSelectedCategory = ref<CategorySelectedEvent | null>(null)
+const customStore = useCustomCategoryStore()
+customStore.ensureLoaded()
+
+const canSubscribe = computed(() => !!currentSelectedCategory.value?.cate2Href)
+const isSubscribed = computed(() => {
+  const href = currentSelectedCategory.value?.cate2Href
+  return !!href && customStore.isSubscribed('huya', href)
+})
 const onCategorySelected = (categoryEvent: CategorySelectedEvent) => {
   currentSelectedCategory.value = categoryEvent
+}
+
+const toggleSubscribe = () => {
+  if (!currentSelectedCategory.value?.cate2Href) return
+  const href = currentSelectedCategory.value.cate2Href
+  if (customStore.isSubscribed('huya', href)) {
+    customStore.removeByKey(`huya:${href}`)
+  } else {
+    customStore.addCommonCate2(
+      'huya',
+      href,
+      currentSelectedCategory.value.cate2Name,
+      currentSelectedCategory.value.cate1Name,
+      currentSelectedCategory.value.cate1Href,
+    )
+  }
 }
 </script>
 
@@ -40,6 +76,7 @@ const onCategorySelected = (categoryEvent: CategorySelectedEvent) => {
   background: transparent;
   overflow: hidden;
 }
+
 
 .huya-category-section {
   flex-shrink: 0;

@@ -5,7 +5,11 @@
         :cate1-list="cate1List"
         :selected-cate1-href="selectedCate1Href"
         @select="selectCate1"
-      />
+      >
+        <template #actions>
+          <slot name="actions" />
+        </template>
+      </Cate1List>
       <Cate2Grid
         v-if="currentCate2List.length > 0"
         :cate2-list="currentCate2List"

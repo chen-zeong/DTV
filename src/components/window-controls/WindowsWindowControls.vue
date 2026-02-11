@@ -127,28 +127,36 @@ onBeforeUnmount(async () => {
 <style scoped>
 .win-controls {
   display: flex;
-  align-items: stretch;
-  background-color: transparent;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
   border-radius: 0;
-  overflow: hidden;
-  height: 32px;
-  width: 138px;
+  overflow: visible;
+  height: 40px;
+  width: auto;
   box-shadow: none;
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   -webkit-app-region: no-drag;
 }
 
 .win-control {
-  width: 46px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(232, 240, 255, 0.92);
   cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease;
   -webkit-app-region: no-drag;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .win-control:focus-visible {
@@ -157,11 +165,13 @@ onBeforeUnmount(async () => {
 }
 
 .win-control:hover {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(240, 244, 248, 0.9);
+  transform: translateY(-0.5px);
 }
 
 .win-control:active {
-  background-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(230, 235, 242, 0.9);
+  transform: translateY(0);
 }
 
 .win-control--close {
@@ -169,18 +179,18 @@ onBeforeUnmount(async () => {
 }
 
 .win-control--close:hover {
-  background-color: #e81123;
+  background-color: rgba(232, 17, 35, 0.88);
   color: #ffffff;
 }
 
 .win-control--close:active {
-  background-color: #c50f1f;
+  background-color: rgba(197, 15, 31, 0.95);
   color: #ffffff;
 }
 
 .win-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.15;
@@ -191,8 +201,8 @@ onBeforeUnmount(async () => {
 }
 
 .win-control--close .win-icon {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   stroke-linecap: square;
   stroke-width: 1.1;
 }
@@ -202,28 +212,31 @@ onBeforeUnmount(async () => {
 }
 
 :global(:root[data-theme="light"] .win-controls .win-control) {
-  color: #111318;
+  color: #1f2937;
+  background: transparent;
+  box-shadow: none;
 }
 
 :global(:root[data-theme="light"] .win-controls .win-control:hover) {
-  background-color: rgba(17, 19, 24, 0.08);
+  background-color: rgba(236, 240, 244, 0.95);
 }
 
 :global(:root[data-theme="light"] .win-controls .win-control:active) {
-  background-color: rgba(17, 19, 24, 0.16);
+  background-color: rgba(226, 232, 240, 0.9);
 }
 
 :global(:root[data-theme="light"] .win-controls .win-control--close) {
-  color: #111318;
+  color: #1f2937;
 }
 
 :global(:root[data-theme="light"] .win-controls .win-control--close:hover) {
-  background-color: #e81123;
+  background-color: rgba(232, 17, 35, 0.9);
   color: #ffffff;
 }
 
 :global(:root[data-theme="light"] .win-controls .win-control--close:active) {
-  background-color: #c50f1f;
+  background-color: rgba(197, 15, 31, 0.95);
   color: #ffffff;
 }
+
 </style>

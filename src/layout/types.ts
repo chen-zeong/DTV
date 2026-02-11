@@ -1,4 +1,4 @@
-export type Platform = 'douyu' | 'huya' | 'douyin' | 'bilibili';
+export type Platform = 'custom' | 'douyu' | 'huya' | 'douyin' | 'bilibili';
 
 export interface Streamer {
   id: string;

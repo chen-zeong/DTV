@@ -11,6 +11,9 @@
         <span class="cate1-name">{{ cate1.title }}</span>
       </li>
     </ul>
+    <div class="cate1-actions">
+      <slot name="actions" />
+    </div>
   </div>
 </template>
 
@@ -31,6 +34,7 @@ defineProps<{
   transition: all 0.2s ease;
   border: none;
   box-shadow: none;
+  position: relative;
 }
 
 .cate1-list {
@@ -129,5 +133,56 @@ defineProps<{
 
 .cate1-list-container::-webkit-scrollbar {
   height: 0;
+}
+
+.cate1-actions {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cate1-actions :deep(*) {
+  pointer-events: auto;
+}
+
+.cate1-actions :deep(.category-subscribe-btn) {
+  height: 28px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(24, 28, 40, 0.6);
+  color: rgba(236, 242, 255, 0.9);
+  cursor: pointer;
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.cate1-actions :deep(.category-subscribe-btn:hover) {
+  background: rgba(42, 48, 64, 0.8);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.cate1-actions :deep(.category-subscribe-btn:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+:root[data-theme="light"] .cate1-actions :deep(.category-subscribe-btn) {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+}
+
+:root[data-theme="light"] .cate1-actions :deep(.category-subscribe-btn:hover) {
+  background: rgba(248, 250, 252, 1);
 }
 </style>

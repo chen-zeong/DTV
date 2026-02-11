@@ -193,7 +193,7 @@ const handleToggleInternalExpand = () => {
   align-items: center;
   justify-content: center;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-secondary);
   box-shadow: none;
 }
@@ -249,6 +249,9 @@ const handleToggleInternalExpand = () => {
 
 :root[data-theme="light"] .cate2-card.active {
   color: #1f2937;
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 :root[data-theme="dark"] .cate2-card.active {

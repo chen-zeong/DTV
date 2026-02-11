@@ -12,7 +12,11 @@
         :cate1-list="cate1ListForCommon"
         :selected-cate1-href="selectedCate1Href"
         @select="handleCate1SelectFromCommon"
-      />
+      >
+        <template #actions>
+          <slot name="actions" />
+        </template>
+      </Cate1List>
       <Cate2Grid
         v-if="sortedCate2List.length > 0"
         :cate2-list="cate2ListForCommon"

@@ -28,7 +28,7 @@
           @fullscreen-change="handleFullscreenChange"
         >
           <transition name="fade" mode="out-in">
-            <keep-alive :include="['DouyuHomeView', 'DouyinHomeView', 'HuyaHomeView', 'BilibiliHomeView']">
+            <keep-alive :include="['CustomHomeView', 'DouyuHomeView', 'DouyinHomeView', 'HuyaHomeView', 'BilibiliHomeView']">
               <component :is="Component" :key="route.path" />
             </keep-alive>
           </transition>
@@ -63,6 +63,7 @@ const theme = computed(() => themeStore.getEffectiveTheme());
 const routePlatform = computed<UiPlatform>(() => {
   const name = route.name as string | undefined;
   const path = route.path;
+  if (name === 'CustomHome' || path.startsWith('/custom')) return 'custom';
   if (name === 'douyinPlayer' || name === 'DouyinHome' || path.startsWith('/douyin')) return 'douyin';
   if (name === 'huyaPlayer' || name === 'HuyaHome' || path.startsWith('/huya')) return 'huya';
   if (name === 'bilibiliPlayer' || name === 'BilibiliHome' || path.startsWith('/bilibili')) return 'bilibili';
@@ -96,7 +97,9 @@ const toggleTheme = () => {
 };
 
 const handlePlatformChange = (platform: UiPlatform | 'all') => {
-  if (platform === 'douyin') {
+  if (platform === 'custom') {
+    router.push({ name: 'CustomHome' });
+  } else if (platform === 'douyin') {
     router.push({ name: 'DouyinHome' });
   } else if (platform === 'huya') {
     router.push({ name: 'HuyaHome' });

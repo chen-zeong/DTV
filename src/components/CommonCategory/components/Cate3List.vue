@@ -72,7 +72,7 @@ const selectAll = () => {
   font-size: 11.5px;
   font-weight: 700;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-secondary);
   box-shadow: var(--shadow-low);
 }
@@ -109,6 +109,9 @@ const selectAll = () => {
 
 :root[data-theme="light"] .cate3-item.active {
   color: #1f2937;
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 :root[data-theme="dark"] .cate3-item:not(.active) {

@@ -41,7 +41,8 @@
         :ref="(el) => setPlatformRef(platform.id, el)"
         @click="emit('platform-change', platform.id)"
       >
-        {{ platform.name }}
+        <LayoutGrid v-if="platform.id === 'custom'" :size="16" />
+        <span v-else>{{ platform.name }}</span>
       </button>
     </div>
     </div>
@@ -89,7 +90,7 @@
     </div>
 
     <div class="nav-actions" :class="{ 'nav-actions--windows': shouldShowWindowsControls }" data-tauri-drag-region>
-      <div class="search-container" ref="searchContainerRef" data-tauri-drag-region="false">
+      <div v-if="!shouldCompactSearch" class="search-container" ref="searchContainerRef" data-tauri-drag-region="false">
           <div class="search-shell" :class="{ focused: isSearchFocused }">
             <input
               v-model="searchQuery"
@@ -97,6 +98,7 @@
               :placeholder="placeholderText"
               data-tauri-drag-region="false"
               class="search-input"
+              ref="searchInputRef"
               @focus="handleFocus"
               @blur="handleBlur"
               @input="handleSearch"
@@ -164,6 +166,95 @@
           </div>
       </div>
 
+      <div v-else class="search-compact" ref="searchCompactRef" data-tauri-drag-region="false">
+        <button
+          type="button"
+          class="nav-icon-btn search-toggle-btn"
+          data-tauri-drag-region="false"
+          aria-label="搜索"
+          @click="toggleSearchPopup"
+        >
+          <Search :size="20" />
+        </button>
+        <div v-if="showSearchPopup" class="search-popup" data-tauri-drag-region="false">
+          <div class="search-container search-container--popup" ref="searchContainerRef" data-tauri-drag-region="false">
+            <div class="search-shell" :class="{ focused: isSearchFocused }">
+              <input
+                v-model="searchQuery"
+                type="text"
+                :placeholder="placeholderText"
+                data-tauri-drag-region="false"
+                class="search-input"
+                ref="searchInputRef"
+                @focus="handleFocus"
+                @blur="handleBlur"
+                @input="handleSearch"
+                @keydown.enter.prevent="handleSearchButtonClick"
+              />
+              <button
+                v-if="searchQuery"
+                type="button"
+                class="search-clear-btn"
+                data-tauri-drag-region="false"
+                aria-label="清除搜索"
+                @click="resetSearchState"
+              >
+                <X :size="14" />
+              </button>
+              <button
+                type="button"
+                class="search-submit-btn"
+                data-tauri-drag-region="false"
+                aria-label="搜索"
+                @click="handleSearchButtonClick"
+              >
+                <Search :size="15" />
+              </button>
+            </div>
+
+            <div v-show="showResults" class="search-results-wrapper">
+              <div v-if="isLoadingSearch" class="search-loading">搜索中...</div>
+              <div v-else-if="searchError" class="search-error-message">{{ searchError }}</div>
+              <div v-else-if="searchResults.length > 0" class="search-results-list">
+                <div
+                  v-for="anchor in searchResults"
+                  :key="anchor.platform + '-' + anchor.roomId"
+                  class="search-result-item"
+                  @mousedown="selectAnchor(anchor)"
+                >
+                  <div class="result-avatar">
+                    <img v-if="anchor.avatar" :src="anchor.avatar" :alt="anchor.userName" class="avatar-img" />
+                    <div v-else class="avatar-placeholder">{{ anchor.userName[0] }}</div>
+                  </div>
+
+                  <div class="result-main-content">
+                    <div class="result-line-1-main">
+                      <span class="result-name" :title="anchor.userName">{{ anchor.userName }}</span>
+                    </div>
+                    <div class="result-line-2-main">
+                      <span class="result-room-title" :title="anchor.roomTitle || '暂无标题'">{{ anchor.roomTitle || '暂无标题' }}</span>
+                    </div>
+                  </div>
+                  <span class="live-status-dot" :class="{ 'is-live': anchor.liveStatus }" aria-hidden="true"></span>
+                </div>
+              </div>
+
+              <div v-else-if="trimmedQuery && !isLoadingSearch && !searchError" class="search-no-results">
+                未找到结果
+                <button
+                  v-if="isPureNumeric(trimmedQuery)"
+                  class="search-fallback-btn"
+                  @mousedown.prevent="tryEnterRoom(trimmedQuery)"
+                  @click.prevent="tryEnterRoom(trimmedQuery)"
+                >
+                  进入房间 {{ trimmedQuery }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button type="button" class="nav-icon-btn github-btn" data-tauri-drag-region="false" @click="openGithub">
         <Github :size="20" />
         <span class="github-badge">{{ appVersion || '-' }}</span>
@@ -193,13 +284,14 @@ import { platform as detectPlatform } from '@tauri-apps/plugin-os';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { getVersion } from '@tauri-apps/api/app';
 import { useRoute } from 'vue-router';
-import { ChevronDown, Github, Moon, Search, Sun, X } from 'lucide-vue-next';
+import { ChevronDown, Github, LayoutGrid, Moon, Search, Sun, X } from 'lucide-vue-next';
 import { motion } from 'motion-v';
 import WindowsWindowControls from '../components/window-controls/WindowsWindowControls.vue';
 import { useThemeStore } from '../stores/theme';
 import { Platform } from '../platforms/common/types';
 import type { Platform as UiPlatform } from './types';
 import { useFollowStore } from '../store/followStore';
+import { useCustomCategoryStore } from '../store/customCategoryStore';
 
 interface DouyinApiStreamInfo {
   title?: string | null;
@@ -255,7 +347,7 @@ const emit = defineEmits<{
   (event: 'select-anchor', payload: { id: string; platform: Platform; nickname: string; avatarUrl: string | null; currentRoomId?: string }): void;
 }>();
 
-const platforms: { id: UiPlatform | 'all'; name: string }[] = [
+const basePlatforms: { id: UiPlatform | 'all'; name: string }[] = [
   { id: 'douyu', name: '斗鱼' },
   { id: 'huya', name: '虎牙' },
   { id: 'douyin', name: '抖音' },
@@ -272,6 +364,8 @@ const isLoadingSearch = ref(false);
 const hasCompletedSearch = ref(false);
 const isSearchFocused = ref(false);
 const searchContainerRef = ref<HTMLElement | null>(null);
+const searchCompactRef = ref<HTMLElement | null>(null);
+const searchInputRef = ref<HTMLInputElement | null>(null);
 const platformTabsRef = ref<HTMLElement | null>(null);
 const platformItemRefs = new Map<UiPlatform | 'all', HTMLElement>();
 const highlight = ref({ left: 0, width: 0, opacity: 0 });
@@ -289,13 +383,24 @@ const platformHighlightTransition = {
 };
 
 const themeStore = useThemeStore();
+const customCategoryStore = useCustomCategoryStore();
+customCategoryStore.ensureLoaded();
+const platforms = computed(() => {
+  const list = [...basePlatforms];
+  if (customCategoryStore.hasEntries) {
+    list.unshift({ id: 'custom', name: '自定义' });
+  }
+  return list;
+});
 const effectiveTheme = computed(() => themeStore.getEffectiveTheme());
 const route = useRoute();
 
 const detectedPlatform = ref<string | null>(null);
 const isMacPreview = false;
+const isWindowsPreview = false;
 const appVersion = ref('');
 const isWindowsPlatform = computed(() => {
+  if (isWindowsPreview) return true;
   const name = detectedPlatform.value?.toLowerCase() ?? '';
   return name.startsWith('win');
 });
@@ -339,6 +444,30 @@ const islandDisplayTitle = computed(() => {
   }
   return '直播间';
 });
+
+const shouldCompactSearch = computed(() => playerIsland.value.visible);
+const showSearchPopup = ref(false);
+
+const openSearchPopup = async () => {
+  showSearchPopup.value = true;
+  await nextTick();
+  searchInputRef.value?.focus();
+  handleFocus();
+};
+
+const closeSearchPopup = () => {
+  showSearchPopup.value = false;
+  showResults.value = false;
+  isSearchFocused.value = false;
+};
+
+const toggleSearchPopup = () => {
+  if (showSearchPopup.value) {
+    closeSearchPopup();
+  } else {
+    openSearchPopup();
+  }
+};
 const resolveIslandFallback = (platform?: Platform | null, roomId?: string | null) => {
   if (!platform || !roomId) {
     return null;
@@ -436,6 +565,17 @@ onMounted(async () => {
   }
 });
 
+const handleDocumentPointerDown = (event: PointerEvent) => {
+  if (!showSearchPopup.value) return;
+  const target = event.target as HTMLElement | null;
+  if (!target) return;
+  const withinSearch = searchContainerRef.value?.contains(target);
+  const withinToggle = searchCompactRef.value?.contains(target);
+  if (!withinSearch && !withinToggle) {
+    closeSearchPopup();
+  }
+};
+
 const setPlatformRef = (key: UiPlatform | 'all', el: Element | ComponentPublicInstance | null) => {
   if (!el) {
     platformItemRefs.delete(key);
@@ -468,12 +608,24 @@ watch(() => props.activePlatform, () => {
   updateHighlight();
 }, { immediate: true });
 
+watch(platforms, () => {
+  updateHighlight();
+});
+
+watch(shouldCompactSearch, (value) => {
+  if (!value) {
+    closeSearchPopup();
+  }
+});
+
 onMounted(() => {
   window.addEventListener('resize', updateHighlight);
+  window.addEventListener('pointerdown', handleDocumentPointerDown);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateHighlight);
+  window.removeEventListener('pointerdown', handleDocumentPointerDown);
 });
 
 const handleDocumentMouseDown = (event: MouseEvent) => {
@@ -1306,6 +1458,24 @@ const tryEnterRoom = (roomId: string) => {
   width: min(240px, 24vw);
 }
 
+.search-compact {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.search-popup {
+  position: absolute;
+  right: 0;
+  top: 54px;
+  z-index: 40;
+  padding-top: 4px;
+}
+
+.search-container--popup {
+  width: min(280px, 60vw);
+}
+
 .search-shell {
   width: 100%;
   max-width: 420px;
@@ -1728,12 +1898,12 @@ const tryEnterRoom = (roomId: string) => {
 
 .win-controls-wrap {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
   position: absolute;
-  top: -1px;
-  right: -1px;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
 }
 
 .win-controls-wrap :deep(.win-controls) {

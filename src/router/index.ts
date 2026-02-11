@@ -7,6 +7,7 @@ import HuyaHomeView from '../pages/HuyaHomeView.vue'
 import HuyaPlayerView from '../pages/HuyaPlayerView.vue'
 import BilibiliHomeView from '../pages/BilibiliHomeView.vue'
 import BilibiliPlayerView from '../pages/BilibiliPlayerView.vue'
+import CustomHomeView from '../pages/CustomHomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -30,6 +31,11 @@ const router = createRouter({
       path: '/bilibili',
       name: 'BilibiliHome',
       component: BilibiliHomeView
+    },
+    {
+      path: '/custom',
+      name: 'CustomHome',
+      component: CustomHomeView
     },
     {
       path: '/player/douyu/:roomId', 

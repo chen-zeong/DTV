@@ -4,7 +4,18 @@
     <div class="category-section" ref="categorySectionRef">
       <CategoryList 
         @category-selected="handleCategorySelected"
-      />
+      >
+        <template #actions>
+          <button
+            type="button"
+            class="category-subscribe-btn"
+            :disabled="!canSubscribe"
+            @click="toggleSubscribe"
+          >
+            {{ isSubscribed ? '取消订阅' : '订阅分区' }}
+          </button>
+        </template>
+      </CategoryList>
     </div>
     <!-- 主播列表区域 -->
     <div 
@@ -29,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 // Added for KeepAlive include by name
 defineOptions({
@@ -40,6 +51,7 @@ import CategoryList from '../components/DouyuCategory/index.vue';
 import CommonStreamerList from '../components/CommonStreamerList/index.vue'; 
 import { invoke } from '@tauri-apps/api/core'
 import type { CategorySelectedEvent } from '../components/DouyuCategory/types';
+import { useCustomCategoryStore } from '../store/customCategoryStore'
 
 // Types for the data structure returned by the Rust command `fetch_categories`
 interface FrontendCate3Item {
@@ -74,6 +86,14 @@ interface SelectedCategoryInfo {
 const selectedCategoryInfo = ref<SelectedCategoryInfo | null>(null);
 const categorySectionRef = ref<HTMLElement | null>(null)
 const isLoadingDefaultCategory = ref(true);
+const customStore = useCustomCategoryStore()
+customStore.ensureLoaded()
+
+const canSubscribe = computed(() => selectedCategoryInfo.value?.type === 'cate2' && !!selectedCategoryInfo.value?.id)
+const isSubscribed = computed(() => {
+  const id = selectedCategoryInfo.value?.id
+  return !!id && customStore.isSubscribed('douyu', id)
+})
 
 const handleCategorySelected = (event: CategorySelectedEvent) => {
   if (event.type === 'cate2' && event.shortName) {
@@ -93,6 +113,17 @@ const handleCategorySelected = (event: CategorySelectedEvent) => {
     selectedCategoryInfo.value = null;
   }
   // To ensure LiveList re-renders, we already use :key.
+}
+
+const toggleSubscribe = () => {
+  if (!selectedCategoryInfo.value || selectedCategoryInfo.value.type !== 'cate2') return
+  const id = selectedCategoryInfo.value.id
+  if (!id) return
+  if (customStore.isSubscribed('douyu', id)) {
+    customStore.removeByKey(`douyu:${id}`)
+  } else {
+    customStore.addDouyuCate2(id, selectedCategoryInfo.value.name || id)
+  }
 }
 
 const fetchDefaultCategory = async () => {
@@ -153,6 +184,7 @@ onMounted(() => {
   background: transparent;
   backdrop-filter: none;
 }
+
 
 .live-list-section {
   flex-grow: 1; 

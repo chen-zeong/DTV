@@ -13,7 +13,7 @@
 
 ## 说明
 
-1. 本项目基于 Tauri 2.0 开发，体积小，占用率低，实测可以在10年前的双核、4GB内存的电脑上流畅运行
+1. 本项目基于 Tauri 2.0 开发，体积小，占用率低，实测可以在双核、4GB内存的电脑上流畅运行
 2. 平台接口可能有访问频率限制，过于频繁的请求会触发验证码校验，建议合理使用搜索功能
 3. 本项目仅供学习编程目的使用，未进行任何逆向工程
 
@@ -39,6 +39,13 @@
 
 
 <div align="center">
+  <p>日间模式</p>
+  <img src="images/iShot_light.webp" alt="win-日间模式" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
+</div>
+
+<br>
+
+<div align="center">
   <p>夜间模式</p>
   <img src="images/iShot_dark.webp" alt="mac-夜间模式" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
 </div>
@@ -47,16 +54,10 @@
 <br>
 
 <div align="center">
-  <p>日间模式</p>
-  <img src="images/iShot_light.png" alt="win-日间模式" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
+  <p>日间模式 - 播放器页面</p>
+  <img src="images/iShot_light2.webp" alt="日间模式播放器页面" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
 </div>
 
-<br>
-
-<div align="center">
-  <p>日间模式 - 关注列表悬浮窗</p>
-  <img src="images/iShot_light2.webp" alt="日间模式关注列表悬浮窗" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
-</div>
 
 <br>
 
