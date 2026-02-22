@@ -375,6 +375,13 @@ function updateFullscreenFlag() {
   emit('fullscreen-change', isFullScreen.value);
 }
 
+function resolveCssFullscreenState(isCssFullscreen: unknown, player: Player): boolean {
+  if (typeof isCssFullscreen === 'boolean') {
+    return isCssFullscreen;
+  }
+  return !!player.root?.classList.contains('xgplayer-is-cssfullscreen');
+}
+
 function destroyPlayerInstance() {
   const player = playerInstance.value;
   if (player) {
@@ -696,10 +703,11 @@ async function mountXgPlayer(
     updateFullscreenFlag();
   });
 
-  player.on('cssFullscreen_change', (isCssFullscreen: boolean) => {
-    isInWebFullscreen.value = isCssFullscreen;
+  player.on('cssFullscreen_change', (isCssFullscreen: unknown) => {
+    const normalizedIsCssFullscreen = resolveCssFullscreenState(isCssFullscreen, player);
+    isInWebFullscreen.value = normalizedIsCssFullscreen;
     try {
-      if (isCssFullscreen) {
+      if (normalizedIsCssFullscreen) {
         document.documentElement.classList.add('web-fs-active');
       } else if (!isClosing.value) {
         document.documentElement.classList.remove('web-fs-active');
@@ -710,7 +718,7 @@ async function mountXgPlayer(
     ensureDanmuOverlayHost(player);
     overlayInstance = overlayInstance ?? createDanmuOverlay(player, danmuSettings, isDanmuEnabled.value);
     danmuInstance.value = overlayInstance;
-    if (isCssFullscreen) {
+    if (normalizedIsCssFullscreen) {
       overlayInstance?.play?.();
     }
     arrangeControlClusters(player);
@@ -720,6 +728,7 @@ async function mountXgPlayer(
 
 function handleClosePlayerClick() {
   isClosing.value = true;
+  emit('fullscreen-change', false);
   emit('close-player');
 }
 
@@ -1052,6 +1061,7 @@ watch(
 );
 
 onMounted(async () => {
+  emit('fullscreen-change', false);
   updateWindowWidth();
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', updateWindowWidth, { passive: true });
@@ -1080,6 +1090,7 @@ onMounted(async () => {
 });
 
 onUnmounted(async () => {
+  emit('fullscreen-change', false);
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateWindowWidth);
     if (islandDispatchRaf !== null) {

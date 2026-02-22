@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from './layout/Navbar.vue';
 import Sidebar from './layout/Sidebar.vue';
@@ -87,6 +87,12 @@ const isPlayerRoute = computed(() => {
 const shouldHidePlayerChrome = computed(() => (
   isPlayerRoute.value && isPlayerFullscreen.value
 ));
+
+watch(isPlayerRoute, (isPlayer) => {
+  if (!isPlayer) {
+    isPlayerFullscreen.value = false;
+  }
+});
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
@@ -150,7 +156,7 @@ const handleReorderListStore = (reorderedList: FollowedStreamer[]) => {
 };
 
 const handleFullscreenChange = (isFullscreen: boolean) => {
-  isPlayerFullscreen.value = isFullscreen;
+  isPlayerFullscreen.value = isPlayerRoute.value ? isFullscreen : false;
 };
 </script>
 
