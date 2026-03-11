@@ -250,6 +250,62 @@
         </div>
       </div>
 
+      <div ref="configMenuRef" class="nav-config" data-tauri-drag-region="false">
+        <button
+          type="button"
+          class="nav-icon-btn"
+          data-tauri-drag-region="false"
+          aria-label="配置迁移"
+          :aria-expanded="showConfigMenu"
+          @click="toggleConfigMenu"
+        >
+          <Settings2 :size="20" />
+        </button>
+
+        <div v-if="showConfigMenu" class="config-menu">
+          <div class="config-menu__header">配置迁移</div>
+          <p class="config-menu__description">
+            导出当前设备上的关注、文件夹、自定义分组、主题和播放器偏好；如已登录，还会包含 Bilibili 登录态。
+          </p>
+
+          <button
+            type="button"
+            class="config-menu__action"
+            :disabled="isConfigBusy"
+            @click="handleExportConfig"
+          >
+            <span class="config-menu__action-label">
+              <Download :size="15" />
+              {{ isExportingConfig ? '导出中...' : '导出配置' }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="config-menu__action"
+            :disabled="isConfigBusy"
+            @click="handleImportConfig"
+          >
+            <span class="config-menu__action-label">
+              <Upload :size="15" />
+              {{ isImportingConfig ? '导入中...' : '导入配置' }}
+            </span>
+          </button>
+
+          <p class="config-menu__hint">
+            导入会覆盖当前设备上的本地配置并立即刷新应用，请妥善保管导出的文件。
+          </p>
+
+          <p
+            v-if="configStatus"
+            class="config-menu__status"
+            :class="`config-menu__status--${configStatus.tone}`"
+          >
+            {{ configStatus.text }}
+          </p>
+        </div>
+      </div>
+
       <button type="button" class="nav-icon-btn github-btn" data-tauri-drag-region="false" @click="openGithub">
         <Github :size="20" />
         <span class="github-badge">{{ appVersion || '-' }}</span>
@@ -279,7 +335,7 @@ import { platform as detectPlatform } from '@tauri-apps/plugin-os';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { getVersion } from '@tauri-apps/api/app';
 import { useRoute } from 'vue-router';
-import { ChevronDown, Github, LayoutGrid, Moon, Search, Sun, X } from 'lucide-vue-next';
+import { ChevronDown, Download, Github, LayoutGrid, Moon, Search, Settings2, Sun, Upload, X } from 'lucide-vue-next';
 import { motion } from 'motion-v';
 import WindowsWindowControls from '../components/window-controls/WindowsWindowControls.vue';
 import { useThemeStore } from '../stores/theme';
@@ -287,6 +343,12 @@ import { Platform } from '../platforms/common/types';
 import type { Platform as UiPlatform } from './types';
 import { useFollowStore } from '../store/followStore';
 import { useCustomCategoryStore } from '../store/customCategoryStore';
+import {
+  buildPortableConfigFileName,
+  createPortableConfigPayload,
+  parsePortableConfigPayload,
+  replacePortableConfigEntries,
+} from '../services/configTransfer';
 
 interface DouyinApiStreamInfo {
   title?: string | null;
@@ -329,6 +391,11 @@ interface SearchResultItem {
   rawStatus?: number | null;
 }
 
+interface PickedConfigImportFile {
+  path: string;
+  content: string;
+}
+
 const props = defineProps<{
   theme: 'light' | 'dark';
   searchQuery?: string;
@@ -361,6 +428,7 @@ const isSearchFocused = ref(false);
 const searchContainerRef = ref<HTMLElement | null>(null);
 const searchCompactRef = ref<HTMLElement | null>(null);
 const searchInputRef = ref<HTMLInputElement | null>(null);
+const configMenuRef = ref<HTMLElement | null>(null);
 const platformTabsRef = ref<HTMLElement | null>(null);
 const platformItemRefs = new Map<UiPlatform | 'all', HTMLElement>();
 const highlight = ref({ left: 0, width: 0, opacity: 0 });
@@ -442,6 +510,11 @@ const islandDisplayTitle = computed(() => {
 
 const shouldCompactSearch = computed(() => playerIsland.value.visible);
 const showSearchPopup = ref(false);
+const showConfigMenu = ref(false);
+const isExportingConfig = ref(false);
+const isImportingConfig = ref(false);
+const configStatus = ref<{ tone: 'info' | 'success' | 'error'; text: string } | null>(null);
+const isConfigBusy = computed(() => isExportingConfig.value || isImportingConfig.value);
 
 const openSearchPopup = async () => {
   showSearchPopup.value = true;
@@ -561,13 +634,19 @@ onMounted(async () => {
 });
 
 const handleDocumentPointerDown = (event: PointerEvent) => {
-  if (!showSearchPopup.value) return;
   const target = event.target as HTMLElement | null;
   if (!target) return;
-  const withinSearch = searchContainerRef.value?.contains(target);
-  const withinToggle = searchCompactRef.value?.contains(target);
-  if (!withinSearch && !withinToggle) {
-    closeSearchPopup();
+
+  if (showSearchPopup.value) {
+    const withinSearch = searchContainerRef.value?.contains(target);
+    const withinToggle = searchCompactRef.value?.contains(target);
+    if (!withinSearch && !withinToggle) {
+      closeSearchPopup();
+    }
+  }
+
+  if (showConfigMenu.value && !configMenuRef.value?.contains(target)) {
+    showConfigMenu.value = false;
   }
 };
 
@@ -698,6 +777,101 @@ onBeforeUnmount(() => {
 
 const toggleTheme = () => {
   emit('theme-toggle');
+};
+
+const setConfigStatus = (tone: 'info' | 'success' | 'error', text: string) => {
+  configStatus.value = { tone, text };
+};
+
+const toggleConfigMenu = () => {
+  showConfigMenu.value = !showConfigMenu.value;
+  if (showConfigMenu.value && !configStatus.value) {
+    setConfigStatus('info', '导出的文件包含本地配置与 Bilibili 登录态，请注意保管。');
+  }
+};
+
+const formatExportedAt = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '未知时间';
+  }
+  return date.toLocaleString('zh-CN', { hour12: false });
+};
+
+const handleExportConfig = async () => {
+  if (isConfigBusy.value || typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  isExportingConfig.value = true;
+  setConfigStatus('info', '正在准备配置文件...');
+
+  try {
+    const payload = createPortableConfigPayload(window.localStorage, {
+      appVersion: appVersion.value || null,
+    });
+    const filePath = await invoke<string | null>('save_config_export', {
+      defaultFileName: buildPortableConfigFileName(),
+      contents: JSON.stringify(payload, null, 2),
+    });
+
+    if (!filePath) {
+      setConfigStatus('info', '已取消导出。');
+      return;
+    }
+
+    setConfigStatus(
+      'success',
+      `已导出 ${Object.keys(payload.entries).length} 项配置到 ${filePath}`,
+    );
+  } catch (error: any) {
+    console.error('[Navbar] Failed exporting config:', error);
+    setConfigStatus('error', error?.message || '导出配置失败，请稍后重试。');
+  } finally {
+    isExportingConfig.value = false;
+  }
+};
+
+const handleImportConfig = async () => {
+  if (isConfigBusy.value || typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  isImportingConfig.value = true;
+  setConfigStatus('info', '请选择一个配置文件。');
+
+  try {
+    const imported = await invoke<PickedConfigImportFile | null>('pick_config_import');
+    if (!imported) {
+      setConfigStatus('info', '已取消导入。');
+      return;
+    }
+
+    const payload = parsePortableConfigPayload(imported.content);
+    const confirmed = window.confirm(
+      `确定导入这个配置文件吗？\n\n文件：${imported.path}\n导出时间：${formatExportedAt(payload.exportedAt)}\n\n这会覆盖当前设备上的本地配置并立即刷新应用。`,
+    );
+
+    if (!confirmed) {
+      setConfigStatus('info', '已取消导入。');
+      return;
+    }
+
+    replacePortableConfigEntries(window.localStorage, payload.entries);
+    setConfigStatus(
+      'success',
+      `已导入 ${Object.keys(payload.entries).length} 项配置，应用即将刷新...`,
+    );
+
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 700);
+  } catch (error: any) {
+    console.error('[Navbar] Failed importing config:', error);
+    setConfigStatus('error', error?.message || '导入配置失败，请检查文件内容。');
+  } finally {
+    isImportingConfig.value = false;
+  }
 };
 
 const openGithub = async () => {
@@ -1419,6 +1593,97 @@ const tryEnterRoom = (roomId: string) => {
   padding-top: 4px;
 }
 
+.nav-config {
+  position: relative;
+  display: inline-flex;
+}
+
+.config-menu {
+  position: absolute;
+  top: 54px;
+  right: 0;
+  width: min(320px, calc(100vw - 32px));
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 18px 36px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(20px) saturate(1.08);
+  -webkit-backdrop-filter: blur(20px) saturate(1.08);
+  z-index: 60;
+}
+
+.config-menu__header {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.config-menu__description,
+.config-menu__hint,
+.config-menu__status {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.config-menu__description {
+  color: #334155;
+}
+
+.config-menu__hint {
+  color: #64748b;
+}
+
+.config-menu__status {
+  margin-bottom: 0;
+}
+
+.config-menu__status--info {
+  color: #2563eb;
+}
+
+.config-menu__status--success {
+  color: #047857;
+}
+
+.config-menu__status--error {
+  color: #dc2626;
+}
+
+.config-menu__action {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.94));
+  color: #0f172a;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.config-menu__action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(239, 246, 255, 0.96));
+}
+
+.config-menu__action:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.config-menu__action-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .search-container--popup {
   width: min(280px, 60vw);
 }
@@ -1809,6 +2074,35 @@ const tryEnterRoom = (roomId: string) => {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   box-shadow: none !important;
+}
+
+:global([data-theme='dark']) .config-menu {
+  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.48);
+}
+
+:global([data-theme='dark']) .config-menu__header {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .config-menu__description {
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .config-menu__hint {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .config-menu__action {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.82);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+:global([data-theme='dark']) .config-menu__action:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.35);
 }
 
 .nav-icon-btn:hover {
