@@ -67,6 +67,7 @@ window-vibrancy = "0.7.1"
  brotlic = "0.8"
  cookie = "0.18"
  html-escape = "0.2"
+rfd = "0.15"
 
 [profile.release]
 panic = "unwind"

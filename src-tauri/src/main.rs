@@ -8,6 +8,7 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
 use tauri::Manager;
+mod config_transfer;
 mod platforms;
 mod proxy;
 use platforms::common::{DouyinDanmakuState, FollowHttpClient, HuyaDanmakuState};
@@ -193,6 +194,8 @@ fn main() {
                 get_stream_url_with_quality_cmd,
                 set_stream_url_cmd,
                 search_anchor,
+                config_transfer::save_config_export,
+                config_transfer::pick_config_import,
                 start_danmaku_listener,      // Douyu danmaku start
                 stop_danmaku_listener,       // Douyu danmaku stop
                 start_douyin_danmu_listener, // Added Douyin danmaku listener command
