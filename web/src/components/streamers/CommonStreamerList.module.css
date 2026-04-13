@@ -1,0 +1,188 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  overflow: hidden;
+}
+
+.loadingInitial,
+.noStreamers,
+.noCategory,
+.loadingMore {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  color: var(--secondary-text);
+  gap: 12px;
+}
+
+.loadingTop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 8px 12px;
+  color: var(--secondary-text);
+}
+
+.loadingInitial {
+  flex-grow: 1;
+}
+
+.scrollArea {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 6px 8px;
+  --card-radius: 12px;
+}
+
+.scrollArea::-webkit-scrollbar {
+  width: 5px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.preview {
+  width: 100%;
+  aspect-ratio: 16 / 8.5;
+  position: relative;
+}
+
+.imageWrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.overlayGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.viewersOverlay {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer {
+  display: flex;
+  padding: 12px 12px 14px;
+  gap: 10px;
+  align-items: center;
+}
+
+.avatarContainer {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.avatarImg {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border-color);
+  transition: border-color 0.3s ease;
+}
+
+.skeletonCard {
+  cursor: default;
+}
+
+.skeletonPreview {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
+}
+
+.skeletonAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.skeletonText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonTitle {
+  height: 12px;
+  width: 72%;
+  border-radius: 8px;
+}
+
+.skeletonSub {
+  height: 10px;
+  width: 46%;
+  border-radius: 8px;
+}
+
+.textDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.roomTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.nickname {
+  font-size: 12px;
+  color: var(--secondary-text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}

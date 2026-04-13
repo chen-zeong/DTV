@@ -1,0 +1,203 @@
+.danmu-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  width: 100%;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--primary-text, #e5e9f5);
+  font-family: var(--danmu-font-family, "OPPO Sans", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif);
+  border-radius: 0 16px 16px 0;
+  border: 1px solid var(--glass-border);
+  border-left: none;
+  box-shadow: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.danmu-actions-slot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.danmu-actions-slot * {
+  pointer-events: auto;
+}
+
+.danmu-filter-panel {
+  position: absolute;
+  top: 52px;
+  right: 12px;
+  width: min(280px, calc(100% - 24px));
+  background: rgba(15, 18, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 3;
+  box-shadow: 0 10px 24px rgba(7, 12, 24, 0.35);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.panel-title {
+  font-size: 0.8rem;
+  color: rgba(229, 236, 255, 0.9);
+  font-weight: 600;
+}
+
+.panel-close {
+  border: none;
+  background: transparent;
+  color: rgba(229, 236, 255, 0.7);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-input {
+  flex: 1;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(236, 242, 255, 0.92);
+  padding: 0 8px;
+  font-size: 0.78rem;
+  outline: none;
+}
+
+.panel-list {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.panel-empty {
+  font-size: 0.76rem;
+  color: rgba(200, 210, 236, 0.75);
+  text-align: center;
+  padding: 6px 0;
+}
+
+.panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.panel-item-text {
+  font-size: 0.78rem;
+  color: rgba(236, 242, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-remove {
+  border: none;
+  background: rgba(255, 92, 92, 0.2);
+  color: #ffb2b2;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+
+.danmu-messages-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+
+.empty-danmu-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
+  color: rgba(200, 210, 236, 0.75);
+}
+
+.danmu-item {
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 4px;
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.danmu-item:hover {
+  transform: translateY(-2px);
+}
+
+.danmu-meta-line {
+  font-size: 0.72rem;
+  color: rgba(204, 212, 236, 0.72);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  letter-spacing: 0.01em;
+  gap: 6px;
+}
+
+.danmu-user {
+  font-weight: 700;
+}
+
+.danmu-content-line {
+  font-size: 0.78rem;
+  color: rgba(236, 242, 255, 0.9);
+  line-height: 1.25;
+}
+
+.system-message .danmu-meta-line {
+  display: none;
+}
+
+.system-message .danmu-content-line {
+  color: rgba(236, 242, 255, 0.85);
+  font-weight: 700;
+}
+

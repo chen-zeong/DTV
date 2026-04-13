@@ -1,0 +1,119 @@
+.customHome {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+.emptyTip {
+  font-size: 12px;
+  color: var(--secondary-text);
+  padding: 14px 12px;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px 12px 14px;
+}
+
+.chip {
+  border: none;
+  background: var(--glass-bg);
+  color: var(--primary-text, rgba(236, 242, 255, 0.9));
+  border-radius: 16px;
+  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: var(--glass-shadow, 0 10px 22px rgba(6, 10, 20, 0.28));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+}
+
+.chipActive {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(148, 163, 184, 0.55);
+  box-shadow: 0 12px 24px rgba(12, 18, 30, 0.32), inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  color: #ffffff;
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(10, 15, 28, 0.32);
+}
+
+.chipPlatform {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chipName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.platformDouyu .chipPlatform {
+  color: #ffb17a;
+}
+
+.platformHuya .chipPlatform {
+  color: #ffd37a;
+}
+
+.platformDouyin .chipPlatform {
+  color: #a78bfa;
+}
+
+.platformBilibili .chipPlatform {
+  color: #ff9bd1;
+}
+
+:global(:root[data-theme="light"]) .chip {
+  background: var(--bg-tertiary);
+  color: #6c7270;
+  border: none;
+  box-shadow: none;
+}
+
+:global(:root[data-theme="light"]) .chipActive {
+  background: var(--bg-secondary);
+  color: #1f2937;
+  border: none;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+:global(:root[data-theme="light"]) .chipPlatform {
+  background: rgba(148, 163, 184, 0.18);
+  color: #334155;
+}
+
+:global(:root[data-theme="light"]) .platformDouyu .chipPlatform {
+  color: #d97706;
+}
+
+:global(:root[data-theme="light"]) .platformHuya .chipPlatform {
+  color: #b45309;
+}
+
+:global(:root[data-theme="light"]) .platformDouyin .chipPlatform {
+  color: #4c1d95;
+}
+
+:global(:root[data-theme="light"]) .platformBilibili .chipPlatform {
+  color: #c026d3;
+}
+
+.streamerList {
+  flex: 1;
+  overflow: hidden;
+  background: transparent;
+}
+

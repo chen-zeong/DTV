@@ -6,7 +6,9 @@ use std::panic;
 use std::collections::HashMap;
 use std::env;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tokio::sync::oneshot;
+#[cfg(target_os = "macos")]
 use tauri::Manager;
 mod config_transfer;
 mod platforms;
@@ -156,6 +158,7 @@ fn main() {
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         .no_proxy()
+        .timeout(Duration::from_secs(45))
         .build()
         .expect("Failed to create reqwest client");
     let follow_http_client = FollowHttpClient::new().expect("Failed to create follow http client");
@@ -166,12 +169,12 @@ fn main() {
             .plugin(tauri_plugin_window_state::Builder::default()
                 .with_state_flags(tauri_plugin_window_state::StateFlags::SIZE)
                 .build())
-            .setup(|app| {
+            .setup(|_app| {
                 // Apply macOS vibrancy to the main window when running on macOS
                 #[cfg(target_os = "macos")]
                 {
                     use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
-                    if let Some(window) = app.get_webview_window("main") {
+                    if let Some(window) = _app.get_webview_window("main") {
                         match apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None) {
                             Ok(_) => println!("vibrancy applied successfully"),
                             Err(e) => eprintln!("vibrancy error: {:?}", e),

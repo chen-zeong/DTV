@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "@heroui/react/styles";
+
+/* 先保持与旧版一致：后续迁移时再逐步替换/合并 */
+@import "./legacy-global.css";

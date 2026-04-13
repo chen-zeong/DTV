@@ -1,0 +1,273 @@
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  color: var(--primary-text);
+  max-height: 280px;
+  min-height: 160px;
+  overflow: hidden;
+  transition: none;
+  will-change: max-height;
+  transform: translateZ(0);
+  width: 100%;
+  position: relative;
+}
+
+.categoryListExpanded {
+  max-height: 500px;
+}
+
+.loadingState {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--secondary-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.loadingText {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--secondary-text);
+}
+
+.cate1ListContainer {
+  overflow-x: auto;
+  flex-shrink: 0;
+  padding: 2px 0 10px;
+  border: none;
+  box-shadow: none;
+  position: relative;
+}
+
+.cate1List {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 6px;
+  display: inline-flex;
+  gap: 18px;
+  flex-wrap: nowrap;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  position: relative;
+}
+
+.cate1Item {
+  height: 32px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  white-space: nowrap;
+  color: var(--secondary-text);
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  position: relative;
+}
+
+.cate1Item:hover {
+  color: var(--primary-text);
+  background: transparent;
+}
+
+.cate1ItemSelected {
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 700;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.cate1Item::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: -6px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  opacity: 0;
+  transform: scaleX(1);
+}
+
+.cate1ItemSelected::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+:global(:root[data-theme="light"]) .cate1Item::after {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+:global(:root[data-theme="dark"]) .cate1Item {
+  color: #cbd5d1;
+}
+
+:global(:root[data-theme="light"]) .cate1Item {
+  color: #5f6563;
+}
+
+:global(:root[data-theme="light"]) .cate1ItemSelected {
+  color: #1f2937;
+}
+
+:global(:root[data-theme="dark"]) .cate1ItemSelected {
+  color: #f6fbf7;
+}
+
+.cate1ListContainer::-webkit-scrollbar {
+  height: 0;
+}
+
+.cate1Actions {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.cate2Container {
+  padding: 8px 8px 6px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  position: relative;
+  overflow: visible;
+  background: transparent;
+}
+
+.cate2Content {
+  position: relative;
+  padding-bottom: 6px;
+  overflow: hidden;
+  transition: none;
+}
+
+.cate2ContentAnimated {
+  transition: height 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: height;
+}
+
+.cate2ScrollWrapper {
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.cate2ScrollWrapperAllow {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cate2ScrollWrapperAllow::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.cate2Grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  justify-content: flex-start;
+  padding-bottom: 12px;
+}
+
+.cate2Name {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.expandButton {
+  position: relative;
+  align-self: center;
+  margin-top: -6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--secondary-text);
+  cursor: pointer;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  z-index: 5;
+  box-shadow: var(--shadow-low);
+}
+
+.expandButton:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+:global(:root[data-theme="dark"]) .expandButton {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+:global(:root[data-theme="dark"]) .expandButton:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text-primary);
+}
+
+.expandIcon {
+  margin-left: 2px;
+  width: 12px;
+  height: 12px;
+}
+
+.expandIconExpanded {
+  transform: rotate(180deg);
+}
+
+/* Actions button styles keep global class name for reuse */
+.cate1Actions :global(.category-subscribe-btn) {
+  height: 28px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(24, 28, 40, 0.6);
+  color: rgba(236, 242, 255, 0.9);
+  cursor: pointer;
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+}
+
+.cate1Actions :global(.category-subscribe-btn:hover) {
+  background: rgba(42, 48, 64, 0.8);
+  color: #ffffff;
+}
+
+.cate1Actions :global(.category-subscribe-btn:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+:global(:root[data-theme="light"]) .cate1Actions :global(.category-subscribe-btn) {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+}
+
+:global(:root[data-theme="light"]) .cate1Actions :global(.category-subscribe-btn:hover) {
+  background: rgba(248, 250, 252, 1);
+}

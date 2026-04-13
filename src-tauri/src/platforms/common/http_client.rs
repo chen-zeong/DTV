@@ -4,7 +4,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36";
-const DEFAULT_TIMEOUT_SECONDS: u64 = 20;
+// 部分平台（如抖音）接口在网络抖动时响应较慢，20s 容易触发超时。
+// 这里提高默认超时时间以提升稳定性（不改变业务算法）。
+const DEFAULT_TIMEOUT_SECONDS: u64 = 45;
 const FOLLOW_POOL_MAX_IDLE_PER_HOST: usize = 2;
 const FOLLOW_POOL_IDLE_TIMEOUT_SECONDS: u64 = 15;
 

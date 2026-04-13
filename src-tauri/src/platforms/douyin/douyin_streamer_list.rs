@@ -54,8 +54,21 @@ pub struct DouyinPartitionDataWrapper {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DouyinPartitionApiErrorData {
+    pub message: Option<String>,
+    pub prompts: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum DouyinPartitionApiResponseData {
+    Success(DouyinPartitionDataWrapper),
+    Error(DouyinPartitionApiErrorData),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DouyinPartitionApiResponse {
-    pub data: DouyinPartitionDataWrapper,
+    pub data: DouyinPartitionApiResponseData,
     pub status_code: i32,
 }
 
@@ -87,11 +100,13 @@ pub async fn fetch_douyin_partition_rooms(
 ) -> Result<DouyinLiveListResponse, String> {
     let count: i32 = 15; // Number of items requested per page, explicitly typed as i32
 
-    // 使用直连HTTP客户端，绕过所有代理设置
-    let local_client = HttpClient::new_direct_connection()
-        .map_err(|e| format!("Failed to create direct connection HttpClient: {}", e))?;
+    // 抖音接口在国内可以直接访问，使用直连方式，避免代理问题
+    // 使用 new_direct_connection() 绕过系统代理设置
+    let local_client =
+        HttpClient::new_direct_connection().map_err(|e| format!("Failed to create HttpClient: {}", e))?;
 
-    // Use hardcoded ttwid and odin_tt from the user's working test for now
+    // 使用更新的 Cookie（从浏览器获取的最新值）
+    // 注意：这些 Cookie 可能会过期，需要定期从浏览器更新
     let hardcoded_odin_tt = "54c68ba8fa8ce792ad017c55272d171c283baedc87b2f6282ca8706df295cbd89c5d55449b587b7ebe0a2e352e394a86975955c9ed7f98f209996bdca2749479619aceecc7b75c2374e146b5a722b2e1";
     let hardcoded_ttwid = "1%7CdVwg8DUriPlMDlcGA6XsVP8FZW2vzZEtEnoAxpXQxP8%7C1757517390%7C954f1753f33b21b018d616437b3f053026c22f17cde00bccd655bfb0d71056c5";
 
@@ -144,65 +159,87 @@ pub async fn fetch_douyin_partition_rooms(
         .await
     {
         Ok(api_response) => {
-            if api_response.status_code == 0 {
-                let mut frontend_rooms = Vec::new();
-                let received_rooms_count = api_response.data.data.len(); // Number of rooms actually received from this API call
-
-                for room_data in api_response.data.data {
-                    let room_details = room_data.room;
-
-                    let avatar_url = room_details
-                        .owner
-                        .avatar_thumb
-                        .as_ref()
-                        .and_then(|thumb| thumb.url_list.get(0))
-                        .cloned()
-                        .unwrap_or_default();
-
-                    let user_count_display = room_details
-                        .stats
-                        .user_count_str
-                        .clone()
-                        .unwrap_or_else(|| room_details.stats.total_user_str.clone());
-
-                    frontend_rooms.push(LiveRoomFrontend {
-                        web_rid: room_data.actual_web_rid_for_frontend.clone(),
-                        title: room_details.title,
-                        cover_url: room_details
-                            .cover
-                            .url_list
-                            .get(0)
-                            .cloned()
-                            .unwrap_or_default(),
-                        owner_nickname: room_details.owner.nickname,
-                        user_count_str: user_count_display,
-                        avatar_url,
-                    });
-                }
-
-                // Use API-provided has_more when available; fallback to length check
-                let api_has_more = api_response.data.has_more.unwrap_or(false);
-                let has_more = api_has_more || received_rooms_count == (count as usize);
-
-                // Prefer API offset if it moves forward; otherwise increment by received count
-                let next_offset_for_frontend = if api_response.data.offset > offset {
-                    api_response.data.offset
-                } else {
-                    offset + (received_rooms_count as i32)
+            // 检查状态码
+            if api_response.status_code != 0 {
+                // 尝试获取错误信息
+                let error_msg = match &api_response.data {
+                    DouyinPartitionApiResponseData::Error(err_data) => {
+                        format!(
+                            "抖音 API 错误 ({}): {}",
+                            api_response.status_code,
+                            err_data.message.as_deref().unwrap_or("未知错误")
+                        )
+                    }
+                    DouyinPartitionApiResponseData::Success(_) => {
+                        format!("抖音 API 返回非零状态码：{}", api_response.status_code)
+                    }
                 };
-
-                Ok(DouyinLiveListResponse {
-                    rooms: frontend_rooms,
-                    has_more,
-                    next_offset: next_offset_for_frontend,
-                })
-            } else {
-                Err(format!(
-                    "Douyin API returned non-zero status code: {}",
-                    api_response.status_code
-                ))
+                return Err(error_msg);
             }
+
+            // 解析成功响应
+            let data_wrapper = match &api_response.data {
+                DouyinPartitionApiResponseData::Success(data) => data,
+                DouyinPartitionApiResponseData::Error(err_data) => {
+                    return Err(format!(
+                        "抖音 API 返回错误：{}",
+                        err_data.message.as_deref().unwrap_or("未知错误")
+                    ));
+                }
+            };
+
+            let mut frontend_rooms = Vec::new();
+            let received_rooms_count = data_wrapper.data.len();
+
+            for room_data in &data_wrapper.data {
+                let room_details = &room_data.room;
+
+                let avatar_url = room_details
+                    .owner
+                    .avatar_thumb
+                    .as_ref()
+                    .and_then(|thumb| thumb.url_list.get(0))
+                    .cloned()
+                    .unwrap_or_default();
+
+                let user_count_display = room_details
+                    .stats
+                    .user_count_str
+                    .clone()
+                    .unwrap_or_else(|| room_details.stats.total_user_str.clone());
+
+                frontend_rooms.push(LiveRoomFrontend {
+                    web_rid: room_data.actual_web_rid_for_frontend.clone(),
+                    title: room_details.title.clone(),
+                    cover_url: room_details
+                        .cover
+                        .url_list
+                        .get(0)
+                        .cloned()
+                        .unwrap_or_default(),
+                    owner_nickname: room_details.owner.nickname.clone(),
+                    user_count_str: user_count_display,
+                    avatar_url,
+                });
+            }
+
+            // 使用 API 提供的 has_more；回退到长度检查
+            let api_has_more = data_wrapper.has_more.unwrap_or(false);
+            let has_more = api_has_more || received_rooms_count == (count as usize);
+
+            // 优先使用 API 的 offset（如果向前移动）；否则增加接收到的数量
+            let next_offset_for_frontend = if data_wrapper.offset > offset {
+                data_wrapper.offset
+            } else {
+                offset + (received_rooms_count as i32)
+            };
+
+            Ok(DouyinLiveListResponse {
+                rooms: frontend_rooms,
+                has_more,
+                next_offset: next_offset_for_frontend,
+            })
         }
-        Err(e) => Err(format!("Network error fetching Douyin room list: {}", e)),
+        Err(e) => Err(format!("网络错误，无法获取抖音房间列表：{}", e)),
     }
 }

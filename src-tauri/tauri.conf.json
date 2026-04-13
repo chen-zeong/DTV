@@ -4,10 +4,10 @@
   "version": "2.4.5",
   "identifier": "com.dtv.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "pnpm -C web dev",
     "devUrl": "http://localhost:2896",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "beforeBuildCommand": "pnpm -C web build",
+    "frontendDist": "../web/out"
   },
   "app": {
     "macOSPrivateApi": true,

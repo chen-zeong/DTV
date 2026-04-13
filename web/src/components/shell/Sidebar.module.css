@@ -1,0 +1,12 @@
+.sidebarShell {
+  z-index: 100;
+  background-color: var(--bg-primary);
+}
+
+.sidebarBody {
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  padding: 8px;
+}
+
