@@ -18,17 +18,18 @@
   --font-sans: "OPPO Sans", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  --bg-primary: #ffffff;
+  /* vibestream-day */
+  --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f0f0f3;
-  --text-primary: #1d1d1f;
-  --text-secondary: #86868b;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
   --accent: #007aff;
   --accent-hover: #0062cc;
   --accent-glow: rgba(0, 122, 255, 0.25);
-  --platform-active-bg: #f7f7f9;
+  --platform-active-bg: rgba(15, 23, 42, 0.04);
 
-  --border: rgba(0, 0, 0, 0.06);
+  --border: #e2e8f0;
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(255, 255, 255, 0.3);
 
@@ -101,17 +102,19 @@
 }
 
 [data-theme="dark"] {
-  --bg-primary: #24292c;
-  --bg-secondary: #121212;
-  --bg-tertiary: #1c1c1e;
-  --text-primary: #f5f5f7;
-  --text-secondary: #a1a1a6;
+  /* vibestream-night */
+  /* main panel slightly lighter than sidebar */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #242424;
+  --text-primary: #e2e8f0;
+  --text-secondary: #64748b;
   --accent: #0a84ff;
   --accent-hover: #409cff;
   --accent-glow: rgba(10, 132, 255, 0.3);
-  --platform-active-bg: rgba(255, 255, 255, 0.12);
+  --platform-active-bg: rgba(255, 255, 255, 0.06);
 
-  --border: rgba(255, 255, 255, 0.1);
+  --border: #222222;
   --glass-bg: rgba(20, 20, 22, 0.8);
   --glass-border: rgba(255, 255, 255, 0.08);
 

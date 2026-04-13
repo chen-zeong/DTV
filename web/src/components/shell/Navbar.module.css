@@ -10,50 +10,171 @@
   top: 0;
   z-index: 50;
   gap: 32px;
+  background: var(--bg-primary);
+}
+
+.navbarDark {
+  background: transparent;
+  border-bottom: none !important;
 }
 
 .platformTabsWrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  flex: 0 0 auto;
 }
 
 .platformTabs {
-  position: relative;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 999px;
-  background: var(--hover-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(250, 252, 255, 0.62);
+  border-style: solid;
+  border-color: #ffffff;
+  border-width: 0.8px 0.35px;
+  padding: 5px;
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 4px 8px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(18px) saturate(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.05);
 }
 
 .platformHighlight {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  height: calc(100% - 12px);
-  border-radius: 999px;
-  background: var(--platform-active-bg);
-  border: 1px solid var(--glass-border);
-  z-index: 0;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border-style: solid;
+  border-color: #ffffff;
+  border-width: 0.75px 0.35px;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 3px 6px rgba(15, 23, 42, 0.05);
+  transition:
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 160ms ease;
+  z-index: 1;
 }
 
 .platformTab {
   position: relative;
-  z-index: 1;
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--primary-text);
-  opacity: 0.9;
+  z-index: 2;
+  padding: 9px 20px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease, background-color 0.2s ease;
+}
+
+.platformTab:hover:not(.platformTabActive) {
+  background-color: rgba(15, 23, 42, 0.06);
 }
 
 .platformTabActive {
-  opacity: 1;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+:global([data-theme="light"]) .platformTabs,
+:global(html[data-theme="light"]) .platformTabs,
+:global(:root[data-theme="light"]) .platformTabs {
+  border-width: 1px 0.6px !important;
+  border-color: #ffffff !important;
+  outline: 0.5px solid rgba(148, 163, 184, 0.35) !important;
+  outline-offset: -1px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.92),
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 4px 8px rgba(15, 23, 42, 0.05) !important;
+}
+
+:global([data-theme="dark"]) .platformTab {
+  color: #cbd5e1;
+}
+
+:global([data-theme="dark"]) .platformTab:hover:not(.platformTabActive) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+:global([data-theme="dark"]) .platformTabActive {
+  color: #f8fafc;
+}
+
+:global([data-theme="light"]) .platformHighlight,
+:global(html[data-theme="light"]) .platformHighlight,
+:global(:root[data-theme="light"]) .platformHighlight {
+  border-width: 1px 0.6px !important;
+  border-color: #ffffff !important;
+  outline: 0.5px solid rgba(148, 163, 184, 0.3) !important;
+  outline-offset: -1px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 3px 6px rgba(15, 23, 42, 0.05) !important;
+}
+
+:global([data-theme="dark"]) .platformTabs {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.42);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none !important;
+}
+
+:global([data-theme="dark"]) .platformHighlight {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none !important;
+}
+
+.navbar.navbarDark .platformTabs,
+.navbar.navbarDark .searchShell {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-style: solid !important;
+  border-width: 0.6px 0.24px !important;
+  border-color: rgba(233, 241, 246, 0.42) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 4px 10px rgba(0, 0, 0, 0.12) !important;
+}
+
+.navbar.navbarDark .platformHighlight {
+  background: rgba(145, 154, 160, 0.28) !important;
+  background-image: none !important;
+  border-style: solid !important;
+  border-width: 0.55px 0.24px !important;
+  border-color: rgba(237, 244, 248, 0.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.navbar.navbarDark .searchShellFocused {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 6px 14px rgba(0, 0, 0, 0.14) !important;
+}
+
+.navbar.navbarDark .platformTab:hover:not(.platformTabActive) {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 .actions {
@@ -61,6 +182,60 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.winControls {
+  display: inline-flex;
+  align-items: stretch;
+  height: 32px;
+  border-radius: 0;
+  overflow: visible;
+  border: none;
+  background: transparent;
+}
+
+.winBtn {
+  width: 46px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--primary-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.winBtn:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.winBtn:active {
+  background: rgba(15, 23, 42, 0.12);
+}
+
+.winBtnClose:hover {
+  background: rgba(239, 68, 68, 0.92);
+  color: #ffffff;
+}
+
+.winBtnClose:active {
+  background: rgba(220, 38, 38, 0.95);
+  color: #ffffff;
+}
+
+:global([data-theme="dark"]) .winControls {
+  background: transparent;
+  border-color: transparent;
+}
+
+:global([data-theme="dark"]) .winBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme="dark"]) .winBtn:active {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .playerIsland {

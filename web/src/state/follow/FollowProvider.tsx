@@ -191,9 +191,20 @@ export function FollowProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
   }, []);
 
-  useEffect(() => saveJson("followedStreamers", followedStreamers), [followedStreamers]);
-  useEffect(() => saveJson("followFolders", folders), [folders]);
-  useEffect(() => saveJson("followListOrder", listOrder), [listOrder]);
+  useEffect(() => {
+    if (!hydrated) return;
+    saveJson("followedStreamers", followedStreamers);
+  }, [followedStreamers, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveJson("followFolders", folders);
+  }, [folders, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveJson("followListOrder", listOrder);
+  }, [hydrated, listOrder]);
 
   const updateStreamer = useCallback((platform: Platform, id: string, patch: Partial<FollowedStreamer>) => {
     const key = `${platform}:${id}`;

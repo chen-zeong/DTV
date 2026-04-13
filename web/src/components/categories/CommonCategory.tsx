@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@heroui/react";
 
 import styles from "./CommonCategory.module.css";
 import type { Category1, Category2, CategorySelectedEvent } from "@/platforms/common/categoryTypes";
@@ -145,26 +144,25 @@ export function CommonCategory({
                 style={{ height: targetHeight }}
               >
                 <div className={`${styles.cate2ScrollWrapper} ${expanded && hasMoreRows ? styles.cate2ScrollWrapperAllow : ""}`}>
-                <div className={styles.cate2Grid} ref={gridRef}>
-                  {currentCate2List.map((c2) => {
+                  <div className={styles.cate2Grid} ref={gridRef}>
+                    {currentCate2List.map((c2) => {
                       const active = c2.href === selectedCate2Href;
                       return (
-                        <Button
+                        <button
                           key={c2.href}
                           type="button"
-                          size="sm"
-                          fullWidth
-                          variant="tertiary"
-                          data-hovered="true"
+                          className={`${styles.cate2Card} ${active ? styles.cate2CardActive : ""}`}
                           aria-pressed={active}
-                          onPress={() => {
+                          onClick={() => {
                             emitCate2(c2);
                             if (expanded) setExpanded(false);
                           }}
                           aria-label={c2.title}
                         >
-                          <span title={c2.title}>{c2.title}</span>
-                        </Button>
+                          <div className={styles.cate2Name} title={c2.title}>
+                            {c2.title}
+                          </div>
+                        </button>
                       );
                     })}
                   </div>

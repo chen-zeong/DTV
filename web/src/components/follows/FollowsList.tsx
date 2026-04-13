@@ -643,9 +643,16 @@ export function FollowsList() {
           tabIndex={0}
           onClick={() => handleStreamerClick(s.platform, s.id)}
         >
-          <span className={styles.avatar} aria-hidden="true">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {avatarSrc ? <img className={styles.avatarImg} src={avatarSrc} alt={s.nickname} /> : null}
+          <span className={styles.avatarWrap} aria-hidden="true">
+            <span className={styles.avatar}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {avatarSrc ? (
+                <img className={styles.avatarImg} src={avatarSrc} alt={s.nickname} loading="lazy" decoding="async" draggable={false} />
+              ) : (
+                <span className={styles.avatarFallback}>{(s.nickname || "?").slice(0, 1)}</span>
+              )}
+            </span>
+            <span className={`${styles.liveDot} ${styles.liveDotOnAvatar} ${liveDotClass}`} aria-hidden="true" />
           </span>
           <div className={styles.meta}>
             <div className={styles.name} title={s.nickname}>
@@ -655,7 +662,6 @@ export function FollowsList() {
               {s.roomTitle || "暂无直播标题"}
             </div>
           </div>
-          <span className={`${styles.liveDot} ${liveDotClass}`} aria-hidden="true" />
         </div>
       </div>
     );
@@ -669,7 +675,7 @@ export function FollowsList() {
     <div className={styles.followList}>
       <div className={styles.listHeader} ref={headerRef}>
         <h3 className={styles.headerTitle} aria-label="关注列表">
-          <UsersRound size={18} />
+          <span className={styles.headerLabel}>Live Channels</span>
         </h3>
         <div className={styles.headerActions}>
           {!isRefreshing ? (

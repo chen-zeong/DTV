@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@heroui/react";
-import { ChevronDown, LayoutGrid, Moon, Search, Sun, X } from "lucide-react";
+import { ChevronDown, Copy, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 import styles from "./Navbar.module.css";
@@ -38,16 +38,33 @@ export function Navbar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isWindows, setIsWindows] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const playerUi = usePlayerUi();
   const follow = useFollow();
   const { ensureProxyStarted, proxify } = useImageProxy();
   const custom = useCustomCategories();
 
+  const showCustomTab = custom.hydrated && custom.entries.length > 0;
+  const visiblePlatforms = useMemo(() => {
+    // 对齐老项目：有自定义分区时，自定义入口放在最前面
+    if (showCustomTab) return [customPlatform, ...basePlatforms];
+    return basePlatforms;
+  }, [showCustomTab]);
+
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [highlight, setHighlight] = useState<{ width: number; x: number }>({ width: 0, x: 0 });
+  const [highlight, setHighlight] = useState<{ width: number; x: number; opacity: number }>({ width: 0, x: 0, opacity: 0 });
 
-  const highlightMotion = useMemo(() => ({ width: highlight.width, x: highlight.x }), [highlight]);
+  const highlightMotionWithOpacity = useMemo(
+    () => ({
+      width: highlight.width,
+      x: highlight.x,
+      opacity: highlight.opacity,
+      scale: highlight.opacity ? 1 : 0.96
+    }),
+    [highlight]
+  );
 
   const isPlayerRoute = (pathname ?? "").startsWith("/player");
 
@@ -101,15 +118,115 @@ export function Navbar({
     }
   }, [ensureProxyStarted, searchPlatform]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const osMod: any = await import("@tauri-apps/plugin-os");
+        const p = typeof osMod?.platform === "function" ? await osMod.platform() : "";
+        if (cancelled) return;
+        setIsWindows(String(p).toLowerCase() === "windows");
+      } catch {
+        // non-tauri env: ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isWindows) return;
+    let cancelled = false;
+    let unlisten: null | (() => void) = null;
+    (async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+        try {
+          const max = await win.isMaximized();
+          if (!cancelled) setIsMaximized(!!max);
+        } catch {
+          // ignore
+        }
+        try {
+          unlisten = await win.onResized(async () => {
+            try {
+              const max = await win.isMaximized();
+              setIsMaximized(!!max);
+            } catch {
+              // ignore
+            }
+          });
+        } catch {
+          // ignore
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+      try {
+        unlisten?.();
+      } catch {
+        // ignore
+      }
+    };
+  }, [isWindows]);
+
+  const minimizeWindow = useCallback(async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().minimize();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleMaximizeWindow = useCallback(async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const win = getCurrentWindow();
+      const max = await win.isMaximized();
+      if (max) await win.unmaximize();
+      else await win.maximize();
+      setIsMaximized(!max);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const closeWindow = useCallback(async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().close();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const updateHighlight = useCallback(() => {
     const el = tabRefs.current[activePlatform];
     const container = containerRef.current;
-    if (!el || !container) return;
+    if (!el || !container) {
+      setHighlight((prev) => ({ ...prev, opacity: 0 }));
+      return;
+    }
     const c = container.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    // platformTabs has padding: 6px; highlight uses left: 6px baseline
-    setHighlight({ width: r.width, x: r.left - c.left - 6 });
+    setHighlight({ width: r.width, x: r.left - c.left, opacity: 1 });
   }, [activePlatform]);
+
+  useLayoutEffect(() => {
+    updateHighlight();
+  }, [updateHighlight, visiblePlatforms.length]);
+
+  useEffect(() => {
+    const onResize = () => updateHighlight();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [updateHighlight]);
 
   const island = playerUi.island;
   const islandDisplayName = island.anchorName || island.roomId || "";
@@ -130,22 +247,15 @@ export function Navbar({
 
   const showResults = isSearchFocused && !!searchQuery.trim();
 
-  const showCustomTab = custom.hydrated && custom.entries.length > 0;
-  const visiblePlatforms = useMemo(() => {
-    // 对齐老项目：有自定义分区时，自定义入口放在最前面
-    if (showCustomTab) return [customPlatform, ...basePlatforms];
-    return basePlatforms;
-  }, [showCustomTab]);
-
   return (
-    <nav className={styles.navbar} data-tauri-drag-region>
+    <nav className={`${styles.navbar} ${theme === "dark" ? styles.navbarDark : ""}`} data-tauri-drag-region>
       <div className={styles.platformTabsWrap} data-tauri-drag-region>
         <div className={styles.platformTabs} ref={containerRef} data-tauri-drag-region>
           <motion.div
             className={styles.platformHighlight}
             initial={false}
-            animate={highlightMotion}
-            transition={{ type: "spring", stiffness: 420, damping: 36, mass: 0.8 }}
+            animate={highlightMotionWithOpacity}
+            transition={{ type: "spring", stiffness: 430, damping: 24, mass: 0.72 }}
           />
           {visiblePlatforms.map((p) => (
             <button
@@ -343,12 +453,25 @@ export function Navbar({
           size="sm"
           variant="secondary"
           onPress={onThemeToggle}
+          isIconOnly
+          aria-label={theme === "dark" ? "切换到浅色" : "切换到深色"}
         >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === "dark" ? "浅色" : "深色"}
-          </span>
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </Button>
+
+        {isWindows ? (
+          <div className={styles.winControls} data-tauri-drag-region="false" aria-label="Window controls">
+            <button type="button" className={styles.winBtn} title="最小化" onClick={() => void minimizeWindow()}>
+              <Minus size={14} />
+            </button>
+            <button type="button" className={styles.winBtn} title={isMaximized ? "还原" : "最大化"} onClick={() => void toggleMaximizeWindow()}>
+              {isMaximized ? <Copy size={14} /> : <Maximize2 size={14} />}
+            </button>
+            <button type="button" className={`${styles.winBtn} ${styles.winBtnClose}`} title="关闭" onClick={() => void closeWindow()}>
+              <X size={14} />
+            </button>
+          </div>
+        ) : null}
       </div>
     </nav>
   );

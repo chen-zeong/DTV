@@ -141,12 +141,89 @@ export const createDanmuOverlay = (
       danmaku.speed = width / durationSec;
     };
 
+    let resizeRaf = 0;
+    let lastKnownWidth = 0;
+    let lastKnownHeight = 0;
+    const performResize = () => {
+      const width = overlayHost.offsetWidth;
+      const height = overlayHost.offsetHeight;
+      if (!width || !height) {
+        return;
+      }
+      if (width === lastKnownWidth && height === lastKnownHeight) {
+        return;
+      }
+      lastKnownWidth = width;
+      lastKnownHeight = height;
+      danmaku.resize();
+      applySpeedFromDuration(currentSettings.duration);
+    };
+    const scheduleResize = () => {
+      if (resizeRaf) {
+        return;
+      }
+      resizeRaf = window.requestAnimationFrame(() => {
+        resizeRaf = 0;
+        try {
+          performResize();
+        } catch {
+          // ignore
+        }
+      });
+    };
+
+    let resizeObserver: ResizeObserver | null = null;
+    const cleanupResizeHooks: Array<() => void> = [];
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => scheduleResize());
+        resizeObserver.observe(overlayHost);
+        cleanupResizeHooks.push(() => resizeObserver?.disconnect());
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      window.addEventListener('resize', scheduleResize, { passive: true });
+      cleanupResizeHooks.push(() => window.removeEventListener('resize', scheduleResize as any));
+    } catch {
+      // ignore
+    }
+    try {
+      const onFull = () => scheduleResize();
+      player.on?.('fullscreen_change', onFull);
+      player.on?.('cssFullscreen_change', onFull);
+      cleanupResizeHooks.push(() => {
+        player.off?.('fullscreen_change', onFull);
+        player.off?.('cssFullscreen_change', onFull);
+      });
+    } catch {
+      // ignore
+    }
+
     const overlay: DanmuOverlayInstance = {
       sendComment: (comment) => {
         try {
           if (!currentEnabled || currentOpacity <= 0) {
             return;
           }
+
+          // 高密度时如果继续塞入会更容易发生遮挡；这里做一个轻量限流（优先保证不重叠/不卡顿）。
+          try {
+            const internal = (danmaku as any)?._;
+            const runningCount = Array.isArray(internal?.runningList) ? internal.runningList.length : 0;
+            const fontSize = parseInt(currentSettings.fontSize, 10);
+            const safeFontSize = Number.isFinite(fontSize) ? fontSize : 20;
+            const approxRowHeight = Math.max(16, safeFontSize + 6);
+            const approxRows = Math.max(1, Math.floor((overlayHost.offsetHeight || 0) / approxRowHeight));
+            const maxRunning = approxRows * 3;
+            if (runningCount > maxRunning) {
+              return;
+            }
+          } catch {
+            // ignore density checks
+          }
+
           const fontSize = parseInt(currentSettings.fontSize, 10);
           const safeFontSize = Number.isFinite(fontSize) ? fontSize : 20;
           const fillColor = comment.style?.color || currentSettings.color || '#ffffff';
@@ -178,6 +255,21 @@ export const createDanmuOverlay = (
         danmaku.hide();
       },
       stop: () => {
+        try {
+          if (resizeRaf) {
+            window.cancelAnimationFrame(resizeRaf);
+            resizeRaf = 0;
+          }
+        } catch {
+          // ignore
+        }
+        for (const fn of cleanupResizeHooks) {
+          try {
+            fn();
+          } catch {
+            // ignore
+          }
+        }
         danmaku.destroy();
       },
       start: () => {
@@ -198,6 +290,7 @@ export const createDanmuOverlay = (
         const next = typeof size === 'string' ? parseInt(size, 10) : size;
         if (Number.isFinite(next)) {
           currentSettings = { ...currentSettings, fontSize: `${next}px` };
+          scheduleResize();
         }
       },
       setAllDuration: (_mode: string, duration: number) => {
@@ -224,6 +317,7 @@ export const createDanmuOverlay = (
     try {
       danmaku.resize();
       applySpeedFromDuration(danmuSettings.duration);
+      scheduleResize();
     } catch {
       // ignore
     }

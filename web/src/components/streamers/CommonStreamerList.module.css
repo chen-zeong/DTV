@@ -37,8 +37,8 @@
 .scrollArea {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 6px 8px;
-  --card-radius: 12px;
+  padding: 14px 18px 22px;
+  --card-radius: 14px;
 }
 
 .scrollArea::-webkit-scrollbar {
@@ -52,15 +52,44 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
   margin-bottom: 10px;
+}
+
+.cardOuter {
+  cursor: pointer;
+  outline: none;
+  border-radius: var(--card-radius);
+  -webkit-tap-highlight-color: transparent;
+
+  /* Perf: skip offscreen rendering for large lists */
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: 260px 220px;
+}
+
+.cardOuter:focus-visible {
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.55);
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 .preview {
   width: 100%;
-  aspect-ratio: 16 / 8.5;
+  aspect-ratio: 16 / 9;
   position: relative;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background: var(--bg-tertiary);
 }
 
 .imageWrapper {
@@ -73,13 +102,24 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(1);
+  transition: transform 0.5s ease;
 }
 
 .overlayGradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 40%);
+  background: rgba(0, 0, 0, 0.2);
   pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.card:hover .previewImage {
+  transform: scale(1.05);
+}
+
+.card:hover .overlayGradient {
+  background: transparent;
 }
 
 .viewersOverlay {
@@ -102,26 +142,38 @@
 
 .footer {
   display: flex;
-  padding: 12px 12px 14px;
+  padding: 6px 2px 0;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .avatarContainer {
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   overflow: hidden;
 }
 
 .avatarImg {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid var(--border-color);
+  border: 2px solid rgba(255, 255, 255, 0.05);
   transition: border-color 0.3s ease;
+}
+
+.card:hover .avatarImg {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(:root[data-theme="light"]) .avatarImg {
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+:global(:root[data-theme="light"]) .card:hover .avatarImg {
+  border-color: rgba(15, 23, 42, 0.1);
 }
 
 .skeletonCard {
@@ -166,23 +218,41 @@
   min-width: 0;
 }
 
-.roomTitle {
+.streamerName {
   font-size: 14px;
   font-weight: 700;
-  color: var(--primary-text);
-  margin-bottom: 3px;
+  color: rgba(203, 213, 225, 0.95);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+  transition: color 0.2s ease;
 }
 
-.nickname {
+.card:hover .streamerName {
+  color: rgba(255, 255, 255, 1);
+}
+
+.streamTitle {
+  margin-top: 2px;
   font-size: 12px;
-  color: var(--secondary-text);
-  font-weight: 600;
-  white-space: nowrap;
+  color: rgba(100, 116, 139, 1);
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
+  line-height: 1.375;
+}
+
+:global(:root[data-theme="light"]) .streamerName {
+  color: rgba(71, 85, 105, 1);
+}
+
+:global(:root[data-theme="light"]) .card:hover .streamerName {
+  color: rgba(15, 23, 42, 1);
+}
+
+:global(:root[data-theme="light"]) .streamTitle {
+  color: rgba(100, 116, 139, 1);
 }

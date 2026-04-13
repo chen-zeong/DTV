@@ -1,12 +1,24 @@
 .sidebarShell {
   z-index: 100;
-  background-color: var(--bg-primary);
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+:global(:root[data-theme="dark"]) .sidebarShell {
+  --sidebar-bg: #141414;
+  --sidebar-border: #222222;
+}
+
+:global(:root[data-theme="light"]) .sidebarShell {
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
 }
 
 .sidebarBody {
   flex: 1;
   min-height: 0;
   overflow: visible;
-  padding: 8px;
+  padding: 0;
 }
-

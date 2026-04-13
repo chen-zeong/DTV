@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Skeleton, Spinner } from "@heroui/react";
+import { AnimatePresence, LazyMotion, domAnimation, m, type Variants } from "framer-motion";
 
 import styles from "./CommonStreamerList.module.css";
 import { SmoothImage } from "@/components/common/SmoothImage";
@@ -34,8 +35,8 @@ export function CommonStreamerList({
 }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const scrollStopTimer = useRef<number | null>(null);
+  const scrollRafRef = useRef(0);
+  const lastScrollAtRef = useRef(0);
 
   const platform = platformName ?? "huya";
   const categoryHref = selectedCategory?.cate2Href ?? null;
@@ -125,16 +126,16 @@ export function CommonStreamerList({
 
   useEffect(() => {
     return () => {
-      if (scrollStopTimer.current != null) window.clearTimeout(scrollStopTimer.current);
+      if (scrollRafRef.current) window.cancelAnimationFrame(scrollRafRef.current);
     };
   }, []);
 
-  const maybeEnsureFill = () => {
+  const maybeEnsureFill = useCallback(() => {
     const rootEl = scrollRef.current;
     if (!rootEl || !hasMore || isLoading || isLoadingMore) return;
     const needsMore = rootEl.scrollHeight - rootEl.clientHeight <= 100;
     if (needsMore) void selected.loadMoreRooms();
-  };
+  }, [hasMore, isLoading, isLoadingMore, selected]);
 
   useEffect(() => {
     const id = window.setTimeout(() => maybeEnsureFill(), 50);
@@ -142,10 +143,84 @@ export function CommonStreamerList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rooms.length, isLoading, isLoadingMore]);
 
-  const goToPlayer = (roomId: string) => {
-    if (!roomId) return;
-    router.push(`/player?platform=${encodeURIComponent(platform)}&roomId=${encodeURIComponent(roomId)}`);
-  };
+  const goToPlayer = useCallback(
+    (roomId: string) => {
+      if (!roomId) return;
+      router.push(`/player?platform=${encodeURIComponent(platform)}&roomId=${encodeURIComponent(roomId)}`);
+    },
+    [platform, router]
+  );
+
+  const shouldIgnoreClick = useCallback(() => {
+    const now = typeof window !== "undefined" && window.performance?.now ? window.performance.now() : Date.now();
+    return now - lastScrollAtRef.current < 140;
+  }, []);
+
+  const onCardClick = useCallback(
+    (roomId: string) => {
+      if (shouldIgnoreClick()) return;
+      goToPlayer(roomId);
+    },
+    [goToPlayer, shouldIgnoreClick]
+  );
+
+  const onScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.currentTarget;
+      lastScrollAtRef.current = typeof window !== "undefined" && window.performance?.now ? window.performance.now() : Date.now();
+
+      if (scrollRafRef.current) return;
+      scrollRafRef.current = window.requestAnimationFrame(() => {
+        scrollRafRef.current = 0;
+        if (!hasMore || isLoading || isLoadingMore) return;
+        const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 260;
+        if (nearBottom) void selected.loadMoreRooms();
+      });
+    },
+    [hasMore, isLoading, isLoadingMore, selected]
+  );
+
+  const listKey = useMemo(() => {
+    if (platform === "douyu") return `douyu:${douyuCategoryType ?? "none"}:${douyuCategoryId ?? "none"}`;
+    return `${platform}:${categoryHref ?? "none"}`;
+  }, [categoryHref, douyuCategoryId, douyuCategoryType, platform]);
+
+  const gridVariants = useMemo<Variants>(
+    () => ({
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.028, delayChildren: 0.06 }
+      },
+      exit: { opacity: 0, transition: { duration: 0.14 } }
+    }),
+    []
+  );
+
+  const itemVariants = useMemo<Variants>(
+    () => ({
+      hidden: { opacity: 0, y: 10, scale: 0.985 },
+      show: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { type: "spring" as const, stiffness: 520, damping: 38, mass: 0.7 }
+      },
+      exit: { opacity: 0, y: 8, scale: 0.985, transition: { duration: 0.12 } }
+    }),
+    []
+  );
+
+  const onCardKeyDown = useCallback(
+    (e: React.KeyboardEvent, roomId: string) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onCardClick(roomId);
+    },
+    [onCardClick]
+  );
+
+  // NOTE: click navigation is handled by `onCardClick` to avoid scroll-induced misclicks.
 
   if (isLoading && rooms.length === 0) {
     const skeletonCount = 10;
@@ -158,7 +233,7 @@ export function CommonStreamerList({
           <div className={styles.grid} aria-hidden="true">
             {Array.from({ length: skeletonCount }).map((_, idx) => (
               <div key={idx}>
-                <Card className={styles.skeletonCard}>
+                <Card className={`${styles.card} ${styles.skeletonCard}`}>
                   <div className={styles.preview}>
                     <Skeleton className={styles.skeletonPreview} />
                   </div>
@@ -219,68 +294,58 @@ export function CommonStreamerList({
       <div
         ref={scrollRef}
         className={styles.scrollArea}
-        onScroll={(e) => {
-          const target = e.currentTarget;
-          if (!hasMore || isLoading || isLoadingMore) return;
-          const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 260;
-          if (nearBottom) void selected.loadMoreRooms();
-
-          setIsScrolling(true);
-          if (scrollStopTimer.current != null) window.clearTimeout(scrollStopTimer.current);
-          scrollStopTimer.current = window.setTimeout(() => {
-            setIsScrolling(false);
-            scrollStopTimer.current = null;
-          }, 120);
-        }}
+        onScroll={onScroll}
       >
-        <div className={styles.grid}>
-          {uniqueRooms.map((room) => (
-            <div key={room.room_id}>
-              <Card
-                role="button"
-                tabIndex={0}
-                style={isScrolling ? undefined : { cursor: "pointer" }}
-                onClick={() => goToPlayer(room.room_id)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter" && e.key !== " ") return;
-                  e.preventDefault();
-                  goToPlayer(room.room_id);
-                }}
-              >
-                <div className={styles.preview}>
-                  <div className={styles.imageWrapper}>
-                    <SmoothImage src={room.room_cover || ""} alt={room.title} className={styles.previewImage} />
-                    <div className={styles.overlayGradient} />
-                    <span className={styles.viewersOverlay}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                      </svg>
-                      {room.viewer_count_str || "0"}
-                    </span>
-                  </div>
-                </div>
-                <div className={styles.footer}>
-                  <div className={styles.avatarContainer}>
-                    <SmoothImage src={room.avatar || ""} alt={room.nickname} className={styles.avatarImg} />
-                  </div>
-                  <div className={styles.textDetails}>
-                    <h3 className={styles.roomTitle} title={room.title}>
-                      {room.title}
-                    </h3>
-                    <span className={styles.nickname}>{room.nickname || "主播"}</span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          ))}
-        </div>
+        <LazyMotion features={domAnimation}>
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div key={listKey} className={styles.grid} variants={gridVariants} initial="hidden" animate="show" exit="exit">
+              {uniqueRooms.map((room) => (
+                <m.div
+                  key={room.room_id}
+                  className={styles.cardOuter}
+                  variants={itemVariants}
+                  layout="position"
+                  whileHover={{ y: -4, scale: 1.01 }}
+                  whileTap={{ scale: 0.99, y: -1 }}
+                  transition={{ type: "spring" as const, stiffness: 520, damping: 36, mass: 0.7 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onCardClick(room.room_id)}
+                  onKeyDown={(e) => onCardKeyDown(e, room.room_id)}
+                >
+                  <Card className={styles.card}>
+                    <div className={styles.preview}>
+                      <div className={styles.imageWrapper}>
+                        <SmoothImage src={room.room_cover || ""} alt={room.title} className={styles.previewImage} />
+                        <div className={styles.overlayGradient} />
+                        <span className={styles.viewersOverlay}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                          </svg>
+                          {room.viewer_count_str || "0"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className={styles.footer}>
+                      <div className={styles.avatarContainer}>
+                        <SmoothImage src={room.avatar || ""} alt={room.nickname} className={styles.avatarImg} />
+                      </div>
+                      <div className={styles.textDetails}>
+                        <h3 className={styles.streamerName} title={room.nickname}>
+                          {room.nickname || "主播"}
+                        </h3>
+                        <p className={styles.streamTitle} title={room.title}>
+                          {room.title}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </m.div>
+              ))}
+            </m.div>
+          </AnimatePresence>
+        </LazyMotion>
       </div>
-      {isLoadingMore ? (
-        <div className={styles.loadingMore}>
-          <Spinner size="sm" />
-          <div style={{ fontWeight: 800 }}>加载更多...</div>
-        </div>
-      ) : null}
     </div>
   );
 }

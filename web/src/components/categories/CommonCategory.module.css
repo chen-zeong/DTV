@@ -38,6 +38,7 @@
   overflow-x: auto;
   flex-shrink: 0;
   padding: 2px 0 10px;
+  transition: all 0.2s ease;
   border: none;
   box-shadow: none;
   position: relative;
@@ -62,6 +63,7 @@
   display: inline-flex;
   align-items: center;
   cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
   font-size: 12.5px;
   font-weight: 500;
   border-radius: 8px;
@@ -82,6 +84,7 @@
   background: transparent;
   color: var(--text-primary);
   font-weight: 700;
+  transform: translateY(-1px);
   border-color: transparent;
   box-shadow: none;
 }
@@ -96,7 +99,8 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.65);
   opacity: 0;
-  transform: scaleX(1);
+  transform: scaleX(0.6);
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .cate1ItemSelected::after {
@@ -136,6 +140,11 @@
   display: inline-flex;
   align-items: center;
   z-index: 2;
+  pointer-events: none;
+}
+
+.cate1Actions :global(*) {
+  pointer-events: auto;
 }
 
 .cate2Container {
@@ -184,6 +193,34 @@
   padding-bottom: 12px;
 }
 
+.cate2Card {
+  min-height: 36px;
+  padding: 4px 6px;
+  width: 100%;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: none;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.cate2Card:hover {
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.cate2CardActive {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: none;
+}
+
 .cate2Name {
   font-size: 12.5px;
   font-weight: 700;
@@ -191,6 +228,48 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+}
+
+:global(:root[data-theme="dark"]) .cate2Card {
+  color: #cbd5d1;
+}
+
+:global(:root[data-theme="dark"]) .cate2Card:not(.cate2CardActive) {
+  background: rgba(50, 56, 60, 0.82);
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+
+:global(:root[data-theme="dark"]) .cate2Card:hover:not(.cate2CardActive) {
+  background: rgba(56, 63, 67, 0.86);
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.24);
+}
+
+:global(:root[data-theme="light"]) .cate2Card {
+  color: #6c7270;
+}
+
+:global(:root[data-theme="light"]) .cate2CardActive {
+  color: #1f2937;
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+:global(:root[data-theme="dark"]) .cate2CardActive {
+  background: rgba(145, 154, 160, 0.28);
+  border-style: solid;
+  border-width: 0.75px 0.35px;
+  border-color: rgba(237, 244, 248, 0.34);
+  color: #f6fbf7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .expandButton {
@@ -249,11 +328,13 @@
   cursor: pointer;
   backdrop-filter: blur(8px) saturate(1.1);
   -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .cate1Actions :global(.category-subscribe-btn:hover) {
   background: rgba(42, 48, 64, 0.8);
   color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .cate1Actions :global(.category-subscribe-btn:disabled) {

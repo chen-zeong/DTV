@@ -1,7 +1,7 @@
 {
   "name": "dtv-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "next dev -p 2896",
@@ -25,8 +25,7 @@
     "uuid": "^11.1.0",
     "xgplayer": "^3.0.23",
     "xgplayer-flv": "^3.0.23",
-    "xgplayer-hls.js": "^3.0.23"
-    ,
+    "xgplayer-hls.js": "^3.0.23",
     "xgplayer-transmuxer": "^3.0.23"
   },
   "devDependencies": {
