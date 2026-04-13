@@ -69,6 +69,11 @@
   contain-intrinsic-size: 260px 220px;
 }
 
+:global(:root[data-scrolling="1"]) .cardOuter {
+  transition: none !important;
+  transform: none !important;
+}
+
 .cardOuter:focus-visible {
   box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.55);
 }
@@ -114,12 +119,13 @@
   transition: background 0.3s ease;
 }
 
-.card:hover .previewImage {
-  transform: scale(1.05);
+:global(:root[data-scrolling="1"]) .previewImage {
+  transition: none !important;
+  transform: none !important;
 }
 
-.card:hover .overlayGradient {
-  background: transparent;
+:global(:root[data-scrolling="1"]) .overlayGradient {
+  transition: none !important;
 }
 
 .viewersOverlay {
@@ -127,17 +133,20 @@
   top: 8px;
   right: 10px;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   color: white;
   padding: 2px 8px;
   border-radius: 100px;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
   display: flex;
   align-items: center;
   gap: 3px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:global(:root:not([data-scrolling="1"])) .viewersOverlay {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .footer {
@@ -164,17 +173,14 @@
   transition: border-color 0.3s ease;
 }
 
-.card:hover .avatarImg {
-  border-color: rgba(255, 255, 255, 0.1);
+:global(:root[data-scrolling="1"]) .avatarImg {
+  transition: none !important;
 }
 
 :global(:root[data-theme="light"]) .avatarImg {
   border-color: rgba(15, 23, 42, 0.06);
 }
 
-:global(:root[data-theme="light"]) .card:hover .avatarImg {
-  border-color: rgba(15, 23, 42, 0.1);
-}
 
 .skeletonCard {
   cursor: default;
@@ -219,8 +225,8 @@
 }
 
 .streamerName {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
   color: rgba(203, 213, 225, 0.95);
   white-space: nowrap;
   overflow: hidden;
@@ -229,30 +235,65 @@
   transition: color 0.2s ease;
 }
 
-.card:hover .streamerName {
-  color: rgba(255, 255, 255, 1);
+:global(:root[data-scrolling="1"]) .streamerName {
+  transition: none !important;
 }
 
 .streamTitle {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: rgba(100, 116, 139, 1);
-  font-weight: 500;
+  font-weight: var(--weight-regular);
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.375;
+  line-height: var(--leading-snug);
 }
 
 :global(:root[data-theme="light"]) .streamerName {
   color: rgba(71, 85, 105, 1);
 }
 
-:global(:root[data-theme="light"]) .card:hover .streamerName {
-  color: rgba(15, 23, 42, 1);
-}
 
 :global(:root[data-theme="light"]) .streamTitle {
   color: rgba(100, 116, 139, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter {
+    transition: transform 0.18s ease;
+  }
+
+  :global(:root:not([data-scrolling="1"])) .cardOuter:hover {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  :global(:root:not([data-scrolling="1"])) .cardOuter:active {
+    transform: translateY(-1px) scale(0.99);
+  }
+
+  :global(:root:not([data-scrolling="1"])) .card:hover .previewImage {
+    transform: scale(1.05);
+  }
+
+  :global(:root:not([data-scrolling="1"])) .card:hover .overlayGradient {
+    background: transparent;
+  }
+
+  :global(:root:not([data-scrolling="1"])) .card:hover .avatarImg {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :global(:root:not([data-scrolling="1"])) .card:hover .streamerName {
+    color: rgba(255, 255, 255, 1);
+  }
+
+  :global(:root[data-theme="light"]:not([data-scrolling="1"])) .card:hover .avatarImg {
+    border-color: rgba(15, 23, 42, 0.1);
+  }
+
+  :global(:root[data-theme="light"]:not([data-scrolling="1"])) .card:hover .streamerName {
+    color: rgba(15, 23, 42, 1);
+  }
 }

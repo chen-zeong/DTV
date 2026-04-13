@@ -7,7 +7,7 @@
 }
 
 .emptyTip {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--secondary-text);
   padding: 14px 12px;
 }
@@ -47,17 +47,17 @@
 }
 
 .chipPlatform {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.35px;
   padding: 3px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
 }
 
 .chipName {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
 }
 
 .platformDouyu .chipPlatform {
@@ -116,4 +116,3 @@
   overflow: hidden;
   background: transparent;
 }
-

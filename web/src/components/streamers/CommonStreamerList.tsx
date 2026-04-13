@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Skeleton, Spinner } from "@heroui/react";
-import { AnimatePresence, LazyMotion, domAnimation, m, type Variants } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 
 import styles from "./CommonStreamerList.module.css";
 import { SmoothImage } from "@/components/common/SmoothImage";
@@ -37,6 +37,7 @@ export function CommonStreamerList({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const scrollRafRef = useRef(0);
   const lastScrollAtRef = useRef(0);
+  const scrollEndTimerRef = useRef<number | null>(null);
 
   const platform = platformName ?? "huya";
   const categoryHref = selectedCategory?.cate2Href ?? null;
@@ -127,7 +128,21 @@ export function CommonStreamerList({
   useEffect(() => {
     return () => {
       if (scrollRafRef.current) window.cancelAnimationFrame(scrollRafRef.current);
+      if (scrollEndTimerRef.current) window.clearTimeout(scrollEndTimerRef.current);
+      if (typeof document !== "undefined") delete document.documentElement.dataset.scrolling;
     };
+  }, []);
+
+  const markScrolling = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+
+    if (root.dataset.scrolling !== "1") root.dataset.scrolling = "1";
+    if (scrollEndTimerRef.current) window.clearTimeout(scrollEndTimerRef.current);
+    scrollEndTimerRef.current = window.setTimeout(() => {
+      delete document.documentElement.dataset.scrolling;
+      scrollEndTimerRef.current = null;
+    }, 160);
   }, []);
 
   const maybeEnsureFill = useCallback(() => {
@@ -167,6 +182,7 @@ export function CommonStreamerList({
   const onScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const target = e.currentTarget;
+      markScrolling();
       lastScrollAtRef.current = typeof window !== "undefined" && window.performance?.now ? window.performance.now() : Date.now();
 
       if (scrollRafRef.current) return;
@@ -184,32 +200,6 @@ export function CommonStreamerList({
     if (platform === "douyu") return `douyu:${douyuCategoryType ?? "none"}:${douyuCategoryId ?? "none"}`;
     return `${platform}:${categoryHref ?? "none"}`;
   }, [categoryHref, douyuCategoryId, douyuCategoryType, platform]);
-
-  const gridVariants = useMemo<Variants>(
-    () => ({
-      hidden: { opacity: 0 },
-      show: {
-        opacity: 1,
-        transition: { staggerChildren: 0.028, delayChildren: 0.06 }
-      },
-      exit: { opacity: 0, transition: { duration: 0.14 } }
-    }),
-    []
-  );
-
-  const itemVariants = useMemo<Variants>(
-    () => ({
-      hidden: { opacity: 0, y: 10, scale: 0.985 },
-      show: {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: { type: "spring" as const, stiffness: 520, damping: 38, mass: 0.7 }
-      },
-      exit: { opacity: 0, y: 8, scale: 0.985, transition: { duration: 0.12 } }
-    }),
-    []
-  );
 
   const onCardKeyDown = useCallback(
     (e: React.KeyboardEvent, roomId: string) => {
@@ -296,24 +286,24 @@ export function CommonStreamerList({
         className={styles.scrollArea}
         onScroll={onScroll}
       >
-        <LazyMotion features={domAnimation}>
-          <AnimatePresence mode="wait" initial={false}>
-            <m.div key={listKey} className={styles.grid} variants={gridVariants} initial="hidden" animate="show" exit="exit">
-              {uniqueRooms.map((room) => (
-                <m.div
-                  key={room.room_id}
-                  className={styles.cardOuter}
-                  variants={itemVariants}
-                  layout="position"
-                  whileHover={{ y: -4, scale: 1.01 }}
-                  whileTap={{ scale: 0.99, y: -1 }}
-                  transition={{ type: "spring" as const, stiffness: 520, damping: 36, mass: 0.7 }}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onCardClick(room.room_id)}
-                  onKeyDown={(e) => onCardKeyDown(e, room.room_id)}
-                >
-                  <Card className={styles.card}>
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={listKey}
+            className={styles.grid}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.14 } }}
+            exit={{ opacity: 0, transition: { duration: 0.12 } }}
+          >
+            {uniqueRooms.map((room) => (
+              <div
+                key={room.room_id}
+                className={styles.cardOuter}
+                role="button"
+                tabIndex={0}
+                onClick={() => onCardClick(room.room_id)}
+                onKeyDown={(e) => onCardKeyDown(e, room.room_id)}
+              >
+                <Card className={styles.card}>
                     <div className={styles.preview}>
                       <div className={styles.imageWrapper}>
                         <SmoothImage src={room.room_cover || ""} alt={room.title} className={styles.previewImage} />
@@ -339,12 +329,11 @@ export function CommonStreamerList({
                         </p>
                       </div>
                     </div>
-                  </Card>
-                </m.div>
-              ))}
-            </m.div>
-          </AnimatePresence>
-        </LazyMotion>
+                </Card>
+              </div>
+            ))}
+          </m.div>
+        </AnimatePresence>
       </div>
     </div>
   );

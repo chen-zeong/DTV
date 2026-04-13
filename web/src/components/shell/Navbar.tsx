@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Button } from "@heroui/react";
 import { ChevronDown, Copy, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -251,11 +251,11 @@ export function Navbar({
     <nav className={`${styles.navbar} ${theme === "dark" ? styles.navbarDark : ""}`} data-tauri-drag-region>
       <div className={styles.platformTabsWrap} data-tauri-drag-region>
         <div className={styles.platformTabs} ref={containerRef} data-tauri-drag-region>
-          <motion.div
+          <m.div
             className={styles.platformHighlight}
             initial={false}
             animate={highlightMotionWithOpacity}
-            transition={{ type: "spring", stiffness: 430, damping: 24, mass: 0.72 }}
+            transition={{ type: "spring", stiffness: 420, damping: 36, mass: 0.85 }}
           />
           {visiblePlatforms.map((p) => (
             <button

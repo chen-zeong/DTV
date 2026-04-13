@@ -23,6 +23,11 @@
   background-size: 400% 100%;
 }
 
+:global(:root[data-scrolling="1"]) .placeholder {
+  animation: none !important;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .error {
   display: flex;
   align-items: center;
@@ -40,6 +45,10 @@
   display: block;
   opacity: 0;
   transition: opacity 0.35s ease;
+}
+
+:global(:root[data-scrolling="1"]) .img {
+  transition: none !important;
 }
 
 .imgLoaded {

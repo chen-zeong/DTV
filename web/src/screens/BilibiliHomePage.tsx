@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 
 import { CommonCategory } from "@/components/categories/CommonCategory";
+import { BilibiliCookieControls } from "@/components/bilibili/BilibiliCookieControls";
 import { CommonStreamerList } from "@/components/streamers/CommonStreamerList";
 import { biliCategoriesData } from "@/platforms/bilibili/biliCategoriesData";
 import type { CategorySelectedEvent } from "@/platforms/common/categoryTypes";
@@ -25,19 +26,22 @@ export function BilibiliHomePage() {
           categoriesData={biliCategoriesData as any}
           onCategorySelected={(e) => setSelected(e)}
           actions={
-            <button
-              type="button"
-              className="category-subscribe-btn"
-              disabled={!canSubscribe}
-              onClick={() => {
-                if (!selected?.cate2Href) return;
-                const href = selected.cate2Href;
-                if (custom.isSubscribed("bilibili", href)) custom.removeByKey(`bilibili:${href}`);
-                else custom.addCommonCate2("bilibili", href, selected.cate2Name, selected.cate1Name, selected.cate1Href);
-              }}
-            >
-              {isSubscribed ? "取消订阅" : "订阅分区"}
-            </button>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <BilibiliCookieControls variant="category" />
+              <button
+                type="button"
+                className="category-subscribe-btn"
+                disabled={!canSubscribe}
+                onClick={() => {
+                  if (!selected?.cate2Href) return;
+                  const href = selected.cate2Href;
+                  if (custom.isSubscribed("bilibili", href)) custom.removeByKey(`bilibili:${href}`);
+                  else custom.addCommonCate2("bilibili", href, selected.cate2Name, selected.cate1Name, selected.cate1Href);
+                }}
+              >
+                {isSubscribed ? "取消订阅" : "订阅分区"}
+              </button>
+            </div>
           }
         />
       </div>

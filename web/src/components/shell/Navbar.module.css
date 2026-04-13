@@ -282,19 +282,19 @@
 }
 
 .playerIslandName {
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.1;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .playerIslandTitle {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--secondary-text);
-  line-height: 1.1;
+  line-height: var(--leading-tight);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -308,8 +308,8 @@
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: var(--primary-text);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   transition: transform 0.18s ease, background 0.18s ease;
 }
 
@@ -380,8 +380,8 @@
   min-width: 0;
   height: 100%;
   color: var(--primary-text);
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
   outline: none;
 }
 
@@ -427,8 +427,8 @@
 
 .searchMeta {
   padding: 12px 14px;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   color: var(--secondary-text);
   display: flex;
   align-items: center;
@@ -488,8 +488,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   color: var(--secondary-text);
 }
 
@@ -502,16 +502,16 @@
 }
 
 .resultName {
-  font-size: 13px;
-  font-weight: 900;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .resultTitle {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--secondary-text);
   white-space: nowrap;
   overflow: hidden;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import styles from "./CustomHomePage.module.css";
 import { CommonStreamerList } from "@/components/streamers/CommonStreamerList";
@@ -80,7 +80,7 @@ export function CustomHomePage() {
                     : styles.platformBilibili;
 
             return (
-              <motion.button
+              <m.button
                 key={entry.key}
                 type="button"
                 className={`${styles.chip} ${platformClass} ${active ? styles.chipActive : ""}`}
@@ -89,7 +89,7 @@ export function CustomHomePage() {
               >
                 <span className={styles.chipPlatform}>{platformLabel(entry.platform)}</span>
                 <span className={styles.chipName}>{entry.cate2Name}</span>
-              </motion.button>
+              </m.button>
             );
           })}
         </div>
@@ -109,4 +109,3 @@ export function CustomHomePage() {
     </div>
   );
 }
-

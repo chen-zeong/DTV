@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Check, ChevronDown, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
 
 import styles from "./FollowsList.module.css";
@@ -707,7 +707,7 @@ export function FollowsList() {
         onScroll={() => setHover((h) => ({ ...h, visible: false }))}
         onMouseLeave={() => setHover((h) => ({ ...h, visible: false }))}
       >
-        <motion.div
+        <m.div
           className={styles.hoverHighlight}
           initial={false}
           animate={{ opacity: hover.visible ? 1 : 0, y: hover.y, height: hover.h }}
@@ -760,14 +760,14 @@ export function FollowsList() {
                     <span className={styles.folderCount}>
                       {counts.online}/{counts.total}
                     </span>
-                    <motion.span
+                    <m.span
                       className={styles.expandIcon}
                       animate={{ rotate: expanded ? 180 : 0 }}
                       transition={{ duration: 0.2, ease: [0.25, 0.8, 0.4, 1] }}
                       aria-hidden="true"
                     >
                       <ChevronDown size={12} />
-                    </motion.span>
+                    </m.span>
                   </div>
 
                   <FolderChildren
@@ -789,7 +789,7 @@ export function FollowsList() {
 
       <AnimatePresence>
         {overlayOpen ? (
-          <motion.div
+          <m.div
             className={styles.overlayBackdrop}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -799,7 +799,7 @@ export function FollowsList() {
             }}
           >
             <div className={styles.followOverlayAnchor} style={{ left: overlayAlignLeft }}>
-              <motion.div
+              <m.div
                 className={styles.followOverlayPanel}
                 ref={overlayPanelRef}
                 initial={{ opacity: 0, scale: 0.96, y: 16 }}
@@ -908,22 +908,22 @@ export function FollowsList() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {folderNameModal.open ? (
-          <motion.div
+          <m.div
             className={styles.modalBackdrop}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onMouseDown={() => setFolderNameModal({ open: false, mode: "create", folderId: null })}
           >
-            <motion.div
+            <m.div
               className={styles.modalPanel}
               initial={{ opacity: 0, scale: 0.98, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -958,21 +958,21 @@ export function FollowsList() {
                   确定
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {folderMenu.open ? (
-          <motion.div
+          <m.div
             className={styles.menuBackdrop}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onMouseDown={() => setFolderMenu((m) => ({ ...m, open: false }))}
           >
-            <motion.div
+            <m.div
               className={styles.contextMenu}
               style={{ left: folderMenu.x, top: folderMenu.y }}
               initial={{ opacity: 0, scale: 0.98, y: 4 }}
@@ -1001,21 +1001,21 @@ export function FollowsList() {
               >
                 删除
               </button>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {folderDeleteConfirm.open ? (
-          <motion.div
+          <m.div
             className={styles.modalBackdrop}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onMouseDown={() => setFolderDeleteConfirm({ open: false, folderId: null })}
           >
-            <motion.div
+            <m.div
               className={styles.modalPanel}
               initial={{ opacity: 0, scale: 0.98, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1047,8 +1047,8 @@ export function FollowsList() {
                   删除
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>
@@ -1108,7 +1108,7 @@ function FolderChildren({
   return (
     <AnimatePresence initial={false}>
       {expanded ? (
-        <motion.div
+        <m.div
           className={styles.folderContent}
           ref={panelRef}
           initial={{ height: 0, opacity: 0 }}
@@ -1118,7 +1118,7 @@ function FolderChildren({
           style={{ overflow: "hidden" }}
           onMouseLeave={onLeave}
         >
-          <motion.div
+          <m.div
             className={styles.folderHoverHighlight}
             initial={false}
             animate={{ opacity: hover.visible ? 1 : 0, y: hover.y, height: hover.h }}
@@ -1133,7 +1133,7 @@ function FolderChildren({
               return render(s, itemKey, { onEnter, onLeave });
             })}
           </div>
-        </motion.div>
+        </m.div>
       ) : null}
     </AnimatePresence>
   );

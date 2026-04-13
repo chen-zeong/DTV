@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { AnimatePresence, m } from "framer-motion";
 
 import styles from "./AppShell.module.css";
 import { Sidebar } from "@/components/shell/Sidebar";
@@ -36,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const shouldHidePlayerChrome = isPlayerPath(pathname ?? "/") && isPlayerFullscreen;
   const playerRoute = isPlayerPath(pathname ?? "/");
+  const routeKey = pathname ?? "/";
 
   useEffect(() => {
     if (!custom.hydrated) return;
@@ -83,7 +85,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           />
         ) : null}
 
-        <main className={`${styles.appBody} ${playerRoute ? styles.appBodyPlayer : ""}`}>{children}</main>
+        <AnimatePresence mode="wait" initial={false}>
+          <m.main
+            key={routeKey}
+            className={`${styles.appBody} ${playerRoute ? styles.appBodyPlayer : ""}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {children}
+          </m.main>
+        </AnimatePresence>
       </div>
     </div>
   );

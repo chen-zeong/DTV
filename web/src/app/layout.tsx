@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 import { AppShell } from "@/components/shell/AppShell";
+import { MotionProvider } from "@/components/motion/MotionProvider";
 
 export const metadata: Metadata = {
   title: "DTV",
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`(function(){try{var p=location.pathname||"";if(p==="/index.html"||p.endsWith("/index.html")){location.replace(p.replace(/\\/index\\.html$/,"/"));}}catch(e){}})();`}
         </Script>
         <Providers>
-          <AppShell>{children}</AppShell>
+          <MotionProvider>
+            <AppShell>{children}</AppShell>
+          </MotionProvider>
         </Providers>
       </body>
     </html>

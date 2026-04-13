@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { listen, type Event as TauriEvent } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { v4 as uuidv4 } from "uuid";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Funnel, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { POSITIONS } from "xgplayer/es/plugin/plugin.js";
 
@@ -33,6 +33,7 @@ import { getBilibiliStreamConfig } from "@/platforms/bilibili/playerHelper";
 import { useImageProxy } from "@/hooks/useImageProxy";
 import { useFollow, type FollowedStreamer, type Platform as FollowPlatform } from "@/state/follow/FollowProvider";
 import { usePlayerUi } from "@/state/playerUi/PlayerUiProvider";
+import { BilibiliCookieControls } from "@/components/bilibili/BilibiliCookieControls";
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
 const MIN_DANMU_WIDTH = 1100;
@@ -890,6 +891,14 @@ export function MainPlayer({
                       <span className={`status-tag ${playerIsLive === false ? "status-offline" : "status-live"}`}>
                         {playerIsLive === false ? "未开播" : "直播中"}
                       </span>
+                      {platform === Platform.BILIBILI ? (
+                        <BilibiliCookieControls
+                          variant="player"
+                          onCookieChanged={() => {
+                            void reloadStream("refresh");
+                          }}
+                        />
+                      ) : null}
                     </div>
                   </div>
 
@@ -961,7 +970,7 @@ export function MainPlayer({
 
         <AnimatePresence initial={false}>
           {isDanmuVisible && !isLoadingStream && !streamError ? (
-            <motion.div
+            <m.div
               className="danmu-panel"
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
@@ -995,7 +1004,7 @@ export function MainPlayer({
                   </div>
                 }
               />
-            </motion.div>
+            </m.div>
           ) : null}
         </AnimatePresence>
 

@@ -486,7 +486,7 @@
 }
 
 .xgplayer-volume-control .volume-value {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--player-accent);
   min-width: 36px;
   text-align: right;
@@ -850,6 +850,69 @@
   letter-spacing: 0.03em;
 }
 
+/* Cookie / login status (Bilibili) */
+.cookie-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cookie-status-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--secondary-text);
+  background: rgba(255, 255, 255, 0.06);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.cookie-status-btn:hover {
+  background: var(--hover-bg);
+  color: var(--primary-text);
+  border-color: var(--border-color-light);
+  transform: translateY(-1px);
+}
+
+.cookie-status-btn:active {
+  transform: scale(0.98);
+}
+
+.cookie-configured {
+  color: var(--success-color, #22c55e);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cookie-unset {
+  color: var(--secondary-text);
+}
+
+.cookie-clear-btn {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.1s ease;
+}
+
+.cookie-clear-btn:hover {
+  color: var(--primary-text);
+  transform: translateY(-1px);
+}
+
+.cookie-clear-btn:active {
+  transform: scale(0.97);
+}
+
 .status-tag {
   display: inline-flex;
   align-items: center;
@@ -887,7 +950,7 @@
 
 .streamer-id {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   color: rgba(214, 223, 255, 0.75);
 }
 
@@ -899,7 +962,7 @@
   background: rgba(255, 255, 255, 0.06);
   color: rgba(244, 247, 255, 0.92);
   cursor: pointer;
-  font-weight: 900;
+  font-weight: var(--weight-bold);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
 
@@ -963,7 +1026,7 @@
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   cursor: pointer;
-  font-weight: 900;
+  font-weight: var(--weight-bold);
 }
 
 .danmu-expand-fab:hover {
@@ -1272,7 +1335,7 @@ html.web-fs-active .danmu-panel {
 
 .compact-title {
   color: rgba(203, 213, 225, 0.88);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
@@ -1283,7 +1346,7 @@ html.web-fs-active .danmu-panel {
   border: none;
   border-radius: 999px;
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: rgba(248, 250, 252, 0.96);
   background: rgba(148, 163, 184, 0.22);
