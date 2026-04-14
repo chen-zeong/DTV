@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Skeleton, Spinner } from "@heroui/react";
 import { AnimatePresence, m } from "framer-motion";
+import { Play, Users } from "lucide-react";
 
 import styles from "./CommonStreamerList.module.css";
 import { SmoothImage } from "@/components/common/SmoothImage";
@@ -19,6 +20,18 @@ type DouyuCategorySelection = {
   id: string;
   name?: string;
 };
+
+const PLATFORM_LABEL: Record<string, string> = {
+  douyu: "斗鱼",
+  douyin: "抖音",
+  huya: "虎牙",
+  bilibili: "B站"
+};
+
+function getPlatformLabel(platform: string) {
+  const key = String(platform || "").toLowerCase();
+  return PLATFORM_LABEL[key] ?? (key ? key.toUpperCase() : "LIVE");
+}
 
 export function CommonStreamerList({
   selectedCategory,
@@ -304,31 +317,39 @@ export function CommonStreamerList({
                 onKeyDown={(e) => onCardKeyDown(e, room.room_id)}
               >
                 <Card className={styles.card}>
-                    <div className={styles.preview}>
-                      <div className={styles.imageWrapper}>
-                        <SmoothImage src={room.room_cover || ""} alt={room.title} className={styles.previewImage} />
-                        <div className={styles.overlayGradient} />
-                        <span className={styles.viewersOverlay}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                          </svg>
+                  <div className={styles.preview}>
+                    <div className={styles.imageWrapper}>
+                      <SmoothImage src={room.room_cover || ""} alt={room.title} className={styles.previewImage} />
+                      <div className={styles.previewHoverOverlay} aria-hidden="true">
+                        <div className={styles.playButton} aria-hidden="true">
+                          <Play size={22} />
+                        </div>
+                      </div>
+
+                      <div className={styles.viewerBadge} aria-label={`观看人数 ${room.viewer_count_str || "0"}`}>
+                        <span className={styles.liveDot} aria-hidden="true" />
+                        <span className={styles.viewerPill}>
+                          <Users size={12} />
                           {room.viewer_count_str || "0"}
                         </span>
                       </div>
                     </div>
-                    <div className={styles.footer}>
-                      <div className={styles.avatarContainer}>
-                        <SmoothImage src={room.avatar || ""} alt={room.nickname} className={styles.avatarImg} />
-                      </div>
-                      <div className={styles.textDetails}>
-                        <h3 className={styles.streamerName} title={room.nickname}>
-                          {room.nickname || "主播"}
-                        </h3>
-                        <p className={styles.streamTitle} title={room.title}>
-                          {room.title}
-                        </p>
+                  </div>
+                  <div className={styles.footer}>
+                    <div className={styles.avatarContainer}>
+                      <SmoothImage src={room.avatar || ""} alt={room.nickname} className={styles.avatarImg} />
+                    </div>
+                    <div className={styles.textDetails}>
+                      <h3 className={styles.roomTitle} title={room.title}>
+                        {room.title}
+                      </h3>
+                      <div className={styles.subLine} title={room.nickname}>
+                        <span className={styles.nickname}>{room.nickname || "主播"}</span>
+                        <span className={styles.subDot} aria-hidden="true" />
+                        <span className={styles.platform}>{getPlatformLabel(room.platform)}</span>
                       </div>
                     </div>
+                  </div>
                 </Card>
               </div>
             ))}

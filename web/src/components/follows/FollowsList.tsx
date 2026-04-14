@@ -652,7 +652,6 @@ export function FollowsList() {
                 <span className={styles.avatarFallback}>{(s.nickname || "?").slice(0, 1)}</span>
               )}
             </span>
-            <span className={`${styles.liveDot} ${styles.liveDotOnAvatar} ${liveDotClass}`} aria-hidden="true" />
           </span>
           <div className={styles.meta}>
             <div className={styles.name} title={s.nickname}>
@@ -679,7 +678,12 @@ export function FollowsList() {
         </h3>
         <div className={styles.headerActions}>
           {!isRefreshing ? (
-            <button type="button" className={styles.actionBtn} title="刷新列表" onClick={() => void refreshList()}>
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${styles.refreshBtn}`}
+              title="刷新列表"
+              onClick={() => void refreshList()}
+            >
               {showCheckIcon ? <Check size={18} /> : <RotateCw size={18} />}
             </button>
           ) : (
@@ -691,11 +695,22 @@ export function FollowsList() {
             </span>
           )}
 
-          <button type="button" className={styles.actionBtn} title="新建文件夹" onClick={openCreateFolderModal}>
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${styles.folderBtn}`}
+            title="新建文件夹"
+            onClick={openCreateFolderModal}
+          >
             <FolderPlus size={18} />
           </button>
 
-          <button type="button" className={styles.actionBtn} title="展开关注列表" ref={expandBtnRef} onClick={openOverlay}>
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${styles.expandBtn}`}
+            title="展开关注列表"
+            ref={expandBtnRef}
+            onClick={openOverlay}
+          >
             <ListCollapse size={18} />
           </button>
         </div>
@@ -896,15 +911,14 @@ export function FollowsList() {
                                 <div className={styles.resultName} title={s.nickname}>
                                   {s.nickname}
                                 </div>
-                                <div className={styles.resultTitle} title={`${platformLabel(s.platform)} · ${s.id}`}>
-                                  {platformLabel(s.platform)} · {s.id}
-                                </div>
+                              <div className={styles.resultTitle} title={`${platformLabel(s.platform)} · ${s.id}`}>
+                                {platformLabel(s.platform)} · {s.id}
                               </div>
-                              <span className={`${styles.liveDot} ${liveDotClass}`} aria-hidden="true" />
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      );
+                    })}
                     </div>
                   )}
                 </div>

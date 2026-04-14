@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { m } from "framer-motion";
-import { Button } from "@heroui/react";
 import { ChevronDown, Copy, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -449,15 +448,16 @@ export function Navbar({
           ) : null}
         </div>
 
-        <Button
-          size="sm"
-          variant="secondary"
-          onPress={onThemeToggle}
-          isIconOnly
+        <button
+          type="button"
+          // eslint-disable-next-line react/no-unknown-property
+          data-tauri-drag-region="false"
+          className={`${styles.themeToggle} ${theme === "dark" ? styles.themeToggleDark : styles.themeToggleLight}`}
+          onClick={onThemeToggle}
           aria-label={theme === "dark" ? "切换到浅色" : "切换到深色"}
         >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </Button>
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
 
         {isWindows ? (
           <div className={styles.winControls} data-tauri-drag-region="false" aria-label="Window controls">

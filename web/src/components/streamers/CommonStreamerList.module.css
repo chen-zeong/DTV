@@ -52,8 +52,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 24px;
   margin-bottom: 10px;
 }
 
@@ -111,12 +111,16 @@
   transition: transform 0.5s ease;
 }
 
-.overlayGradient {
+.previewHoverOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.2);
+  opacity: 0;
   pointer-events: none;
-  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.72) 100%);
+  transition: opacity 0.3s ease;
 }
 
 :global(:root[data-scrolling="1"]) .previewImage {
@@ -124,29 +128,59 @@
   transform: none !important;
 }
 
-:global(:root[data-scrolling="1"]) .overlayGradient {
+:global(:root[data-scrolling="1"]) .previewHoverOverlay {
   transition: none !important;
 }
 
-.viewersOverlay {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 100px;
-  font-size: 10px;
-  font-weight: var(--weight-bold);
-  display: flex;
+.playButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  justify-content: center;
+  background: var(--accent-gradient);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-text);
+  box-shadow: 0 0 22px var(--accent-glow);
+  transform: translateY(6px) scale(0.96);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:global(:root:not([data-scrolling="1"])) .viewersOverlay {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.viewerBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.liveDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--success) 70%, transparent);
+}
+
+.viewerPill {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+:global(:root:not([data-scrolling="1"])) .viewerPill {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .footer {
@@ -169,8 +203,8 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.05);
-  transition: border-color 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.3s ease, transform 0.3s ease;
 }
 
 :global(:root[data-scrolling="1"]) .avatarImg {
@@ -178,7 +212,7 @@
 }
 
 :global(:root[data-theme="light"]) .avatarImg {
-  border-color: rgba(15, 23, 42, 0.06);
+  border-color: rgba(148, 163, 184, 0.28);
 }
 
 
@@ -224,39 +258,59 @@
   min-width: 0;
 }
 
-.streamerName {
-  font-size: var(--text-base);
-  font-weight: var(--weight-bold);
-  color: rgba(203, 213, 225, 0.95);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-  transition: color 0.2s ease;
-}
-
-:global(:root[data-scrolling="1"]) .streamerName {
-  transition: none !important;
-}
-
-.streamTitle {
-  margin-top: 2px;
+.roomTitle {
   font-size: var(--text-sm);
-  color: rgba(100, 116, 139, 1);
-  font-weight: var(--weight-regular);
+  font-weight: 900;
+  color: rgba(226, 232, 240, 0.95);
+  margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: var(--leading-snug);
+  line-height: 1.25;
+  transition: color 0.2s ease;
 }
 
-:global(:root[data-theme="light"]) .streamerName {
-  color: rgba(71, 85, 105, 1);
+:global(:root[data-scrolling="1"]) .roomTitle {
+  transition: none !important;
 }
 
+.subLine {
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: rgba(100, 116, 139, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 
-:global(:root[data-theme="light"]) .streamTitle {
+.nickname {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.subDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.9);
+  flex: 0 0 auto;
+}
+
+.platform {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+:global(:root[data-theme="light"]) .roomTitle {
+  color: rgba(15, 23, 42, 1);
+}
+
+:global(:root[data-theme="light"]) .subLine {
   color: rgba(100, 116, 139, 1);
 }
 
@@ -266,7 +320,7 @@
   }
 
   :global(:root:not([data-scrolling="1"])) .cardOuter:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateY(-5px);
   }
 
   :global(:root:not([data-scrolling="1"])) .cardOuter:active {
@@ -274,26 +328,31 @@
   }
 
   :global(:root:not([data-scrolling="1"])) .card:hover .previewImage {
-    transform: scale(1.05);
+    transform: scale(1.1);
   }
 
-  :global(:root:not([data-scrolling="1"])) .card:hover .overlayGradient {
-    background: transparent;
+  :global(:root:not([data-scrolling="1"])) .card:hover .previewHoverOverlay {
+    opacity: 1;
   }
 
   :global(:root:not([data-scrolling="1"])) .card:hover .avatarImg {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: scale(1.02);
   }
 
-  :global(:root:not([data-scrolling="1"])) .card:hover .streamerName {
-    color: rgba(255, 255, 255, 1);
+  :global(:root:not([data-scrolling="1"])) .card:hover .playButton {
+    transform: translateY(0) scale(1);
+  }
+
+  :global(:root:not([data-scrolling="1"])) .card:hover .roomTitle {
+    color: var(--accent);
   }
 
   :global(:root[data-theme="light"]:not([data-scrolling="1"])) .card:hover .avatarImg {
-    border-color: rgba(15, 23, 42, 0.1);
+    border-color: rgba(148, 163, 184, 0.45);
   }
 
-  :global(:root[data-theme="light"]:not([data-scrolling="1"])) .card:hover .streamerName {
-    color: rgba(15, 23, 42, 1);
+  :global(:root[data-theme="light"]:not([data-scrolling="1"])) .card:hover .roomTitle {
+    color: var(--accent);
   }
 }

@@ -1,19 +1,12 @@
 .sidebarShell {
   z-index: 100;
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e2e8f0;
-  background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--sidebar-border);
-}
-
-:global(:root[data-theme="dark"]) .sidebarShell {
-  --sidebar-bg: #141414;
-  --sidebar-border: #222222;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
 }
 
 :global(:root[data-theme="light"]) .sidebarShell {
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e2e8f0;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
 }
 
 .sidebarBody {
