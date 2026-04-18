@@ -37,10 +37,12 @@
 .chipActive {
   background: var(--accent-gradient);
   border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
-  box-shadow:
-    0 14px 30px var(--accent-glow),
-    0 12px 24px rgba(12, 18, 30, 0.22);
+  box-shadow: none;
   color: #ffffff;
+}
+
+.chipActive:hover {
+  box-shadow: none;
 }
 
 .chip:hover {
@@ -89,9 +91,7 @@
   background: var(--accent-gradient);
   color: #ffffff;
   border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
-  box-shadow:
-    0 14px 30px var(--accent-glow),
-    0 10px 22px rgba(15, 23, 42, 0.1);
+  box-shadow: none;
 }
 
 :global(:root[data-theme="light"]) .chipPlatform {
