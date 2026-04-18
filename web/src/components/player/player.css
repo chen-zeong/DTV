@@ -1285,11 +1285,11 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-streamer {
-  background: rgba(255, 255, 255, 0.78);
-  border-color: rgba(148, 163, 184, 0.32);
+  background: rgba(10, 10, 12, 0.52);
+  border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
-    0 18px 46px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+    0 18px 46px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
 }
 
 .player-topbar-avatar {
@@ -1321,8 +1321,8 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-avatarFallback {
-  color: rgba(15, 23, 42, 0.9);
-  background: radial-gradient(120% 120% at 30% 20%, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.03));
+  color: rgba(255, 255, 255, 0.88);
+  background: radial-gradient(120% 120% at 30% 20%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
 }
 
 .player-topbar-meta {
@@ -1343,7 +1343,7 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-title {
-  color: rgba(15, 23, 42, 0.92);
+  color: rgba(245, 247, 250, 0.95);
 }
 
 .player-topbar-sub {
@@ -1358,7 +1358,7 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-sub {
-  color: rgba(15, 23, 42, 0.6);
+  color: rgba(245, 247, 250, 0.72);
 }
 
 .player-topbar-status {
@@ -1380,7 +1380,7 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-status.is-offline {
-  color: rgba(15, 23, 42, 0.74);
+  color: rgba(226, 232, 240, 0.88);
 }
 
 .player-topbar-follow {
@@ -1409,13 +1409,14 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-follow {
-  color: rgba(15, 23, 42, 0.9);
-  background: rgba(255, 255, 255, 0.56);
-  border-color: rgba(255, 255, 255, 0.34);
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(10, 10, 12, 0.44);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 :root[data-theme="light"] .player-topbar-follow:hover {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(10, 10, 12, 0.56);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .player-page.player-chrome-hidden .player-topbar {
@@ -1432,10 +1433,10 @@ html.web-fs-active .danmu-panel {
 
 .player-close-btn {
   position: relative;
-  background: rgba(10, 10, 12, 0.52);
+  background: rgba(10, 10, 12, 0.62);
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.92);
   width: 44px;
   height: 44px;
@@ -1447,8 +1448,8 @@ html.web-fs-active .danmu-panel {
   transition: background 0.2s ease, border-color 0.2s ease;
   padding: 0;
   box-shadow:
-    0 18px 46px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+    0 22px 54px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 }
 
 .player-close-btn::before {
@@ -1472,8 +1473,8 @@ html.web-fs-active .danmu-panel {
 }
 
 .player-close-btn:hover {
-  background: rgba(10, 10, 12, 0.64);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(10, 10, 12, 0.72);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .player-close-btn:active {
@@ -2073,22 +2074,20 @@ video.xgplayer-video {
 }
 
 :root[data-theme="light"] .player-close-btn {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  color: rgba(15, 23, 42, 0.88);
+  background: rgba(10, 10, 12, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
   box-shadow:
-    0 14px 32px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+    0 22px 54px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 }
 
 :root[data-theme="light"] .player-close-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(148, 163, 184, 0.42);
+  background: rgba(10, 10, 12, 0.72);
+  border-color: rgba(255, 255, 255, 0.24);
   box-shadow:
-    0 16px 36px rgba(15, 23, 42, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+    0 24px 58px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 :root[data-theme="light"] .empty-player,

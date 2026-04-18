@@ -23,11 +23,11 @@
   border: none;
   background: var(--glass-bg);
   color: var(--primary-text, rgba(236, 242, 255, 0.9));
-  border-radius: 16px;
-  padding: 10px 16px;
+  border-radius: 999px;
+  padding: 8px 12px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   box-shadow: var(--glass-shadow, 0 10px 22px rgba(6, 10, 20, 0.28));
@@ -51,17 +51,17 @@
 }
 
 .chipPlatform {
-  font-size: var(--text-xs);
+  font-size: 10px;
   font-weight: var(--weight-bold);
   letter-spacing: 0.35px;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
 }
 
 .chipName {
-  font-size: var(--text-base);
-  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+  font-weight: 800;
 }
 
 .platformDouyu .chipPlatform {
