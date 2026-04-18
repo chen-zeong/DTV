@@ -936,7 +936,7 @@ export function FollowsList() {
             onMouseDown={() => setFolderNameModal({ open: false, mode: "create", folderId: null })}
           >
             <m.div
-              className={`${styles.modalPanel} ${folderNameModal.mode === "rename" ? styles.modalPanelNearFollow : ""}`}
+              className={styles.modalPanel}
               initial={{ opacity: 0, scale: 0.98, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 8 }}

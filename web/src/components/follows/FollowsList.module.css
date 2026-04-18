@@ -919,18 +919,6 @@
   flex-direction: column;
 }
 
-.modalPanelNearFollow {
-  left: 16px;
-  transform: translate(0, -50%);
-}
-
-@media (max-width: 640px) {
-  .modalPanelNearFollow {
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-}
-
 .modalHeader {
   flex-shrink: 0;
   padding: 12px 14px;
