@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { m } from "framer-motion";
 
 import { CommonCategory } from "@/components/categories/CommonCategory";
 import { CommonStreamerList } from "@/components/streamers/CommonStreamerList";
@@ -63,6 +64,21 @@ export function DouyuHomePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.sessionStorage.getItem("dtv_douyu_cate3_state_v1");
+      if (!raw) return;
+      const data = JSON.parse(raw) as any;
+      const id = typeof data?.id === "string" ? data.id : null;
+      const name = typeof data?.name === "string" ? data.name : null;
+      if (id) setSelectedCate3Id(id);
+      if (name) setSelectedCate3Name(name);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     setLoading(true);
     fetchDouyuCategories()
@@ -98,6 +114,15 @@ export function DouyuHomePage() {
     setSelectedCate3Id(null);
     setSelectedCate3Name(null);
   }, [selected?.cate2Href]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem("dtv_douyu_cate3_state_v1", JSON.stringify({ id: selectedCate3Id, name: selectedCate3Name }));
+    } catch {
+      // ignore
+    }
+  }, [selectedCate3Id, selectedCate3Name]);
 
   useEffect(() => {
     const cate2ShortName = selected?.cate2Href ?? null;
@@ -149,10 +174,12 @@ export function DouyuHomePage() {
           categoriesData={categories}
           onCategorySelected={(e) => setSelected(e)}
           actions={
-            <button
+            <m.button
               type="button"
               className="category-subscribe-btn"
               disabled={!canSubscribe || loading}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 if (!selected?.cate2Href) return;
                 const id = selected.cate2Href;
@@ -161,7 +188,7 @@ export function DouyuHomePage() {
               }}
             >
               {isSubscribed ? "取消订阅" : "订阅分区"}
-            </button>
+            </m.button>
           }
         />
         {selected?.cate2Href && cate3List.length > 0 ? (
@@ -196,7 +223,7 @@ export function DouyuHomePage() {
           </div>
         ) : null}
       </div>
-      <div style={{ flex: 1, overflow: "hidden", background: "transparent" }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "transparent" }}>
         <CommonStreamerList platformName="douyu" douyuCategory={douyuCategory} />
       </div>
     </div>

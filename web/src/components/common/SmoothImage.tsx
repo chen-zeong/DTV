@@ -22,6 +22,13 @@ export const SmoothImage = memo(function SmoothImage({
     setError(false);
   }, [src]);
 
+  // Some browsers defer `load` events for lazy images; ensure we don't get stuck on a placeholder
+  // when the resource is already in cache / completes synchronously.
+  const [imgKey, setImgKey] = useState(0);
+  useEffect(() => {
+    setImgKey((k) => k + 1);
+  }, [src]);
+
   return (
     <div className={styles.wrapper}>
       {!loaded && !error ? <div className={styles.placeholder} /> : null}
@@ -47,6 +54,7 @@ export const SmoothImage = memo(function SmoothImage({
       ) : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        key={imgKey}
         className={`${styles.img} ${loaded ? styles.imgLoaded : ""} ${className ?? ""}`}
         src={src}
         alt={alt ?? ""}
@@ -60,6 +68,12 @@ export const SmoothImage = memo(function SmoothImage({
         onError={() => {
           setLoaded(false);
           setError(true);
+        }}
+        ref={(node) => {
+          if (!node) return;
+          if (!loaded && !error && node.complete && node.naturalWidth > 0) {
+            setLoaded(true);
+          }
         }}
       />
     </div>

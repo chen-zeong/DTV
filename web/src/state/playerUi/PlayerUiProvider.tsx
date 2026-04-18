@@ -13,12 +13,19 @@ export type PlayerIslandState = {
   avatarUrl: string | null;
 };
 
+export type DanmuPanelState = {
+  available: boolean;
+  collapsed: boolean;
+};
+
 type PlayerUiContextValue = {
   island: PlayerIslandState;
   setIsland: (next: Partial<PlayerIslandState>) => void;
   clearIsland: () => void;
   isFullscreen: boolean;
   setFullscreen: (next: boolean) => void;
+  danmuPanel: DanmuPanelState;
+  setDanmuPanel: (next: DanmuPanelState) => void;
   registerDanmuPanelSetter: (setter: ((visible: boolean) => void) | null) => void;
   requestShowDanmuPanel: () => void;
 };
@@ -34,9 +41,15 @@ const emptyIsland: PlayerIslandState = {
   avatarUrl: null
 };
 
+const emptyDanmuPanel: DanmuPanelState = {
+  available: false,
+  collapsed: true
+};
+
 export function PlayerUiProvider({ children }: { children: React.ReactNode }) {
   const [island, setIslandState] = useState<PlayerIslandState>(emptyIsland);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [danmuPanel, setDanmuPanelState] = useState<DanmuPanelState>(emptyDanmuPanel);
   const danmuSetterRef = useRef<((visible: boolean) => void) | null>(null);
 
   const setIsland = useCallback((next: Partial<PlayerIslandState>) => {
@@ -55,6 +68,10 @@ export function PlayerUiProvider({ children }: { children: React.ReactNode }) {
     danmuSetterRef.current?.(true);
   }, []);
 
+  const setDanmuPanel = useCallback((next: DanmuPanelState) => {
+    setDanmuPanelState(next);
+  }, []);
+
   const value = useMemo<PlayerUiContextValue>(() => {
     return {
       island,
@@ -62,10 +79,12 @@ export function PlayerUiProvider({ children }: { children: React.ReactNode }) {
       clearIsland,
       isFullscreen,
       setFullscreen: setIsFullscreen,
+      danmuPanel,
+      setDanmuPanel,
       registerDanmuPanelSetter,
       requestShowDanmuPanel
     };
-  }, [clearIsland, island, isFullscreen, registerDanmuPanelSetter, requestShowDanmuPanel, setIsland]);
+  }, [clearIsland, danmuPanel, island, isFullscreen, registerDanmuPanelSetter, requestShowDanmuPanel, setDanmuPanel, setIsland]);
 
   return <PlayerUiContext.Provider value={value}>{children}</PlayerUiContext.Provider>;
 }

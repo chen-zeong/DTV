@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Card, Skeleton, Spinner } from "@heroui/react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, type Variants } from "framer-motion";
 import { Play, Users } from "lucide-react";
 
 import styles from "./CommonStreamerList.module.css";
@@ -14,24 +13,13 @@ import { useHuyaLiveRooms } from "@/hooks/liveRooms/useHuyaLiveRooms";
 import { useDouyinLiveRooms } from "@/hooks/liveRooms/useDouyinLiveRooms";
 import { useBilibiliLiveRooms } from "@/hooks/liveRooms/useBilibiliLiveRooms";
 import { useDouyuLiveRooms } from "@/hooks/liveRooms/useDouyuLiveRooms";
+import { usePlayerOverlay } from "@/state/playerOverlay/PlayerOverlayProvider";
 
 type DouyuCategorySelection = {
   type: "cate2" | "cate3";
   id: string;
   name?: string;
 };
-
-const PLATFORM_LABEL: Record<string, string> = {
-  douyu: "斗鱼",
-  douyin: "抖音",
-  huya: "虎牙",
-  bilibili: "B站"
-};
-
-function getPlatformLabel(platform: string) {
-  const key = String(platform || "").toLowerCase();
-  return PLATFORM_LABEL[key] ?? (key ? key.toUpperCase() : "LIVE");
-}
 
 export function CommonStreamerList({
   selectedCategory,
@@ -46,11 +34,14 @@ export function CommonStreamerList({
   defaultPageSize?: number;
   douyuCategory?: DouyuCategorySelection | null;
 }) {
-  const router = useRouter();
+  const playerOverlay = usePlayerOverlay();
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
   const scrollRafRef = useRef(0);
   const lastScrollAtRef = useRef(0);
   const scrollEndTimerRef = useRef<number | null>(null);
+  const [isScrolling, setIsScrolling] = React.useState(false);
+  const loadMoreGateRef = useRef<{ key: string; lastLen: number; lastAt: number }>({ key: "", lastLen: -1, lastAt: 0 });
 
   const platform = platformName ?? "huya";
   const categoryHref = selectedCategory?.cate2Href ?? null;
@@ -143,6 +134,7 @@ export function CommonStreamerList({
       if (scrollRafRef.current) window.cancelAnimationFrame(scrollRafRef.current);
       if (scrollEndTimerRef.current) window.clearTimeout(scrollEndTimerRef.current);
       if (typeof document !== "undefined") delete document.documentElement.dataset.scrolling;
+      setIsScrolling(false);
     };
   }, []);
 
@@ -151,32 +143,21 @@ export function CommonStreamerList({
     const root = document.documentElement;
 
     if (root.dataset.scrolling !== "1") root.dataset.scrolling = "1";
+    setIsScrolling(true);
     if (scrollEndTimerRef.current) window.clearTimeout(scrollEndTimerRef.current);
     scrollEndTimerRef.current = window.setTimeout(() => {
       delete document.documentElement.dataset.scrolling;
       scrollEndTimerRef.current = null;
+      setIsScrolling(false);
     }, 160);
   }, []);
-
-  const maybeEnsureFill = useCallback(() => {
-    const rootEl = scrollRef.current;
-    if (!rootEl || !hasMore || isLoading || isLoadingMore) return;
-    const needsMore = rootEl.scrollHeight - rootEl.clientHeight <= 100;
-    if (needsMore) void selected.loadMoreRooms();
-  }, [hasMore, isLoading, isLoadingMore, selected]);
-
-  useEffect(() => {
-    const id = window.setTimeout(() => maybeEnsureFill(), 50);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rooms.length, isLoading, isLoadingMore]);
 
   const goToPlayer = useCallback(
     (roomId: string) => {
       if (!roomId) return;
-      router.push(`/player?platform=${encodeURIComponent(platform)}&roomId=${encodeURIComponent(roomId)}`);
+      playerOverlay.openPlayer({ platform, roomId });
     },
-    [platform, router]
+    [platform, playerOverlay]
   );
 
   const shouldIgnoreClick = useCallback(() => {
@@ -201,18 +182,60 @@ export function CommonStreamerList({
       if (scrollRafRef.current) return;
       scrollRafRef.current = window.requestAnimationFrame(() => {
         scrollRafRef.current = 0;
-        if (!hasMore || isLoading || isLoadingMore) return;
-        const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 260;
-        if (nearBottom) void selected.loadMoreRooms();
+        void target; // keep ref stable; actual paging is handled by IntersectionObserver
+        // Paging is handled by IntersectionObserver sentinel (below).
+        // Keep this raf block to avoid spamming state updates during fast scroll.
       });
     },
-    [hasMore, isLoading, isLoadingMore, selected]
+    [hasMore, isLoading, isLoadingMore, markScrolling, selected]
   );
 
   const listKey = useMemo(() => {
     if (platform === "douyu") return `douyu:${douyuCategoryType ?? "none"}:${douyuCategoryId ?? "none"}`;
     return `${platform}:${categoryHref ?? "none"}`;
   }, [categoryHref, douyuCategoryId, douyuCategoryType, platform]);
+
+  useEffect(() => {
+    if (isLoading || isLoadingMore) return;
+    if (!hasMore) return;
+
+    const rootEl = scrollRef.current;
+    const sentinel = bottomSentinelRef.current;
+    if (!rootEl || !sentinel) return;
+    if (rootEl.clientHeight <= 0 || rootEl.getClientRects().length === 0) return;
+
+    if (loadMoreGateRef.current.key !== listKey) {
+      loadMoreGateRef.current = { key: listKey, lastLen: -1, lastAt: 0 };
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (!hasMore || isLoading || isLoadingMore) return;
+
+        const now = typeof window !== "undefined" && window.performance?.now ? window.performance.now() : Date.now();
+        const gate = loadMoreGateRef.current;
+
+        // If we're observing but the list isn't growing, don't spam requests.
+        if (gate.key === listKey && rooms.length === gate.lastLen && now - gate.lastAt < 600) return;
+
+        gate.key = listKey;
+        gate.lastLen = rooms.length;
+        gate.lastAt = now;
+
+        void selected.loadMoreRooms();
+      },
+      {
+        root: rootEl,
+        rootMargin: "220px 0px",
+        threshold: 0.01
+      }
+    );
+
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [hasMore, isLoading, isLoadingMore, listKey, rooms.length, selected]);
 
   const onCardKeyDown = useCallback(
     (e: React.KeyboardEvent, roomId: string) => {
@@ -224,6 +247,38 @@ export function CommonStreamerList({
   );
 
   // NOTE: click navigation is handled by `onCardClick` to avoid scroll-induced misclicks.
+
+  const coverVariants: Variants = useMemo(
+    () => ({
+      rest: { scale: 1 },
+      hover: {
+        scale: 1.08,
+        transition: { duration: 0.26, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }
+      }
+    }),
+    []
+  );
+
+  const overlayVariants: Variants = useMemo(
+    () => ({
+      rest: { opacity: 0 },
+      hover: { opacity: 1, transition: { duration: 0.18 } }
+    }),
+    []
+  );
+
+  const playButtonVariants: Variants = useMemo(
+    () => ({
+      rest: { opacity: 0, y: 6, scale: 0.96 },
+      hover: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as [number, number, number, number], delay: 0.02 }
+      }
+    }),
+    []
+  );
 
   if (isLoading && rooms.length === 0) {
     const skeletonCount = 10;
@@ -307,27 +362,36 @@ export function CommonStreamerList({
             animate={{ opacity: 1, transition: { duration: 0.14 } }}
             exit={{ opacity: 0, transition: { duration: 0.12 } }}
           >
-            {uniqueRooms.map((room) => (
-              <div
+            {uniqueRooms.map((room, idx) => (
+              <m.div
                 key={room.room_id}
                 className={styles.cardOuter}
                 role="button"
                 tabIndex={0}
                 onClick={() => onCardClick(room.room_id)}
                 onKeyDown={(e) => onCardKeyDown(e, room.room_id)}
+                initial="rest"
+                animate="rest"
+                whileHover={isScrolling ? undefined : "hover"}
               >
                 <Card className={styles.card}>
                   <div className={styles.preview}>
                     <div className={styles.imageWrapper}>
-                      <SmoothImage src={room.room_cover || ""} alt={room.title} className={styles.previewImage} />
-                      <div className={styles.previewHoverOverlay} aria-hidden="true">
-                        <div className={styles.playButton} aria-hidden="true">
+                      <m.div className={styles.previewMotion} variants={coverVariants} style={{ transformOrigin: "center" }}>
+                        <SmoothImage
+                          src={room.room_cover || ""}
+                          alt={room.title}
+                          className={styles.previewImage}
+                          loading={idx < 12 ? "eager" : "lazy"}
+                        />
+                      </m.div>
+                      <m.div className={styles.previewHoverOverlay} aria-hidden="true" variants={overlayVariants}>
+                        <m.div className={styles.playButton} aria-hidden="true" variants={playButtonVariants}>
                           <Play size={22} />
-                        </div>
-                      </div>
+                        </m.div>
+                      </m.div>
 
                       <div className={styles.viewerBadge} aria-label={`观看人数 ${room.viewer_count_str || "0"}`}>
-                        <span className={styles.liveDot} aria-hidden="true" />
                         <span className={styles.viewerPill}>
                           <Users size={12} />
                           {room.viewer_count_str || "0"}
@@ -337,7 +401,7 @@ export function CommonStreamerList({
                   </div>
                   <div className={styles.footer}>
                     <div className={styles.avatarContainer}>
-                      <SmoothImage src={room.avatar || ""} alt={room.nickname} className={styles.avatarImg} />
+                      <SmoothImage src={room.avatar || ""} alt={room.nickname} className={styles.avatarImg} loading={idx < 12 ? "eager" : "lazy"} />
                     </div>
                     <div className={styles.textDetails}>
                       <h3 className={styles.roomTitle} title={room.title}>
@@ -345,16 +409,21 @@ export function CommonStreamerList({
                       </h3>
                       <div className={styles.subLine} title={room.nickname}>
                         <span className={styles.nickname}>{room.nickname || "主播"}</span>
-                        <span className={styles.subDot} aria-hidden="true" />
-                        <span className={styles.platform}>{getPlatformLabel(room.platform)}</span>
                       </div>
                     </div>
                   </div>
                 </Card>
-              </div>
+              </m.div>
             ))}
           </m.div>
         </AnimatePresence>
+
+        {isLoadingMore ? (
+          <div className={styles.loadingMore}>
+            <Spinner size="sm" />
+          </div>
+        ) : null}
+        <div ref={bottomSentinelRef} style={{ height: 1 }} aria-hidden="true" />
       </div>
     </div>
   );

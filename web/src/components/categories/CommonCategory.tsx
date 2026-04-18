@@ -17,12 +17,14 @@ export function CommonCategory({
   actions?: React.ReactNode;
 }) {
   const [cate1List, setCate1List] = useState<Category1[]>([]);
+
   const [selectedCate1Href, setSelectedCate1Href] = useState<string | null>(null);
   const [selectedCate2Href, setSelectedCate2Href] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const cate2ShellRef = useRef<HTMLDivElement | null>(null);
   const [overlayMaxHeight, setOverlayMaxHeight] = useState<number | null>(null);
+  const emittedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     setCate1List(Array.isArray(categoriesData) ? categoriesData : []);
@@ -74,6 +76,10 @@ export function CommonCategory({
     setSelectedCate2Href(cate2.href);
     const selectedCate1 = cate1List.find((c1) => c1.href === selectedCate1Href);
     if (!selectedCate1) return;
+    // 避免后续 effect 再次触发同一个选择事件（会导致重复请求）
+    if (selectedCate1Href) {
+      emittedKeyRef.current = `${selectedCate1Href}:${cate2.href}`;
+    }
     onCategorySelected({
       type: "cate2",
       cate1Href: selectedCate1.href,
@@ -92,6 +98,7 @@ export function CommonCategory({
     if (!cate1List.some((x) => x.href === selectedCate1Href)) {
       setSelectedCate1Href(cate1List[0].href);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cate1List, selectedCate1Href]);
 
   useEffect(() => {
@@ -102,6 +109,23 @@ export function CommonCategory({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCate2List, selectedCate1Href]);
+
+  useEffect(() => {
+    if (!selectedCate1Href || !selectedCate2Href) return;
+    const selectedCate1 = cate1List.find((c1) => c1.href === selectedCate1Href);
+    const selectedCate2 = currentCate2List.find((c2) => c2.href === selectedCate2Href);
+    if (!selectedCate1 || !selectedCate2) return;
+    const key = `${selectedCate1Href}:${selectedCate2Href}`;
+    if (emittedKeyRef.current === key) return;
+    emittedKeyRef.current = key;
+    onCategorySelected({
+      type: "cate2",
+      cate1Href: selectedCate1.href,
+      cate2Href: selectedCate2.href,
+      cate1Name: selectedCate1.title,
+      cate2Name: selectedCate2.title
+    });
+  }, [cate1List, currentCate2List, onCategorySelected, selectedCate1Href, selectedCate2Href]);
 
   return (
     <div className={`${styles.categoryList} ${expanded ? styles.categoryListExpanded : ""}`}>
@@ -189,12 +213,6 @@ export function CommonCategory({
                     transition={{ duration: 0.2, ease: "easeOut" }}
                     style={overlayMaxHeight ? { maxHeight: overlayMaxHeight } : undefined}
                   >
-                    <div className={styles.cate2OverlayHeader}>
-                      <span className={styles.cate2OverlayTitle}>所有子分类</span>
-                      <button type="button" className={styles.cate2OverlayClose} onClick={() => setExpanded(false)} aria-label="收起">
-                        <ChevronUp size={16} />
-                      </button>
-                    </div>
                     <div className={styles.cate2OverlayBody}>
                       <div className={styles.cate2OverlayGrid}>
                         {currentCate2List.slice(9).map((c2) => {

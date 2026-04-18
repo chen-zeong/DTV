@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { CommonStreamer } from "@/platforms/common/streamerTypes";
 import { useImageProxy } from "@/hooks/useImageProxy";
@@ -17,6 +17,8 @@ export function useHuyaLiveRooms(gid: string | null, options: UseHuyaLiveRoomsOp
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const pageSize = options.defaultPageSize ?? 120;
+  const lastInitialKeyRef = useRef<string | null>(null);
+  const inflightRef = useRef<Map<string, Promise<void>>>(new Map());
 
   const { proxify, ensureProxyStarted } = useImageProxy();
 
@@ -56,34 +58,47 @@ export function useHuyaLiveRooms(gid: string | null, options: UseHuyaLiveRoomsOp
         return;
       }
 
-      if (loadMore) setIsLoadingMore(true);
-      else setIsLoading(true);
-      setError(null);
+      const requestKey = `${gid}:${pageNo}:${pageSize}`;
+      const existing = inflightRef.current.get(requestKey);
+      if (existing) return existing;
 
-      await ensureProxyStarted();
+      const task = (async () => {
+        if (loadMore) setIsLoadingMore(true);
+        else setIsLoading(true);
+        setError(null);
 
-      try {
-        const resp = await invoke<{ error: number; msg?: string; data?: any[] }>("fetch_huya_live_list", {
-          iGid: gid,
-          iPageNo: pageNo,
-          iPageSize: pageSize
-        });
+        await ensureProxyStarted();
 
-        if (resp.error !== 0 || !Array.isArray(resp.data)) throw new Error(resp.msg || "虎牙接口返回错误");
-        const newRooms = resp.data.map(mapHuyaItemToCommonStreamer);
-        setRooms((prev) => (loadMore ? [...prev, ...newRooms] : newRooms));
-        setHasMore(newRooms.length === pageSize);
-        setCurrentPage(pageNo + 1);
-      } catch (e: any) {
-        console.error("[useHuyaLiveRooms] invoke error", e);
-        setError(e?.message || "加载失败");
-        if (!loadMore) {
-          setRooms([]);
-          setHasMore(false);
+        try {
+          const resp = await invoke<{ error: number; msg?: string; data?: any[] }>("fetch_huya_live_list", {
+            iGid: gid,
+            iPageNo: pageNo,
+            iPageSize: pageSize
+          });
+
+          if (resp.error !== 0 || !Array.isArray(resp.data)) throw new Error(resp.msg || "虎牙接口返回错误");
+          const newRooms = resp.data.map(mapHuyaItemToCommonStreamer);
+          setRooms((prev) => (loadMore ? [...prev, ...newRooms] : newRooms));
+          setHasMore(newRooms.length === pageSize);
+          setCurrentPage(pageNo + 1);
+        } catch (e: any) {
+          console.error("[useHuyaLiveRooms] invoke error", e);
+          setError(e?.message || "加载失败");
+          if (!loadMore) {
+            setRooms([]);
+            setHasMore(false);
+          }
+        } finally {
+          if (loadMore) setIsLoadingMore(false);
+          else setIsLoading(false);
         }
+      })();
+
+      inflightRef.current.set(requestKey, task);
+      try {
+        await task;
       } finally {
-        if (loadMore) setIsLoadingMore(false);
-        else setIsLoading(false);
+        inflightRef.current.delete(requestKey);
       }
     },
     [ensureProxyStarted, gid, mapHuyaItemToCommonStreamer, pageSize]
@@ -109,9 +124,12 @@ export function useHuyaLiveRooms(gid: string | null, options: UseHuyaLiveRoomsOp
       setHasMore(false);
       return;
     }
+    // Dedup: 避免路由/分类状态短时间内抖动导致重复拉取第一页
+    const key = `${gid}:${pageSize}`;
+    if (lastInitialKeyRef.current === key) return;
+    lastInitialKeyRef.current = key;
     void loadInitialRooms();
-  }, [canFetch, loadInitialRooms]);
+  }, [canFetch, gid, loadInitialRooms, pageSize]);
 
   return { rooms, isLoading, isLoadingMore, error, hasMore, loadInitialRooms, loadMoreRooms };
 }
-

@@ -153,6 +153,8 @@ pub async fn fetch_categories() -> Result<CategoriesApiResponse, String> {
 // Internal function to fetch and parse to the old frontend-specific structure
 async fn fetch_categories_douyu_raw() -> Result<Vec<RawFrontendCate1Item>, String> {
     let client = reqwest::Client::builder()
+        .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(15))
         .no_proxy()
         .build()
         .map_err(|e| e.to_string())?;

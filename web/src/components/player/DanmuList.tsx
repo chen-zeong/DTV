@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import "./DanmuList.css";
 import type { DanmakuMessage } from "@/components/player/types";
@@ -51,8 +51,7 @@ export function DanmuList({
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [keywordInput, setKeywordInput] = useState("");
   const [blockedKeywords, setBlockedKeywords] = useState<string[]>([]);
-  const [autoScroll, setAutoScroll] = useState(true);
-  const pointerActive = useRef(false);
+  const scrollRafRef = useRef(0);
 
   useEffect(() => {
     setBlockedKeywords(loadBlockedKeywords());
@@ -74,43 +73,26 @@ export function DanmuList({
     return filtered.slice(-max);
   }, [filtered]);
 
-  const isNearBottom = () => {
-    const el = listEl.current;
-    if (!el) return true;
-    return el.scrollHeight - el.scrollTop - el.clientHeight <= 40;
-  };
-
-  const scrollToBottom = () => {
+  const forceScrollToBottom = () => {
     const el = listEl.current;
     if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-      });
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      el.scrollTop = el.scrollHeight;
     });
   };
 
-  useEffect(() => {
-    if (autoScroll && !pointerActive.current) scrollToBottom();
+  useLayoutEffect(() => {
+    forceScrollToBottom();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderMessages.length]);
+  }, [renderMessages.length, roomId, showFilterPanel]);
 
   useEffect(() => {
-    setAutoScroll(true);
-    scrollToBottom();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
-
-  useEffect(() => {
-    const onUp = () => {
-      if (!pointerActive.current) return;
-      pointerActive.current = false;
-      setAutoScroll(true);
-      scrollToBottom();
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = 0;
     };
-    window.addEventListener("pointerup", onUp);
-    return () => window.removeEventListener("pointerup", onUp);
   }, []);
 
   const addKeyword = () => {
@@ -195,15 +177,6 @@ export function DanmuList({
       <div
         className="danmu-messages-area"
         ref={listEl}
-        onPointerDown={() => {
-          pointerActive.current = true;
-          setAutoScroll(false);
-        }}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 40;
-          setAutoScroll(atBottom && !pointerActive.current);
-        }}
       >
         {renderMessages.length === 0 ? (
           <div className="empty-danmu-placeholder">
@@ -233,4 +206,3 @@ export function DanmuList({
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence, m } from "framer-motion";
 import { Check, ChevronDown, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
@@ -10,16 +10,12 @@ import styles from "./FollowsList.module.css";
 import { Platform as PlatformEnum } from "@/platforms/common/types";
 import { useFollow, type FollowListItem, type FollowedStreamer, type Platform as FollowPlatform } from "@/state/follow/FollowProvider";
 import { useImageProxy } from "@/hooks/useImageProxy";
+import { usePlayerOverlay } from "@/state/playerOverlay/PlayerOverlayProvider";
 
 const FOLLOW_REFRESH_CONCURRENCY = 2;
 const REFRESH_INITIAL_DELAY_MS = 1500;
 const DRAG_PREP_DELAY_MS = 150;
 const DRAG_MIN_PX = 8;
-
-function toPlayerHref(platform: FollowPlatform, id: string) {
-  const p = platform.toLowerCase();
-  return `/player?platform=${encodeURIComponent(p)}&roomId=${encodeURIComponent(id)}`;
-}
 
 function normalizeFollowKey(key: string) {
   const [p, id] = String(key || "").split(":");
@@ -104,9 +100,10 @@ async function refreshOne(streamer: FollowedStreamer) {
 }
 
 export function FollowsList() {
-  const router = useRouter();
+  const pathname = usePathname();
   const follow = useFollow();
   const { ensureProxyStarted, getAvatarSrc } = useImageProxy();
+  const playerOverlay = usePlayerOverlay();
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const streamersListRef = useRef<HTMLDivElement | null>(null);
@@ -459,9 +456,9 @@ export function FollowsList() {
   const handleStreamerClick = useCallback(
     (platform: FollowPlatform, id: string) => {
       if (dragRef.current.isDragging || pendingDragRef.current.active || didDragRef.current) return;
-      router.push(toPlayerHref(platform, id));
+      playerOverlay.openPlayer({ platform: platform.toLowerCase(), roomId: id });
     },
-    [router]
+    [playerOverlay]
   );
 
   const overlayPlatforms = useMemo(() => {
@@ -652,6 +649,7 @@ export function FollowsList() {
                 <span className={styles.avatarFallback}>{(s.nickname || "?").slice(0, 1)}</span>
               )}
             </span>
+            <span className={`${styles.liveDot} ${styles.liveDotOnAvatar} ${liveDotClass}`} aria-hidden="true" />
           </span>
           <div className={styles.meta}>
             <div className={styles.name} title={s.nickname}>
@@ -885,7 +883,7 @@ export function FollowsList() {
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               if (overlayDeleteMode) return;
-                              router.push(toPlayerHref(s.platform, s.id));
+                              playerOverlay.openPlayer({ platform: s.platform.toLowerCase(), roomId: s.id });
                               closeOverlay();
                             }}
                           >
@@ -1097,9 +1095,15 @@ function FolderChildren({
     }
 
     const el = innerRef.current;
-    if (!el) return;
+    const panel = panelRef.current;
+    if (!el || !panel) return;
 
-    const update = () => setHeight(el.scrollHeight);
+    const update = () => {
+      const s = window.getComputedStyle(panel);
+      const padTop = Number.parseFloat(s.paddingTop || "0") || 0;
+      const padBottom = Number.parseFloat(s.paddingBottom || "0") || 0;
+      setHeight(el.scrollHeight + padTop + padBottom);
+    };
     update();
 
     const ro = new ResizeObserver(() => update());

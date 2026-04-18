@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { m } from "framer-motion";
 
 import { CommonCategory } from "@/components/categories/CommonCategory";
 import { BilibiliCookieControls } from "@/components/bilibili/BilibiliCookieControls";
@@ -28,10 +29,12 @@ export function BilibiliHomePage() {
           actions={
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <BilibiliCookieControls variant="category" />
-              <button
+              <m.button
                 type="button"
                 className="category-subscribe-btn"
                 disabled={!canSubscribe}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   if (!selected?.cate2Href) return;
                   const href = selected.cate2Href;
@@ -40,12 +43,12 @@ export function BilibiliHomePage() {
                 }}
               >
                 {isSubscribed ? "取消订阅" : "订阅分区"}
-              </button>
+              </m.button>
             </div>
           }
         />
       </div>
-      <div style={{ flex: 1, overflow: "hidden", background: "transparent" }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "transparent" }}>
         <CommonStreamerList selectedCategory={selected} categoriesData={biliCategoriesData as any} platformName="bilibili" />
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { m } from "framer-motion";
 
 import { CommonCategory } from "@/components/categories/CommonCategory";
 import { CommonStreamerList } from "@/components/streamers/CommonStreamerList";
@@ -25,10 +26,12 @@ export function DouyinHomePage() {
           categoriesData={douyinCategoriesData as any}
           onCategorySelected={(e) => setSelected(e)}
           actions={
-            <button
+            <m.button
               type="button"
               className="category-subscribe-btn"
               disabled={!canSubscribe}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 if (!selected?.cate2Href) return;
                 const href = selected.cate2Href;
@@ -37,11 +40,11 @@ export function DouyinHomePage() {
               }}
             >
               {isSubscribed ? "取消订阅" : "订阅分区"}
-            </button>
+            </m.button>
           }
         />
       </div>
-      <div style={{ flex: 1, overflow: "hidden", background: "transparent" }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "transparent" }}>
         <CommonStreamerList selectedCategory={selected} categoriesData={douyinCategoriesData as any} platformName="douyin" />
       </div>
     </div>

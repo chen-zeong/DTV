@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { m } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ChevronDown, Copy, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import styles from "./Navbar.module.css";
 import { searchAnchors, type SearchAnchorResult, type SearchPlatform } from "@/services/search";
@@ -12,6 +12,7 @@ import { useFollow, type Platform as FollowPlatform } from "@/state/follow/Follo
 import { Platform } from "@/platforms/common/types";
 import { useImageProxy } from "@/hooks/useImageProxy";
 import { useCustomCategories } from "@/state/customCategories/CustomCategoriesProvider";
+import { usePlayerOverlay } from "@/state/playerOverlay/PlayerOverlayProvider";
 
 type UiPlatform = "douyu" | "douyin" | "huya" | "bilibili" | "custom";
 
@@ -35,11 +36,11 @@ export function Navbar({
   onThemeToggle: () => void;
   onPlatformChange: (p: UiPlatform) => void;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [isWindows, setIsWindows] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const playerUi = usePlayerUi();
+  const playerOverlay = usePlayerOverlay();
   const follow = useFollow();
   const { ensureProxyStarted, proxify } = useImageProxy();
   const custom = useCustomCategories();
@@ -66,12 +67,42 @@ export function Navbar({
   );
 
   const isPlayerRoute = (pathname ?? "").startsWith("/player");
+  const isPlayerOpen = isPlayerRoute || playerOverlay.isOpen;
+
+  const navigateToPlayer = useCallback(
+    (platform: string, roomId: string) => {
+      playerOverlay.openPlayer({ platform, roomId });
+    },
+    [playerOverlay]
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchAnchorResult[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [playerSearchOpen, setPlayerSearchOpen] = useState(true);
+
+  useEffect(() => {
+    if (isPlayerOpen) {
+      setPlayerSearchOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      setSearchError(null);
+      setIsSearchFocused(false);
+    } else {
+      setPlayerSearchOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlayerOpen]);
+
+  const openPlayerSearch = useCallback(() => {
+    setPlayerSearchOpen(true);
+    window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+  }, []);
 
   const searchPlatform: SearchPlatform | null = useMemo(() => {
     if (activePlatform === "bilibili") return "bilibili";
@@ -274,82 +305,130 @@ export function Navbar({
         </div>
       </div>
 
-      {isPlayerRoute && island.visible && island.roomId ? (
-        <div className={styles.playerIsland} data-tauri-drag-region="false">
-          <div className={styles.playerIslandLeft}>
-            {island.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className={styles.playerIslandAvatar} src={island.avatarUrl} alt={islandDisplayName} />
-            ) : (
-              <div className={`${styles.playerIslandAvatar} ${styles.playerIslandAvatarFallback}`}>
-                {(islandDisplayName || "?").slice(0, 1)}
-              </div>
-            )}
-            <div className={styles.playerIslandMeta}>
-              <div className={styles.playerIslandName} title={islandDisplayName}>
-                {islandDisplayName}
-              </div>
-              <div className={styles.playerIslandTitle} title={islandDisplayTitle}>
-                {islandDisplayTitle}
+      <AnimatePresence initial={false}>
+        {isPlayerRoute && island.visible && island.roomId && (playerUi.danmuPanel.collapsed || !playerUi.danmuPanel.available) ? (
+          <m.div
+            className={styles.playerIsland}
+            data-tauri-drag-region="false"
+            initial={{ opacity: 0, y: -10, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 520, damping: 40, mass: 0.7 } }}
+            exit={{ opacity: 0, y: -8, scale: 0.99, transition: { duration: 0.12 } }}
+          >
+            <div className={styles.playerIslandLeft}>
+              {island.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className={styles.playerIslandAvatar} src={island.avatarUrl} alt={islandDisplayName} />
+              ) : (
+                <div className={`${styles.playerIslandAvatar} ${styles.playerIslandAvatarFallback}`}>
+                  {(islandDisplayName || "?").slice(0, 1)}
+                </div>
+              )}
+              <div className={styles.playerIslandMeta}>
+                <div className={styles.playerIslandName} title={islandDisplayName}>
+                  {islandDisplayName}
+                </div>
+                <div className={styles.playerIslandTitle} title={islandDisplayTitle}>
+                  {islandDisplayTitle}
+                </div>
               </div>
             </div>
-          </div>
-          <button
-            type="button"
-            className={`${styles.playerIslandFollow} ${islandIsFollowed ? styles.playerIslandFollowed : ""}`}
-            onClick={() => {
-              if (!island.platform || !island.roomId) return;
-              const fp: FollowPlatform =
-                island.platform === Platform.DOUYU
-                  ? "DOUYU"
-                  : island.platform === Platform.DOUYIN
-                    ? "DOUYIN"
-                    : island.platform === Platform.HUYA
-                      ? "HUYA"
-                      : "BILIBILI";
-              if (follow.isFollowed(fp, island.roomId)) follow.unfollowStreamer(fp, island.roomId);
-              else {
-                follow.followStreamer({
-                  id: island.roomId,
-                  platform: fp,
-                  nickname: islandDisplayName || island.roomId,
-                  avatarUrl: island.avatarUrl || "",
-                  roomTitle: island.title || "",
-                  currentRoomId: island.roomId,
-                  liveStatus: "UNKNOWN"
-                });
-              }
-            }}
-          >
-            {islandIsFollowed ? "取关" : "关注"}
-          </button>
-          <button
-            type="button"
-            className={styles.playerIslandExpand}
-            title="展开弹幕"
-            onClick={() => playerUi.requestShowDanmuPanel()}
-          >
-            <ChevronDown size={14} />
-          </button>
-        </div>
-      ) : null}
+            <m.button
+              type="button"
+              className={`${styles.playerIslandFollow} ${islandIsFollowed ? styles.playerIslandFollowed : ""}`}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.7 }}
+              onClick={() => {
+                if (!island.platform || !island.roomId) return;
+                const fp: FollowPlatform =
+                  island.platform === Platform.DOUYU
+                    ? "DOUYU"
+                    : island.platform === Platform.DOUYIN
+                      ? "DOUYIN"
+                      : island.platform === Platform.HUYA
+                        ? "HUYA"
+                        : "BILIBILI";
+                if (follow.isFollowed(fp, island.roomId)) follow.unfollowStreamer(fp, island.roomId);
+                else {
+                  follow.followStreamer({
+                    id: island.roomId,
+                    platform: fp,
+                    nickname: islandDisplayName || island.roomId,
+                    avatarUrl: island.avatarUrl || "",
+                    roomTitle: island.title || "",
+                    currentRoomId: island.roomId,
+                    liveStatus: "UNKNOWN"
+                  });
+                }
+              }}
+            >
+              {islandIsFollowed ? "取关" : "关注"}
+            </m.button>
+            <button
+              type="button"
+              className={styles.playerIslandExpand}
+              title={playerUi.danmuPanel.available ? "展开弹幕" : "当前窗口过窄，无法展开弹幕列表"}
+              disabled={!playerUi.danmuPanel.available}
+              onClick={() => playerUi.requestShowDanmuPanel()}
+            >
+              <ChevronDown size={14} />
+            </button>
+          </m.div>
+        ) : null}
+      </AnimatePresence>
 
       <div className={styles.actions} data-tauri-drag-region>
         <div className={styles.searchContainer} data-tauri-drag-region="false">
-          <div className={`${styles.searchShell} ${isSearchFocused ? styles.searchShellFocused : ""}`}>
+          {isPlayerRoute && !playerSearchOpen ? (
+            <m.button
+              type="button"
+              className={styles.searchIconBtn}
+              aria-label="打开搜索"
+              title="搜索"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 520, damping: 40, mass: 0.7 }}
+              onClick={openPlayerSearch}
+            >
+              <Search size={16} />
+            </m.button>
+          ) : null}
+
+          <m.div
+            className={`${styles.searchShell} ${isSearchFocused ? styles.searchShellFocused : ""}`}
+            initial={false}
+            animate={isPlayerRoute ? { width: playerSearchOpen ? 320 : 36, opacity: playerSearchOpen ? 1 : 0 } : undefined}
+            transition={isPlayerRoute ? { type: "spring", stiffness: 520, damping: 44, mass: 0.7 } : undefined}
+            style={isPlayerRoute ? { maxWidth: "36vw", overflow: "hidden", display: playerSearchOpen ? "inline-flex" : "none" } : undefined}
+          >
             <input
+              ref={searchInputRef}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={placeholderText}
               className={styles.searchInput}
               onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
+              onBlur={() => {
+                setIsSearchFocused(false);
+                if (!isPlayerRoute) return;
+                if (searchQuery.trim()) return;
+                window.setTimeout(() => setPlayerSearchOpen(false), 80);
+              }}
               onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  if (!isPlayerRoute) return;
+                  setSearchQuery("");
+                  setSearchResults([]);
+                  setSearchError(null);
+                  setIsSearchFocused(false);
+                  setPlayerSearchOpen(false);
+                  return;
+                }
                 if (e.key !== "Enter") return;
                 const trimmed = searchQuery.trim();
                 if (!trimmed) return;
                 if (/^\d+$/.test(trimmed)) {
-                  router.push(`/player?platform=${encodeURIComponent(activePlatform)}&roomId=${encodeURIComponent(trimmed)}`);
+                  navigateToPlayer(activePlatform, trimmed);
                 }
               }}
             />
@@ -377,13 +456,13 @@ export function Navbar({
                 const trimmed = searchQuery.trim();
                 if (!trimmed) return;
                 if (/^\d+$/.test(trimmed)) {
-                  router.push(`/player?platform=${encodeURIComponent(activePlatform)}&roomId=${encodeURIComponent(trimmed)}`);
+                  navigateToPlayer(activePlatform, trimmed);
                 }
               }}
             >
               <Search size={15} />
             </button>
-          </div>
+          </m.div>
 
           {showResults ? (
             <div className={styles.searchResultsWrapper}>
@@ -397,7 +476,7 @@ export function Navbar({
                       className={styles.searchResultItem}
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        router.push(`/player?platform=${encodeURIComponent(anchor.platform)}&roomId=${encodeURIComponent(anchor.roomId)}`);
+                        navigateToPlayer(anchor.platform, anchor.roomId);
                       }}
                     >
                       <div className={styles.resultAvatar}>
@@ -436,7 +515,7 @@ export function Navbar({
                       onMouseDown={(e) => {
                         e.preventDefault();
                         const rid = searchQuery.trim();
-                        router.push(`/player?platform=${encodeURIComponent(activePlatform)}&roomId=${encodeURIComponent(rid)}`);
+                        navigateToPlayer(activePlatform, rid);
                       }}
                     >
                       进入房间 {searchQuery.trim()}

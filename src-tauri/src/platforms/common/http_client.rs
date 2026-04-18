@@ -1,7 +1,9 @@
 use reqwest::header::{HeaderMap as ReqwestHeaderMap, HeaderName, HeaderValue, USER_AGENT};
 use reqwest::{cookie::Jar, Client, RequestBuilder, Response};
+use std::error::Error;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::time::sleep;
 
 pub const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36";
 // 部分平台（如抖音）接口在网络抖动时响应较慢，20s 容易触发超时。
@@ -18,6 +20,30 @@ pub struct HttpClient {
 
 #[allow(dead_code)]
 impl HttpClient {
+    fn format_reqwest_error(e: &reqwest::Error) -> String {
+        let mut out = e.to_string();
+        let mut cur = e.source();
+        while let Some(src) = cur {
+            out.push_str(": ");
+            out.push_str(&src.to_string());
+            cur = src.source();
+        }
+        out
+    }
+
+    fn is_transient_reqwest_error(e: &reqwest::Error) -> bool {
+        if e.is_timeout() || e.is_connect() || e.is_request() {
+            return true;
+        }
+        // Some TLS stacks surface transient failures as plain strings.
+        let msg = e.to_string().to_lowercase();
+        msg.contains("unexpected eof")
+            || msg.contains("handshake")
+            || msg.contains("connection reset")
+            || msg.contains("connection closed")
+            || msg.contains("broken pipe")
+    }
+
     pub fn new() -> Result<Self, String> {
         let mut default_headers = ReqwestHeaderMap::new();
         default_headers.insert(
@@ -29,7 +55,11 @@ impl HttpClient {
         let cookie_jar = Arc::new(Jar::default());
 
         let client_builder = Client::builder()
+            // Some platforms' HTTPS endpoints occasionally fail ALPN/HTTP2 negotiation in certain
+            // network environments; HTTP/1.1 is more compatible and is enough for these APIs.
+            .http1_only()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
+            .connect_timeout(Duration::from_secs(15))
             .cookie_provider(cookie_jar);
 
         let inner_client = client_builder
@@ -55,7 +85,9 @@ impl HttpClient {
         let cookie_jar = Arc::new(Jar::default());
 
         let client_builder = Client::builder()
+            .http1_only()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
+            .connect_timeout(Duration::from_secs(15))
             .cookie_provider(cookie_jar)
             .no_proxy(); // 关键：禁用所有代理设置
 
@@ -81,7 +113,9 @@ impl HttpClient {
         let cookie_jar = Arc::new(Jar::default());
 
         let client_builder = Client::builder()
+            .http1_only()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
+            .connect_timeout(Duration::from_secs(15))
             .cookie_provider(cookie_jar)
             .no_proxy()
             .pool_max_idle_per_host(max_idle_per_host)
@@ -106,19 +140,37 @@ impl HttpClient {
     }
 
     async fn send_request(&self, request_builder: RequestBuilder) -> Result<Response, String> {
-        request_builder
-            .headers(self.headers.clone())
-            .send()
+        self.send_request_raw(request_builder)
             .await
             .map_err(|e| {
-                println!("[HTTP_CLIENT ERROR] HTTP request failed: {}", e);
-                format!("HTTP request execution failed: {}", e)
+                let msg = Self::format_reqwest_error(&e);
+                println!("[HTTP_CLIENT ERROR] HTTP request failed: {}", msg);
+                format!("HTTP request execution failed: {}", msg)
             })
     }
 
+    async fn send_request_raw(&self, request_builder: RequestBuilder) -> Result<Response, reqwest::Error> {
+        request_builder.headers(self.headers.clone()).send().await
+    }
+
     pub async fn get(&self, url: &str) -> Result<Response, String> {
-        let response = self.send_request(self.inner.get(url)).await?;
-        Ok(response)
+        // Retry once for transient handshake/connect issues (common on Huya/Douyin/Bilibili in some networks)
+        let mut last_err: Option<String> = None;
+        for attempt in 0..2 {
+            match self.send_request_raw(self.inner.get(url)).await {
+                Ok(resp) => return Ok(resp),
+                Err(e) => {
+                    let msg = Self::format_reqwest_error(&e);
+                    last_err = Some(format!("HTTP request execution failed: {}", msg));
+                    if attempt == 0 && Self::is_transient_reqwest_error(&e) {
+                        sleep(Duration::from_millis(180)).await;
+                        continue;
+                    }
+                    break;
+                }
+            }
+        }
+        Err(last_err.unwrap_or_else(|| "HTTP request execution failed: unknown error".to_string()))
     }
 
     pub async fn get_text(&self, url: &str) -> Result<String, String> {

@@ -13,7 +13,15 @@ function toPlatformEnum(p: string): Platform {
   return Platform.DOUYU;
 }
 
-export function PlayerPage({ platform, roomId }: { platform: string; roomId: string }) {
+export function PlayerPage({
+  platform,
+  roomId,
+  onRequestClose
+}: {
+  platform: string;
+  roomId: string;
+  onRequestClose?: () => void;
+}) {
   const plat = useMemo(() => toPlatformEnum(platform), [platform]);
   if (!roomId) {
     return (
@@ -22,5 +30,5 @@ export function PlayerPage({ platform, roomId }: { platform: string; roomId: str
       </div>
     );
   }
-  return <MainPlayer platform={plat} roomId={roomId} />;
+  return <MainPlayer platform={plat} roomId={roomId} onRequestClose={onRequestClose} />;
 }

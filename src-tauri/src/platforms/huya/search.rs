@@ -18,6 +18,8 @@ pub async fn search_huya_anchors(
     page: Option<usize>,
 ) -> Result<Vec<HuyaAnchorItem>, String> {
     let client = reqwest::Client::builder()
+        .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(15))
         .no_proxy()
         .build()
         .map_err(|e| e.to_string())?;

@@ -15,10 +15,10 @@
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 900;
   background: var(--bg-tertiary);
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-secondary);
   box-shadow: var(--shadow-low);
 }
@@ -30,10 +30,11 @@
 }
 
 .cate3ItemActive {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font-weight: 600;
-  box-shadow: var(--shadow-md);
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: none;
 }
 
 :global(:root[data-theme="light"]) .cate3Item {
@@ -41,10 +42,8 @@
 }
 
 :global(:root[data-theme="light"]) .cate3ItemActive {
-  color: #1f2937;
-  box-shadow:
-    0 6px 14px rgba(15, 23, 42, 0.08),
-    0 2px 6px rgba(15, 23, 42, 0.06);
+  color: #ffffff;
+  box-shadow: none;
 }
 
 :global(:root[data-theme="dark"]) .cate3Item:not(.cate3ItemActive) {
@@ -55,6 +54,13 @@
     inset 0 -1px 0 rgba(0, 0, 0, 0.22);
 }
 
+:global(:root[data-theme="dark"]) .cate3ItemActive {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: none;
+}
+
 :global(:root[data-theme="dark"]) .cate3Item:hover:not(.cate3ItemActive) {
   background: rgba(56, 63, 67, 0.86);
   border: none;
@@ -62,4 +68,3 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     inset 0 -1px 0 rgba(0, 0, 0, 0.24);
 }
-

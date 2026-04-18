@@ -1,0 +1,31 @@
+.overlayRoot {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  /* NOTE: global css has a more-specific rule for most <button> that sets `background: none;`
+     so we force the backdrop color here to ensure it actually renders and blocks clicks. */
+  background: rgba(0, 0, 0, 0.62) !important;
+  z-index: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.overlayPanel {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: #000 !important;
+  display: flex;
+  flex-direction: column;
+}

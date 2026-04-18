@@ -85,18 +85,43 @@ pub async fn fetch_bilibili_live_list(
 
     let client = reqwest::Client::builder()
         .user_agent(ua)
+        .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(15))
         .no_proxy()
         .build()
         .map_err(|e| format!("Failed to build client: {}", e))?;
 
-    let resp = client
-        .get(url)
-        .header("Referer", "https://www.bilibili.com/")
-        .header("Cookie", "buvid3=i;")
-        .query(&params)
-        .send()
-        .await
-        .map_err(|e| format!("Request failed: {}", e))?;
+    let mut last_err: Option<reqwest::Error> = None;
+    let resp = loop {
+        let attempt = if last_err.is_some() { 2 } else { 1 };
+        let result = client
+            .get(url)
+            .header("Referer", "https://www.bilibili.com/")
+            .header("Cookie", "buvid3=i;")
+            .query(&params)
+            .send()
+            .await;
+
+        match result {
+            Ok(resp) => break resp,
+            Err(e) => {
+                let msg = e.to_string().to_lowercase();
+                let transient = e.is_timeout()
+                    || e.is_connect()
+                    || msg.contains("unexpected eof")
+                    || msg.contains("handshake")
+                    || msg.contains("connection reset")
+                    || msg.contains("connection closed");
+
+                if attempt == 1 && transient {
+                    last_err = Some(e);
+                    tokio::time::sleep(std::time::Duration::from_millis(180)).await;
+                    continue;
+                }
+                return Err(format!("Request failed: {}", e));
+            }
+        }
+    };
 
     if !resp.status().is_success() {
         return Err(format!("API status: {}", resp.status()));

@@ -104,6 +104,8 @@ pub async fn fetch_live_list(offset: u32, cate2: String, limit: u32) -> Frontend
     );
 
     let client = reqwest::Client::builder()
+        .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(15))
         .no_proxy()
         .build()
         .map_err(|e| e.to_string())
@@ -239,7 +241,12 @@ pub async fn fetch_live_list_for_cate3(
     );
     println!("[Backend fetch_live_list_for_cate3] Fetching URL: {}", url);
 
-    let client = match reqwest::Client::builder().no_proxy().build() {
+    let client = match reqwest::Client::builder()
+        .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .no_proxy()
+        .build()
+    {
         Ok(c) => c,
         Err(e) => {
             return FrontendLiveListResponse {

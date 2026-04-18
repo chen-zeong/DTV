@@ -3,8 +3,8 @@
   flex-direction: column;
   background: transparent;
   color: var(--primary-text);
-  max-height: 280px;
-  min-height: 160px;
+  max-height: none;
+  min-height: 0;
   overflow: visible;
   transition: none;
   will-change: max-height;
@@ -151,10 +151,9 @@
 }
 
 .cate2Container {
-  padding: 12px 12px 10px;
+  padding: 10px 12px 6px;
   display: flex;
   flex-direction: column;
-  flex: 1;
   position: relative;
   overflow: visible;
   background: transparent;
@@ -221,8 +220,8 @@
 }
 
 .cate2CardActive {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #10b981;
+  border-color: #10b981;
   color: #ffffff;
   font-weight: 900;
   box-shadow: none;
@@ -260,8 +259,8 @@
 }
 
 :global(:root[data-theme="light"]) .cate2CardActive {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #10b981;
+  border-color: #10b981;
   color: #ffffff;
   box-shadow: none;
 }
@@ -314,10 +313,10 @@
   left: 0;
   right: 0;
   margin-top: 8px;
-  padding: 24px;
+  padding: 18px;
   border-radius: 40px;
   z-index: 50;
-  background: rgba(20, 20, 20, 0.95);
+  background: rgba(20, 20, 20, 0.985);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(32px);
@@ -328,7 +327,7 @@
 }
 
 :global(:root[data-theme="light"]) .cate2Overlay {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.975);
   border-color: rgba(148, 163, 184, 0.28);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
@@ -460,19 +459,20 @@
   border-radius: 12px;
   padding: 0 14px;
   font-size: 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  background: var(--accent-gradient);
-  color: var(--accent-text);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.96);
   cursor: pointer;
-  backdrop-filter: blur(8px) saturate(1.1);
-  -webkit-backdrop-filter: blur(8px) saturate(1.1);
-  box-shadow: 0 14px 30px var(--accent-glow);
-  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  box-shadow: none;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .cate1Actions :global(.category-subscribe-btn:hover) {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 18px 38px var(--accent-glow);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.26);
 }
 
 .cate1Actions :global(.category-subscribe-btn:disabled) {
@@ -482,5 +482,7 @@
 }
 
 :global(:root[data-theme="light"]) .cate1Actions :global(.category-subscribe-btn) {
-  box-shadow: 0 16px 34px var(--accent-glow);
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: rgba(15, 23, 42, 0.9);
 }

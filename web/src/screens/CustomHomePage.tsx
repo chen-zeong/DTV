@@ -24,6 +24,16 @@ export function CustomHomePage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = window.sessionStorage.getItem("dtv_custom_selected_key_v1");
+      if (saved) setSelectedKey(saved);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
     if (!entries.length) {
       setSelectedKey(null);
       return;
@@ -32,6 +42,16 @@ export function CustomHomePage() {
       setSelectedKey(entries[0].key);
     }
   }, [entries, selectedKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!selectedKey) return;
+    try {
+      window.sessionStorage.setItem("dtv_custom_selected_key_v1", selectedKey);
+    } catch {
+      // ignore
+    }
+  }, [selectedKey]);
 
   const selectedEntry: CustomCategoryEntry | null = useMemo(() => {
     return entries.find((e) => e.key === selectedKey) ?? null;

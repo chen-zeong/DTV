@@ -10,16 +10,19 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  position: relative;
   background-color: var(--bg-primary);
   transition: none;
 }
 
 .appBody {
   flex: 1;
-  overflow-y: auto;
-  padding: 14px 24px 22px;
+  overflow: hidden;
+  padding: 14px 24px 0;
   position: relative;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .appBodyPlayer {
@@ -27,4 +30,67 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.appBodyContents {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.routeScope {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.routeContents {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.routePendingWrap {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.routePendingContents {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.routePendingContentsHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.routePendingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  z-index: 20;
+}
+
+.routePendingButton {
+  width: 132px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }

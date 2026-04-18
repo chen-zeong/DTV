@@ -6,7 +6,6 @@ import { listen, type Event as TauriEvent } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { v4 as uuidv4 } from "uuid";
 import { AnimatePresence, m } from "framer-motion";
-import { Funnel, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { POSITIONS } from "xgplayer/es/plugin/plugin.js";
 
 import "xgplayer/dist/index.min.css";
@@ -23,7 +22,6 @@ import {
   sanitizeDanmuArea,
   sanitizeDanmuOpacity
 } from "@/components/player/constants";
-import { DanmuList } from "@/components/player/DanmuList";
 import { arrangeControlClusters } from "@/components/player/controlLayout";
 import { Platform } from "@/platforms/common/types";
 import { getDouyuStreamConfig, stopDouyuProxy } from "@/platforms/douyu/playerHelper";
@@ -33,11 +31,8 @@ import { getBilibiliStreamConfig } from "@/platforms/bilibili/playerHelper";
 import { useImageProxy } from "@/hooks/useImageProxy";
 import { useFollow, type FollowedStreamer, type Platform as FollowPlatform } from "@/state/follow/FollowProvider";
 import { usePlayerUi } from "@/state/playerUi/PlayerUiProvider";
-import { BilibiliCookieControls } from "@/components/bilibili/BilibiliCookieControls";
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
-const MIN_DANMU_WIDTH = 1100;
-const DANMU_COLLAPSED_STORAGE_KEY = "dtv_player_danmu_collapsed";
 
 const DEFAULT_DANMU_SETTINGS: DanmuUserSettings = {
   color: "#ffffff",
@@ -144,15 +139,18 @@ function resolveCurrentLineFor(options: LineOption[], currentLine: string | null
 
 export function MainPlayer({
   platform,
-  roomId
+  roomId,
+  onRequestClose
 }: {
   platform: Platform;
   roomId: string;
+  onRequestClose?: () => void;
 }) {
   const router = useRouter();
   const follow = useFollow();
-  const { registerDanmuPanelSetter, setIsland, clearIsland, setFullscreen } = usePlayerUi();
+  const { setIsland, clearIsland, setFullscreen } = usePlayerUi();
   const { ensureProxyStarted, getAvatarSrc } = useImageProxy();
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<any>(null);
@@ -197,18 +195,46 @@ export function MainPlayer({
     const stored = loadDanmuPreferences();
     return stored?.settings ?? DEFAULT_DANMU_SETTINGS;
   });
-  const [danmakuMessages, setDanmakuMessages] = useState<DanmakuMessage[]>([]);
 
-  const [windowWidth, setWindowWidth] = useState(() => (typeof window === "undefined" ? 0 : window.innerWidth));
-  const [isDanmuCollapsed, setIsDanmuCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(DANMU_COLLAPSED_STORAGE_KEY) === "1";
-  });
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const hideChromeTimerRef = useRef<number | null>(null);
+  const moveRafRef = useRef(0);
 
-  const showDanmuPanel = windowWidth >= MIN_DANMU_WIDTH;
-  const canToggleDanmuPanel = showDanmuPanel && !!roomId && !isLoadingStream && !streamError;
-  const isDanmuVisible = canToggleDanmuPanel && !isDanmuCollapsed && !isFullScreen;
-  const showStreamerInfo = !!roomId && !isFullScreen && !isDanmuCollapsed;
+  useEffect(() => {
+    const armHide = () => {
+      if (hideChromeTimerRef.current) window.clearTimeout(hideChromeTimerRef.current);
+      hideChromeTimerRef.current = window.setTimeout(() => {
+        setChromeVisible(false);
+      }, 3000);
+    };
+
+    // Start hidden-after-idle behavior immediately on mount.
+    setChromeVisible(true);
+    armHide();
+
+    const onMove = () => {
+      if (moveRafRef.current) return;
+      moveRafRef.current = window.requestAnimationFrame(() => {
+        moveRafRef.current = 0;
+        setChromeVisible(true);
+        armHide();
+      });
+    };
+
+    // Listen on `window` to avoid WebView/video layers swallowing pointer events.
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove as any);
+      window.removeEventListener("pointermove", onMove as any);
+      if (hideChromeTimerRef.current) window.clearTimeout(hideChromeTimerRef.current);
+      if (moveRafRef.current) window.cancelAnimationFrame(moveRafRef.current);
+      hideChromeTimerRef.current = null;
+      moveRafRef.current = 0;
+    };
+  }, []);
+
+  const chromeHiddenClass = chromeVisible ? "" : " player-chrome-hidden";
 
   const reloadStreamRef = useRef<
     | null
@@ -223,27 +249,6 @@ export function MainPlayer({
     null
   );
   const delayedStopTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    registerDanmuPanelSetter((visible) => {
-      if (!showDanmuPanel) return;
-      const nextCollapsed = !visible;
-      setIsDanmuCollapsed(nextCollapsed);
-      try {
-        window.localStorage.setItem(DANMU_COLLAPSED_STORAGE_KEY, nextCollapsed ? "1" : "0");
-      } catch {
-        // ignore
-      }
-    });
-    return () => registerDanmuPanelSetter(null);
-  }, [registerDanmuPanelSetter, showDanmuPanel]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   useEffect(() => {
     if (platform === Platform.BILIBILI || platform === Platform.HUYA) {
@@ -344,9 +349,6 @@ export function MainPlayer({
 
       const activeKey = `${platformToStart}:${roomIdToStart}`;
       const shouldStartBackend = !danmakuActiveRef.current || danmakuActiveKeyRef.current !== activeKey;
-      if (shouldStartBackend) {
-        setDanmakuMessages([]);
-      }
 
       try {
         if (shouldStartBackend) {
@@ -407,12 +409,6 @@ export function MainPlayer({
             // ignore
           }
         }
-
-        setDanmakuMessages((prev) => {
-          const next = [...prev, msg];
-          if (next.length > 200) next.splice(0, next.length - 200);
-          return next;
-        });
       });
 
       unlistenRef.current = unlisten;
@@ -852,180 +848,96 @@ export function MainPlayer({
   }, [platform, playerAnchorName, playerAvatar, playerTitle, roomId]);
 
   return (
-    <div className="player-page">
-      <button
-        className="player-close-btn"
-        title="关闭播放器"
-        style={{ display: isFullScreen ? "none" : undefined }}
-        onClick={() => {
-          router.back();
-        }}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-
+    <div className={`player-page${chromeHiddenClass}`} ref={pageRef}>
       <div className="player-layout">
         <div className="main-content">
-          <div className={`player-container ${isDanmuVisible ? "" : "player-container--solo"}`}>
-            {showStreamerInfo ? (
-              <div className="streamer-info">
-                <div className="streamer-layout">
-                  <div className="avatar-wrapper">
-                    {playerAvatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={getAvatarSrc(platform, playerAvatar)} alt={playerAnchorName ?? roomId} className="avatar-img" />
-                    ) : (
-                      <div className="avatar-fallback">{(playerAnchorName || roomId || "D").charAt(0).toUpperCase()}</div>
-                    )}
-                  </div>
+          <div className="player-container player-container--solo">
+            <div className="video-container">
+              <div className="player-topbar">
+                <div className="player-topbar-left">
+                  <button
+                    type="button"
+                    className="player-close-btn"
+                    title="关闭"
+                    aria-label="关闭"
+                    onClick={() => {
+                      if (onRequestClose) onRequestClose();
+                      else router.back();
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
 
-                  <div className="streamer-details-main">
-                    <h3 className="room-title" title={playerTitle || roomId}>
-                      {playerTitle || roomId}
-                    </h3>
-                    <div className="streamer-meta-row">
-                      <span className="streamer-name">{playerAnchorName || ""}</span>
-                      <span className={`status-tag ${playerIsLive === false ? "status-offline" : "status-live"}`}>
-                        {playerIsLive === false ? "未开播" : "直播中"}
-                      </span>
-                      {platform === Platform.BILIBILI ? (
-                        <BilibiliCookieControls
-                          variant="player"
-                          onCookieChanged={() => {
-                            void reloadStream("refresh");
-                          }}
-                        />
-                      ) : null}
+                  <div className="player-topbar-streamer" title={playerTitle || roomId}>
+                    <div className="player-topbar-avatar">
+                      {playerAvatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={getAvatarSrc(platform, playerAvatar)} alt={playerAnchorName ?? roomId} />
+                      ) : (
+                        <div className="player-topbar-avatarFallback">{(playerAnchorName || roomId || "D").charAt(0).toUpperCase()}</div>
+                      )}
+                    </div>
+                    <div className="player-topbar-meta">
+                      <div className="player-topbar-title">{playerTitle || roomId}</div>
+                      <div className="player-topbar-sub">
+                        {playerAnchorName || "未知主播"} · ID:{roomId}
+                      </div>
+                    </div>
+                    <div className={`player-topbar-status ${playerIsLive === false ? "is-offline" : "is-live"}`}>
+                      {playerIsLive === false ? "未开播" : "直播中"}
                     </div>
                   </div>
+                </div>
 
-                  <div className="streamer-actions">
-                    <div className="id-follow-container">
-                      <span className="streamer-id">ID:{roomId}</span>
-                      <button
-                        type="button"
-                        className={`follow-btn ${isFollowed ? "is-following" : ""}`}
-                        onClick={() => {
-                          if (isFollowed) follow.unfollowStreamer(followPayload.platform, followPayload.id);
-                          else follow.followStreamer(followPayload);
-                        }}
-                      >
-                        <span className="follow-text">{isFollowed ? "取关" : "关注"}</span>
+                <button
+                  type="button"
+                  className={`player-topbar-follow ${isFollowed ? "is-following" : ""}`}
+                  onClick={() => {
+                    if (isFollowed) follow.unfollowStreamer(followPayload.platform, followPayload.id);
+                    else follow.followStreamer(followPayload);
+                  }}
+                >
+                  {isFollowed ? "取关" : "关注"}
+                </button>
+              </div>
+
+              <div ref={playerContainerRef} className="video-player" />
+
+              {isLoadingStream ? (
+                <div className="loading-player" style={{ position: "absolute", inset: 0, zIndex: 20 }}>
+                  <div style={{ padding: 18, color: "var(--secondary-text)", fontWeight: 700 }}>加载中...</div>
+                </div>
+              ) : null}
+
+              {streamError ? (
+                <div className={isOfflineError ? "offline-player" : "error-player"} style={{ position: "absolute", inset: 0, zIndex: 20 }}>
+                  <div style={{ padding: 18 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>{isOfflineError ? "主播未开播" : "加载失败"}</div>
+                    <div style={{ color: "var(--secondary-text)", fontWeight: 600, whiteSpace: "pre-wrap" }}>{streamError}</div>
+                    <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                      <button className="retry-btn" onClick={() => void reloadStream("refresh")}>
+                        再试一次
                       </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
-
-              <div className="video-container">
-                <div ref={playerContainerRef} className="video-player" />
-
-                {isLoadingStream ? (
-                  <div className="loading-player" style={{ position: "absolute", inset: 0, zIndex: 20 }}>
-                    <div style={{ padding: 18, color: "var(--secondary-text)", fontWeight: 700 }}>加载中...</div>
-                  </div>
-                ) : null}
-
-                {streamError ? (
-                  <div
-                    className={isOfflineError ? "offline-player" : "error-player"}
-                    style={{ position: "absolute", inset: 0, zIndex: 20 }}
-                  >
-                    <div style={{ padding: 18 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>{isOfflineError ? "主播未开播" : "加载失败"}</div>
-                      <div style={{ color: "var(--secondary-text)", fontWeight: 600, whiteSpace: "pre-wrap" }}>{streamError}</div>
-                      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                        <button className="retry-btn" onClick={() => void reloadStream("refresh")}>
-                          再试一次
-                        </button>
-                        <button
-                          className="retry-btn"
-                          onClick={() => {
-                            if (!showDanmuPanel) return;
-                            setIsDanmuCollapsed((prev) => {
-                              const next = !prev;
-                              try {
-                                window.localStorage.setItem(DANMU_COLLAPSED_STORAGE_KEY, next ? "1" : "0");
-                              } catch {
-                                // ignore
-                              }
-                              return next;
-                            });
-                          }}
-                          style={{ opacity: 0.9 }}
-                        >
-                          {isDanmuCollapsed ? "显示弹幕" : "隐藏弹幕"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+              ) : null}
             </div>
           </div>
-
-        <AnimatePresence initial={false}>
-          {isDanmuVisible && !isLoadingStream && !streamError ? (
-            <m.div
-              className="danmu-panel"
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 16 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <DanmuList
-                roomId={roomId}
-                messages={danmakuMessages}
-                actions={
-                  <div className="danmu-panel-actions">
-                    <button type="button" className="danmu-filter-toggle-btn" title="屏蔽关键词（待移植）" onClick={() => {}}>
-                      <Funnel size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      className="danmu-collapse-btn"
-                      title="折叠弹幕列表"
-                      onClick={() => {
-                        if (!showDanmuPanel) return;
-                        setIsDanmuCollapsed(true);
-                        try {
-                          window.localStorage.setItem(DANMU_COLLAPSED_STORAGE_KEY, "1");
-                        } catch {
-                          // ignore
-                        }
-                      }}
-                    >
-                      <PanelRightClose size={22} />
-                    </button>
-                  </div>
-                }
-              />
-            </m.div>
-          ) : null}
-        </AnimatePresence>
-
-        {canToggleDanmuPanel && isDanmuCollapsed && !isFullScreen ? (
-          <button
-            type="button"
-            className="danmu-expand-fab"
-            title="展开弹幕列表"
-            onClick={() => {
-              setIsDanmuCollapsed(false);
-              try {
-                window.localStorage.setItem(DANMU_COLLAPSED_STORAGE_KEY, "0");
-              } catch {
-                // ignore
-              }
-            }}
-          >
-            <PanelRightOpen size={20} />
-            <span>弹幕</span>
-          </button>
-        ) : null}
+        </div>
       </div>
     </div>
   );

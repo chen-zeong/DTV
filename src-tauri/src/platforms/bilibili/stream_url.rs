@@ -64,6 +64,8 @@ pub async fn get_bilibili_live_stream_url_with_quality(
     );
     let client = reqwest::Client::builder()
         .default_headers(headers)
+        .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(15))
         .no_proxy()
         .build()
         .map_err(|e| format!("Failed to build client: {}", e))?;
