@@ -35,9 +35,11 @@
 }
 
 .chipActive {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(148, 163, 184, 0.55);
-  box-shadow: 0 12px 24px rgba(12, 18, 30, 0.32), inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  background: var(--accent-gradient);
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
+  box-shadow:
+    0 14px 30px var(--accent-glow),
+    0 12px 24px rgba(12, 18, 30, 0.22);
   color: #ffffff;
 }
 
@@ -84,10 +86,12 @@
 }
 
 :global(:root[data-theme="light"]) .chipActive {
-  background: var(--bg-secondary);
-  color: #1f2937;
-  border: none;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.06);
+  background: var(--accent-gradient);
+  color: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
+  box-shadow:
+    0 14px 30px var(--accent-glow),
+    0 10px 22px rgba(15, 23, 42, 0.1);
 }
 
 :global(:root[data-theme="light"]) .chipPlatform {
@@ -109,6 +113,11 @@
 
 :global(:root[data-theme="light"]) .platformBilibili .chipPlatform {
   color: #c026d3;
+}
+
+.chipActive .chipPlatform {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .streamerList {
