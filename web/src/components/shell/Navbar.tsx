@@ -378,7 +378,8 @@ export function Navbar({
       </AnimatePresence>
 
       <div className={styles.actions} data-tauri-drag-region>
-        <div className={styles.searchContainer} data-tauri-drag-region="false">
+        {activePlatform !== "custom" ? (
+          <div className={styles.searchContainer} data-tauri-drag-region="false">
           {isPlayerRoute && !playerSearchOpen ? (
             <m.button
               type="button"
@@ -525,7 +526,8 @@ export function Navbar({
               ) : null}
             </div>
           ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <button
           type="button"
