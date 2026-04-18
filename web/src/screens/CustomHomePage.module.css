@@ -41,13 +41,13 @@
   color: #ffffff;
 }
 
-.chipActive:hover {
-  box-shadow: none;
-}
-
 .chip:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(10, 15, 28, 0.32);
+}
+
+.chip.chipActive:hover {
+  box-shadow: none;
 }
 
 .chipPlatform {
@@ -88,6 +88,13 @@
 }
 
 :global(:root[data-theme="light"]) .chipActive {
+  background: var(--accent-gradient);
+  color: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
+  box-shadow: none;
+}
+
+:global(:root[data-theme="dark"]) .chipActive {
   background: var(--accent-gradient);
   color: #ffffff;
   border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
