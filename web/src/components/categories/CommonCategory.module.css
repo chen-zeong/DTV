@@ -266,6 +266,9 @@
 }
 
 :global(:root[data-theme="dark"]) .cate2CardActive {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
   box-shadow: none;
 }
 

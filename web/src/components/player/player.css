@@ -1285,11 +1285,11 @@ html.web-fs-active .danmu-panel {
 }
 
 :root[data-theme="light"] .player-topbar-streamer {
-  background: rgba(255, 255, 255, 0.56);
-  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(148, 163, 184, 0.32);
   box-shadow:
-    0 18px 46px rgba(0, 0, 0, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    0 18px 46px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
 }
 
 .player-topbar-avatar {
@@ -1432,10 +1432,10 @@ html.web-fs-active .danmu-panel {
 
 .player-close-btn {
   position: relative;
-  background: radial-gradient(120% 120% at 30% 25%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.12) 44%, rgba(255, 255, 255, 0.08) 100%);
-  backdrop-filter: blur(12px) saturate(1.1);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 10, 12, 0.52);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(255, 255, 255, 0.92);
   width: 44px;
   height: 44px;
@@ -1447,7 +1447,7 @@ html.web-fs-active .danmu-panel {
   transition: background 0.2s ease, border-color 0.2s ease;
   padding: 0;
   box-shadow:
-    0 10px 26px rgba(0, 0, 0, 0.28),
+    0 18px 46px rgba(0, 0, 0, 0.28),
     0 0 0 1px rgba(255, 255, 255, 0.06) inset;
 }
 
@@ -1456,8 +1456,8 @@ html.web-fs-active .danmu-panel {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: radial-gradient(90% 90% at 35% 30%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.1) 35%, transparent 70%);
-  opacity: 0.7;
+  background: radial-gradient(90% 90% at 35% 30%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.06) 40%, transparent 72%);
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -1472,8 +1472,8 @@ html.web-fs-active .danmu-panel {
 }
 
 .player-close-btn:hover {
-  background: radial-gradient(120% 120% at 30% 25%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.14) 44%, rgba(255, 255, 255, 0.09) 100%);
-  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(10, 10, 12, 0.64);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .player-close-btn:active {
@@ -2073,18 +2073,22 @@ video.xgplayer-video {
 }
 
 :root[data-theme="light"] .player-close-btn {
-  background: var(--button-bg-light, rgba(255, 255, 255, 0.8));
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid var(--button-border-light, rgba(0, 0, 0, 0.1));
-  color: var(--button-text-light, #333333);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: rgba(15, 23, 42, 0.88);
+  box-shadow:
+    0 14px 32px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
 }
 
 :root[data-theme="light"] .player-close-btn:hover {
-  background: var(--button-hover-bg-light, rgba(245, 245, 245, 0.9));
-  border-color: var(--button-hover-border-light, rgba(0, 0, 0, 0.15));
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(148, 163, 184, 0.42);
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.16) inset;
 }
 
 :root[data-theme="light"] .empty-player,
