@@ -578,7 +578,7 @@
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  translate: -50% -50%;
   width: min(1180px, calc(100vw - 48px));
   max-height: calc(100vh - 96px);
   z-index: 1201;
@@ -675,8 +675,8 @@
 }
 
 .filterChipActive {
-  background: rgba(64, 131, 255, 0.92);
-  border-color: rgba(64, 131, 255, 0.7);
+  background: var(--accent-gradient);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
   color: white;
 }
 
@@ -710,8 +710,8 @@
 .overlayTextBtn:hover:not(:disabled) {
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(64, 131, 255, 0.55);
-  color: rgba(64, 131, 255, 1);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--accent);
 }
 
 .overlayTextBtn:disabled {
@@ -720,8 +720,8 @@
 }
 
 .overlayTextBtnActive {
-  background: rgba(64, 131, 255, 0.92);
-  border-color: rgba(64, 131, 255, 0.7);
+  background: var(--accent-gradient);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
   color: white;
 }
 
@@ -909,7 +909,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  translate: -50% -50%;
   width: min(460px, 92vw);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
