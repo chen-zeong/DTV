@@ -101,6 +101,11 @@
   box-shadow: none;
 }
 
+:global(:root[data-theme="dark"]) .chip:not(.chipActive) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 :global(:root[data-theme="light"]) .chipPlatform {
   background: rgba(148, 163, 184, 0.18);
   color: #334155;
