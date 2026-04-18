@@ -107,7 +107,7 @@
   height: 2px;
   border-radius: 999px;
   background: var(--accent);
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 10px var(--accent-glow);
   opacity: 0;
   transform: scaleX(0.6);
   transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -220,8 +220,8 @@
 }
 
 .cate2CardActive {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
   font-weight: 900;
   box-shadow: none;
@@ -259,15 +259,15 @@
 }
 
 :global(:root[data-theme="light"]) .cate2CardActive {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
   box-shadow: none;
 }
 
 :global(:root[data-theme="dark"]) .cate2CardActive {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
   box-shadow: none;
 }
