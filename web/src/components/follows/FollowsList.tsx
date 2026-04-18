@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence, m } from "framer-motion";
 import { Check, ChevronDown, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import styles from "./FollowsList.module.css";
 import { Platform as PlatformEnum } from "@/platforms/common/types";
@@ -127,6 +128,7 @@ export function FollowsList() {
   const [folderNameInput, setFolderNameInput] = useState("");
   const [folderMenu, setFolderMenu] = useState<{ open: boolean; x: number; y: number; folderId: string | null }>({ open: false, x: 0, y: 0, folderId: null });
   const [folderDeleteConfirm, setFolderDeleteConfirm] = useState<{ open: boolean; folderId: string | null }>({ open: false, folderId: null });
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
 
   const listItems: FollowListItem[] = follow.listOrder;
   const allStreamers = follow.followedStreamers;
@@ -800,27 +802,29 @@ export function FollowsList() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {overlayOpen ? (
-          <m.div
-            className={styles.overlayBackdrop}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) closeOverlay();
-            }}
-          >
-            <div className={styles.followOverlayAnchor} style={{ left: overlayAlignLeft }}>
-              <m.div
-                className={styles.followOverlayPanel}
-                ref={overlayPanelRef}
-                initial={{ opacity: 0, scale: 0.96, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 16 }}
-                transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
+      {portalTarget
+        ? createPortal(
+            <AnimatePresence>
+              {overlayOpen ? (
+                <m.div
+                  className={styles.overlayBackdrop}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) closeOverlay();
+                  }}
+                >
+                  <div className={styles.followOverlayAnchor}>
+                    <m.div
+                      className={styles.followOverlayPanel}
+                      ref={overlayPanelRef}
+                      initial={{ opacity: 0, scale: 0.96, y: 16 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                      transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
                 <button type="button" className={styles.followOverlayCloseBtn} title="关闭" onClick={closeOverlay}>
                   <X size={18} />
                 </button>
@@ -920,29 +924,34 @@ export function FollowsList() {
                     </div>
                   )}
                 </div>
-              </m.div>
-            </div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+                    </m.div>
+                  </div>
+                </m.div>
+              ) : null}
+            </AnimatePresence>,
+            portalTarget
+          )
+        : null}
 
-      <AnimatePresence>
-        {folderNameModal.open ? (
-          <m.div
-            className={styles.modalBackdrop}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onMouseDown={() => setFolderNameModal({ open: false, mode: "create", folderId: null })}
-          >
-            <m.div
-              className={styles.modalPanel}
-              initial={{ opacity: 0, scale: 0.98, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 8 }}
-              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
+      {portalTarget
+        ? createPortal(
+            <AnimatePresence>
+              {folderNameModal.open ? (
+                <m.div
+                  className={styles.modalBackdrop}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onMouseDown={() => setFolderNameModal({ open: false, mode: "create", folderId: null })}
+                >
+                  <m.div
+                    className={styles.modalPanel}
+                    initial={{ opacity: 0, scale: 0.98, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98, y: 8 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
               <div className={styles.modalHeader}>
                 <div className={styles.modalTitle}>{folderNameModal.mode === "create" ? "新建文件夹" : "重命名文件夹"}</div>
                 <button type="button" className={styles.miniBtn} title="关闭" onClick={() => setFolderNameModal({ open: false, mode: "create", folderId: null })}>
@@ -970,10 +979,13 @@ export function FollowsList() {
                   确定
                 </button>
               </div>
-            </m.div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+                  </m.div>
+                </m.div>
+              ) : null}
+            </AnimatePresence>,
+            portalTarget
+          )
+        : null}
 
       <AnimatePresence>
         {folderMenu.open ? (
@@ -1018,23 +1030,25 @@ export function FollowsList() {
         ) : null}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {folderDeleteConfirm.open ? (
-          <m.div
-            className={styles.modalBackdrop}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onMouseDown={() => setFolderDeleteConfirm({ open: false, folderId: null })}
-          >
-            <m.div
-              className={styles.modalPanel}
-              initial={{ opacity: 0, scale: 0.98, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 8 }}
-              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
+      {portalTarget
+        ? createPortal(
+            <AnimatePresence>
+              {folderDeleteConfirm.open ? (
+                <m.div
+                  className={styles.modalBackdrop}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onMouseDown={() => setFolderDeleteConfirm({ open: false, folderId: null })}
+                >
+                  <m.div
+                    className={styles.modalPanel}
+                    initial={{ opacity: 0, scale: 0.98, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98, y: 8 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
               <div className={styles.modalHeader}>
                 <div className={styles.modalTitle}>删除文件夹</div>
                 <button type="button" className={styles.miniBtn} title="关闭" onClick={() => setFolderDeleteConfirm({ open: false, folderId: null })}>
@@ -1059,10 +1073,13 @@ export function FollowsList() {
                   删除
                 </button>
               </div>
-            </m.div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+                  </m.div>
+                </m.div>
+              ) : null}
+            </AnimatePresence>,
+            portalTarget
+          )
+        : null}
     </div>
   );
 }

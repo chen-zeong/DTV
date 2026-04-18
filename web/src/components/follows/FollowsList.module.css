@@ -577,7 +577,8 @@
 .followOverlayAnchor {
   position: fixed;
   top: 50%;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: min(1180px, calc(100vw - 48px));
   max-height: calc(100vh - 96px);
   z-index: 1201;
