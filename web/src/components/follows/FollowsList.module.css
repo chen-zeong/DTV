@@ -919,6 +919,18 @@
   flex-direction: column;
 }
 
+.modalPanelNearFollow {
+  left: 16px;
+  transform: translate(0, -50%);
+}
+
+@media (max-width: 640px) {
+  .modalPanelNearFollow {
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
 .modalHeader {
   flex-shrink: 0;
   padding: 12px 14px;
@@ -989,13 +1001,13 @@
 
 .primaryBtn {
   color: white;
-  background: rgba(64, 131, 255, 0.92);
-  border: 1px solid rgba(64, 131, 255, 0.7);
+  background: var(--accent-gradient);
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
 }
 
 .primaryBtn:hover {
   transform: translateY(-1px);
-  background: rgba(64, 131, 255, 1);
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
 }
 
 .dangerBtn {
