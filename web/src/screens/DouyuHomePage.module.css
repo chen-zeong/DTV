@@ -30,8 +30,8 @@
 }
 
 .cate3ItemActive {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-gradient);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
   color: #ffffff;
   font-weight: 900;
   box-shadow: none;
@@ -55,8 +55,8 @@
 }
 
 :global(:root[data-theme="dark"]) .cate3ItemActive {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-gradient);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--accent-hover));
   color: #ffffff;
   box-shadow: none;
 }
