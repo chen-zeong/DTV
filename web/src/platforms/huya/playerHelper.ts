@@ -6,6 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface HuyaUnifiedEntry { quality: string; bitRate: number; url: string; }
 
+let huyaProxyActive = false;
+
 export async function getHuyaStreamConfig(
   roomId: string,
   quality: string = '原画',
@@ -24,21 +26,34 @@ export async function getHuyaStreamConfig(
     console.log('[HuyaPlayerHelper] getHuyaStreamConfig got result:', result);
     
     if (result && result.flv_tx_urls && Array.isArray(result.flv_tx_urls)) {
-      const streamUrl = pickHuyaUrlByQuality(result.flv_tx_urls, quality) || result.flv_tx_urls[0]?.url;
-      if (streamUrl) {
-        const sanitizedUrl = enforceHttps(streamUrl);
-        return {
-          streamUrl: sanitizedUrl,
-          streamType: inferStreamType(sanitizedUrl),
-          title: result?.title ?? null,
-          anchorName: result?.nick ?? null,
-          avatar: result?.avatar ?? null,
-          isLive: typeof result?.is_live === 'boolean' ? result.is_live : null,
-        };
-      } else {
-        // 无地址按未开播处理
-        throw new Error('主播未开播或无法获取直播流');
+      const upstreamStreamUrl = pickHuyaUrlByQuality(result.flv_tx_urls, quality) || result.flv_tx_urls[0]?.url;
+      if (!upstreamStreamUrl) throw new Error('主播未开播或无法获取直播流');
+
+      const sanitizedUpstream = enforceHttps(upstreamStreamUrl);
+      const streamType = inferStreamType(sanitizedUpstream);
+
+      // 对齐 pure_live：虎牙播放需要稳定的 UA/Referer/Origin；WebView 无法给 FLV 请求加自定义 Header，走本地 proxy 注入。
+      let finalStreamUrl = sanitizedUpstream;
+      try {
+        await invoke('set_stream_url_cmd', { url: sanitizedUpstream });
+        const proxyUrl = await invoke<string>('start_proxy');
+        if (proxyUrl) {
+          finalStreamUrl = proxyUrl;
+          huyaProxyActive = true;
+        }
+      } catch {
+        // proxy 非关键：失败则回退直连（避免阻断播放），但可能更容易断流
+        huyaProxyActive = false;
       }
+
+      return {
+        streamUrl: finalStreamUrl,
+        streamType,
+        title: result?.title ?? null,
+        anchorName: result?.nick ?? null,
+        avatar: result?.avatar ?? null,
+        isLive: typeof result?.is_live === 'boolean' ? result.is_live : null,
+      };
     } else {
       // 数据异常或为空，一般意味着未开播或房间详情获取失败
       throw new Error('主播未开播或获取虎牙房间详情失败');
@@ -51,6 +66,17 @@ export async function getHuyaStreamConfig(
       throw new Error(msg);
     }
     throw new Error('主播未开播或无法获取直播流');
+  }
+}
+
+export async function stopHuyaProxy(): Promise<void> {
+  if (!huyaProxyActive) return;
+  try {
+    await invoke('stop_proxy');
+  } catch {
+    // ignore
+  } finally {
+    huyaProxyActive = false;
   }
 }
 

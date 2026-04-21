@@ -13,6 +13,7 @@ use tauri::Manager;
 mod config_transfer;
 mod platforms;
 mod proxy;
+mod version_check;
 use platforms::common::{DouyinDanmakuState, FollowHttpClient, HuyaDanmakuState};
 use platforms::douyin::danmu::signature::generate_douyin_ms_token;
 use platforms::douyin::fetch_douyin_partition_rooms;
@@ -233,6 +234,7 @@ fn main() {
                 platforms::bilibili::cookie::bootstrap_bilibili_cookie,
                 platforms::bilibili::search::search_bilibili_rooms,
                 platforms::huya::search::search_huya_anchors,
+                version_check::check_version_cmd,
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");

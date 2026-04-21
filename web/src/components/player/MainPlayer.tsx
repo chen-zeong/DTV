@@ -25,6 +25,7 @@ import {
 import { arrangeControlClusters } from "@/components/player/controlLayout";
 import { Platform } from "@/platforms/common/types";
 import { getDouyuStreamConfig, stopDouyuProxy } from "@/platforms/douyu/playerHelper";
+import { stopHuyaProxy } from "@/platforms/huya/playerHelper";
 import { fetchAndPrepareDouyinStreamConfig } from "@/platforms/douyin/playerHelper";
 import { getHuyaStreamConfig } from "@/platforms/huya/playerHelper";
 import { getBilibiliStreamConfig } from "@/platforms/bilibili/playerHelper";
@@ -681,6 +682,9 @@ export function MainPlayer({
       if (platform === Platform.DOUYU) {
         await stopDouyuProxy();
       }
+      if (platform === Platform.HUYA) {
+        await stopHuyaProxy();
+      }
 
       try {
         await applyDanmuFontFamilyForOS();
@@ -764,19 +768,22 @@ export function MainPlayer({
       delayedStopTimerRef.current = null;
     }
     void reloadStream("refresh");
-    return () => {
-      // React StrictMode(dev) 会触发“卸载→立即重新挂载”，这里延迟 stop，避免误杀新连接。
-      delayedStopTimerRef.current = window.setTimeout(() => {
-        delayedStopTimerRef.current = null;
-        void stopDanmakuBackend();
+      return () => {
+        // React StrictMode(dev) 会触发“卸载→立即重新挂载”，这里延迟 stop，避免误杀新连接。
+        delayedStopTimerRef.current = window.setTimeout(() => {
+          delayedStopTimerRef.current = null;
+          void stopDanmakuBackend();
+          if (platform === Platform.DOUYU) {
+            void stopDouyuProxy();
+          }
+          if (platform === Platform.HUYA) {
+            void stopHuyaProxy();
+          }
+        }, 200);
         if (platform === Platform.DOUYU) {
-          void stopDouyuProxy();
+          // proxy stop moved into delayed stop
         }
-      }, 200);
-      if (platform === Platform.DOUYU) {
-        // proxy stop moved into delayed stop
-      }
-      destroyPlayer();
+        destroyPlayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platform, roomId]);

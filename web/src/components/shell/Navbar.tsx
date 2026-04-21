@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { ChevronDown, Copy, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
+import { ChevronDown, Copy, ExternalLink, Heart, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { invoke } from "@tauri-apps/api/core";
 
 import styles from "./Navbar.module.css";
 import { searchAnchors, type SearchAnchorResult, type SearchPlatform } from "@/services/search";
@@ -15,6 +16,14 @@ import { useCustomCategories } from "@/state/customCategories/CustomCategoriesPr
 import { usePlayerOverlay } from "@/state/playerOverlay/PlayerOverlayProvider";
 
 type UiPlatform = "douyu" | "douyin" | "huya" | "bilibili" | "custom";
+
+type VersionInfo = {
+  version: string;
+  title?: string;
+  notes?: string[];
+  url?: string;
+  published_at?: string;
+};
 
 const basePlatforms: Array<{ id: Exclude<UiPlatform, "custom">; name: string }> = [
   { id: "douyu", name: "斗鱼" },
@@ -39,6 +48,13 @@ export function Navbar({
   const pathname = usePathname();
   const [isWindows, setIsWindows] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+
+  const [donateOpen, setDonateOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [hasUpdate, setHasUpdate] = useState(false);
+  const [localVersion, setLocalVersion] = useState<string>("");
+
   const playerUi = usePlayerUi();
   const playerOverlay = usePlayerOverlay();
   const follow = useFollow();
@@ -102,6 +118,38 @@ export function Navbar({
     window.requestAnimationFrame(() => {
       searchInputRef.current?.focus();
     });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      // 版本检查不是关键功能：失败不重试、不报错、不提示
+      try {
+        const res = await invoke<any>("check_version_cmd");
+        if (cancelled) return;
+        const local = typeof res?.local_version === "string" ? res.local_version : "";
+        setLocalVersion(local);
+        const remote = res?.remote;
+        if (remote && typeof remote.version === "string" && remote.version.trim()) {
+          const info: VersionInfo = {
+            version: remote.version,
+            title: typeof remote.title === "string" ? remote.title : undefined,
+            notes: Array.isArray(remote.notes) ? remote.notes.filter((x: any) => typeof x === "string") : undefined,
+            url: typeof remote.url === "string" ? remote.url : undefined,
+            published_at: typeof remote.published_at === "string" ? remote.published_at : undefined
+          };
+          setVersionInfo(info);
+        }
+        setHasUpdate(!!res?.has_update);
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const searchPlatform: SearchPlatform | null = useMemo(() => {
@@ -247,6 +295,24 @@ export function Navbar({
     const r = el.getBoundingClientRect();
     setHighlight({ width: r.width, x: r.left - c.left, opacity: 1 });
   }, [activePlatform]);
+
+  const openExternal = useCallback(async (url: string) => {
+    if (!url) return;
+    try {
+      const opener: any = await import("@tauri-apps/plugin-opener");
+      if (typeof opener?.open === "function") {
+        await opener.open(url);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useLayoutEffect(() => {
     updateHighlight();
@@ -533,6 +599,31 @@ export function Navbar({
           type="button"
           // eslint-disable-next-line react/no-unknown-property
           data-tauri-drag-region="false"
+          className={styles.versionBtn}
+          title="版本信息"
+          aria-label="版本信息"
+          onClick={() => setUpdateOpen(true)}
+        >
+          <span className={styles.versionText}>v{localVersion || "?"}</span>
+          {hasUpdate ? <span className={styles.badgeNew}>NEW</span> : null}
+        </button>
+
+        <button
+          type="button"
+          // eslint-disable-next-line react/no-unknown-property
+          data-tauri-drag-region="false"
+          className={styles.navIconBtn}
+          title="打赏支持"
+          aria-label="打赏"
+          onClick={() => setDonateOpen(true)}
+        >
+          <Heart size={18} />
+        </button>
+
+        <button
+          type="button"
+          // eslint-disable-next-line react/no-unknown-property
+          data-tauri-drag-region="false"
           className={`${styles.themeToggle} ${theme === "dark" ? styles.themeToggleDark : styles.themeToggleLight}`}
           onClick={onThemeToggle}
           aria-label={theme === "dark" ? "切换到浅色" : "切换到深色"}
@@ -554,6 +645,96 @@ export function Navbar({
           </div>
         ) : null}
       </div>
+
+      <AnimatePresence>
+        {donateOpen ? (
+          <m.div
+            className={styles.overlayBackdrop}
+            // eslint-disable-next-line react/no-unknown-property
+            data-tauri-drag-region="false"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={() => setDonateOpen(false)}
+          >
+            <m.div
+              className={styles.overlayCard}
+              initial={{ opacity: 0, y: 10, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.99 }}
+              transition={{ type: "spring", stiffness: 520, damping: 44, mass: 0.7 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.overlayHeader}>
+                <div className={styles.overlayTitle}>打赏支持</div>
+                <button type="button" className={styles.overlayClose} onClick={() => setDonateOpen(false)} aria-label="关闭">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className={styles.overlayBody}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className={styles.qrImage} src="/donate-qr.png" alt="打赏二维码" />
+                <div className={styles.overlayHint}>感谢支持，扫码即可。</div>
+              </div>
+            </m.div>
+          </m.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {updateOpen ? (
+          <m.div
+            className={styles.overlayBackdrop}
+            // eslint-disable-next-line react/no-unknown-property
+            data-tauri-drag-region="false"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={() => setUpdateOpen(false)}
+          >
+            <m.div
+              className={styles.overlayCard}
+              initial={{ opacity: 0, y: 10, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.99 }}
+              transition={{ type: "spring", stiffness: 520, damping: 44, mass: 0.7 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.overlayHeader}>
+                <div className={styles.overlayTitle}>
+                  {hasUpdate && versionInfo ? versionInfo.title || `发现新版本 v${versionInfo.version}` : "版本信息"}
+                </div>
+                <button type="button" className={styles.overlayClose} onClick={() => setUpdateOpen(false)} aria-label="关闭">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className={styles.overlayBody}>
+                <div className={styles.updateMeta}>
+                  <span>当前版本：v{localVersion || "?"}</span>
+                  {hasUpdate && versionInfo ? <span>最新版本：v{versionInfo.version}</span> : <span>已是最新</span>}
+                  {hasUpdate && versionInfo?.published_at ? <span>发布日期：{versionInfo.published_at}</span> : null}
+                </div>
+                {hasUpdate && versionInfo?.notes?.length ? (
+                  <ul className={styles.updateNotes}>
+                    {versionInfo.notes.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {hasUpdate && versionInfo?.url ? (
+                  <div className={styles.updateActions}>
+                    <button type="button" className={styles.primaryBtn} onClick={() => void openExternal(versionInfo.url!)}>
+                      <ExternalLink size={16} />
+                      打开下载页
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </m.div>
+          </m.div>
+        ) : null}
+      </AnimatePresence>
     </nav>
   );
 }

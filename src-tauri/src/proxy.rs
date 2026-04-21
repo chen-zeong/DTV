@@ -14,6 +14,10 @@ use tauri::{AppHandle, State};
 #[derive(Default)]
 pub struct ProxyServerHandle(pub StdMutex<Option<ServerHandle>>);
 
+// Align with pure_live-master's Huya playback UA
+const HUYA_HYSDK_UA: &str =
+    "HYSDK(Windows,30000002)_APP(pc_exe&7080000&official)_SDK(trans&2.34.0.5795)";
+
 async fn find_free_port() -> u16 {
     // Using a fixed port as requested by the user for easier debugging
     34719
@@ -129,10 +133,7 @@ async fn flv_proxy_handler(
 
     let mut req = client
         .get(&url)
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        )
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .header("Accept", "video/x-flv,application/octet-stream,*/*")
         .header("Range", "bytes=0-")
         .header("Connection", "keep-alive");
@@ -140,6 +141,7 @@ async fn flv_proxy_handler(
     // 如果是虎牙域名，添加必要的 Referer/Origin 头
     if url.contains("huya.com") || url.contains("hy-cdn.com") || url.contains("huyaimg.com") {
         req = req
+            .header("User-Agent", HUYA_HYSDK_UA)
             .header("Referer", "https://www.huya.com/")
             .header("Origin", "https://www.huya.com");
     }
