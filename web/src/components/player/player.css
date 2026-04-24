@@ -15,7 +15,7 @@
   min-height: 0;
   background: transparent;
   background-image: none;
-  padding: 12px 0 12px 8px;
+  padding: 0;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
@@ -41,7 +41,7 @@
   max-height: 100%;
   min-height: 0;
   gap: 0;
-  padding-right: 12px !important;
+  padding-right: 0 !important;
   overflow: hidden;
   box-sizing: border-box;
   position: relative;
@@ -743,6 +743,240 @@
   transform: scale(1.15);
 }
 
+.xgplayer-danmu-block.menu-open {
+  color: #ffffff;
+}
+
+.xgplayer-danmu-block {
+  gap: 8px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.xgplayer-danmu-block:hover {
+  color: #ffffff;
+}
+
+.xgplayer-danmu-block .danmu-block-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--player-accent);
+  box-shadow: 0 0 0 2px rgba(17, 20, 28, 0.9);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+
+.xgplayer-danmu-block.has-block .danmu-block-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.xgplayer-danmu-block-panel {
+  position: absolute;
+  bottom: 48px;
+  right: 0;
+  min-width: 240px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(17, 20, 28, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: rgba(255, 255, 255, 0.9);
+  z-index: 14;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  will-change: opacity, transform;
+}
+
+.xgplayer-danmu-block-panel.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.xgplayer-danmu-block-panel .block-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.xgplayer-danmu-block-panel .block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.xgplayer-danmu-block-panel .block-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.xgplayer-danmu-block-panel .block-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xgplayer-danmu-block-panel .block-enable-btn,
+.xgplayer-danmu-block-panel .block-clear-btn,
+.xgplayer-danmu-block-panel .block-add-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.xgplayer-danmu-block-panel .block-enable-btn.is-off {
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.xgplayer-danmu-block-panel .block-clear-btn.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.xgplayer-danmu-block-panel .block-enable-btn:hover,
+.xgplayer-danmu-block-panel .block-clear-btn:hover,
+.xgplayer-danmu-block-panel .block-add-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.xgplayer-danmu-block-panel .block-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.xgplayer-danmu-block-panel .block-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+}
+
+.xgplayer-danmu-block-panel .block-input::placeholder {
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.xgplayer-danmu-block-panel .block-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-height: 140px;
+  overflow: auto;
+}
+
+.xgplayer-danmu-block-panel .block-keywords::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xgplayer-danmu-block-panel .block-keywords::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.xgplayer-danmu-block-panel .block-empty {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.92);
+  font-weight: 700;
+}
+
+.xgplayer-danmu-block-panel .block-keyword-pill {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.xgplayer-danmu-block-panel .block-keyword-pill .pill-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xgplayer-danmu-block-panel .block-keyword-pill .pill-x {
+  opacity: 0.85;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.xgplayer-danmu-block-panel .block-keyword-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.xgplayer-danmu-block-panel .block-hint {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.92);
+  font-weight: 700;
+}
+
+
+.xgplayer-danmu-block-panel .block-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.86);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.xgplayer-danmu-block-panel .block-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
 
 
 
@@ -1408,6 +1642,58 @@ html.web-fs-active .danmu-panel {
   color: rgba(219, 255, 235, 0.95);
 }
 
+.player-topbar-right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.player-window-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(10, 10, 12, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.player-window-controls .window-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.player-window-controls .window-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.player-window-controls .window-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.player-window-controls .window-btn--close:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.38);
+}
+
 :root[data-theme="light"] .player-topbar-follow {
   color: rgba(255, 255, 255, 0.92);
   background: rgba(10, 10, 12, 0.44);
@@ -1899,7 +2185,7 @@ video.xgplayer-video {
 
 @media (max-width: 768px) {
   .player-page {
-    padding: 12px 0;
+    padding: 0;
   }
 
   .player-layout {
@@ -1918,7 +2204,7 @@ video.xgplayer-video {
   }
 
   .player-container {
-    padding: 12px 0;
+    padding: 0;
     gap: 0;
     border-radius: 16px;
     border-right: 1px solid rgba(255, 255, 255, 0.08);

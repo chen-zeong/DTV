@@ -1,5 +1,6 @@
 use super::gen::{ChatMessage, LikeMessage, MemberMessage, RoomStatsMessage}; // Updated to directly use types from gen
 use crate::platforms::common::DanmakuFrontendPayload;
+use log::debug;
 use prost::Message as ProstMessage; // For .decode() // Use shared payload type
 
 // Parser for ChatMessage
@@ -33,10 +34,6 @@ pub fn parse_chat_message(
                 }))
             } else {
                 // 对于没有用户信息的聊天消息 (例如系统消息)，也可能需要发送，但等级为0
-                println!(
-                    "    【聊天msg】Content: {} (no user info)",
-                    chat_msg.content
-                );
                 Ok(Some(DanmakuFrontendPayload {
                     room_id: current_room_id.to_string(), // Populate room_id
                     user: "系统".to_string(),             // Or some other placeholder
@@ -47,7 +44,7 @@ pub fn parse_chat_message(
             }
         }
         Err(e) => {
-            // eprintln!("    【X】Failed to parse ChatMessage in parser: {}", e); // Commented out to suppress error logging as per user request
+            debug!("    [Douyin Danmaku] Failed to parse ChatMessage: {}", e);
             Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
@@ -71,18 +68,18 @@ pub fn parse_member_message(
                     .map(|fcd| fcd.level)
                     .unwrap_or(0);
 
-                println!(
-                    "    【进场msg】[用户等级: {}][粉丝牌等级: {}]{} 进入了直播间",
+                debug!(
+                    "    [Douyin Danmaku] Member enter: [用户等级: {}][粉丝牌等级: {}]{}",
                     user_level, fans_club_level, user.nick_name
                 );
                 Ok(None) // 当前不发送到前端
             } else {
-                println!("    【进场msg】MemberMessage without user details.");
+                debug!("    [Douyin Danmaku] MemberMessage without user details.");
                 Ok(None)
             }
         }
         Err(e) => {
-            eprintln!("    【X】Failed to parse MemberMessage in parser: {}", e);
+            debug!("    [Douyin Danmaku] Failed to parse MemberMessage: {}", e);
             Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
@@ -98,17 +95,14 @@ pub fn parse_like_message(
     match LikeMessage::decode(payload) {
         Ok(like_msg) => {
             if let Some(user) = like_msg.user {
-                println!(
-                    "    【点赞msg】{} 点了{}个赞",
-                    user.nick_name, like_msg.count
-                );
+                debug!("    [Douyin Danmaku] Like: {} x{}", user.nick_name, like_msg.count);
             } else {
-                println!("    【点赞msg】点赞 {} 个 (无用户信息)", like_msg.count);
+                debug!("    [Douyin Danmaku] Like: x{} (no user)", like_msg.count);
             }
             Ok(None) // 点赞消息通常不直接作为弹幕显示在列表
         }
         Err(e) => {
-            eprintln!("    【X】Failed to parse LikeMessage in parser: {}", e);
+            debug!("    [Douyin Danmaku] Failed to parse LikeMessage: {}", e);
             Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
         }
     }
@@ -121,11 +115,11 @@ pub fn parse_room_stats_message(
 ) -> Result<Option<DanmakuFrontendPayload>, Box<dyn std::error::Error + Send + Sync>> {
     match RoomStatsMessage::decode(payload) {
         Ok(stats_msg) => {
-            println!("    【直播间统计msg】{}", stats_msg.display_long);
+            debug!("    [Douyin Danmaku] RoomStats: {}", stats_msg.display_long);
             Ok(None) // 统计信息通常不作为普通弹幕显示
         }
         Err(e) => {
-            eprintln!("    【X】Failed to parse RoomStatsMessage in parser: {}", e);
+            debug!("    [Douyin Danmaku] Failed to parse RoomStatsMessage: {}", e);
             Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
         }
     }

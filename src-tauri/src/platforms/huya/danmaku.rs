@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use log::info;
+use log::{debug, info, warn};
 use tars_stream::prelude::*;
 use tauri::Emitter;
 use tokio::sync::mpsc as tokio_mpsc;
@@ -72,7 +72,7 @@ async fn fetch_huya_ids(room_id: &str) -> Result<(i64, i64), String> {
         return Err("未找到频道ID，房间可能未开播".to_string());
     }
 
-    println!(
+    debug!(
         "[Huya Danmaku] fetch_huya_ids: room_id={} yyid={} topSid={}",
         room_id, ayyuid, top_sid
     );
@@ -103,10 +103,6 @@ pub async fn start_huya_danmaku_listener(
     state: tauri::State<'_, crate::platforms::common::HuyaDanmakuState>,
 ) -> Result<(), String> {
     let room_id_or_url = payload.args.room_id_str.clone();
-    println!(
-        "[Huya Danmaku] start listener room_id_or_url={}",
-        room_id_or_url
-    );
     info!(
         "[Huya Danmaku] start listener room_id_or_url={}",
         room_id_or_url
@@ -134,14 +130,7 @@ pub async fn start_huya_danmaku_listener(
     let room_id_clone = room_id_or_url.clone();
 
     tokio::spawn(async move {
-        println!(
-            "[Huya Danmaku] spawned worker for room_id={}",
-            room_id_clone
-        );
-        info!(
-            "[Huya Danmaku] spawned worker for room_id={}",
-            room_id_clone
-        );
+        debug!("[Huya Danmaku] spawned worker for room_id={}", room_id_clone);
 
         let mut backoff_secs = 1u64;
 
@@ -151,18 +140,12 @@ pub async fn start_huya_danmaku_listener(
                     .await
                     .map_err(|e| anyhow::anyhow!(e))?;
 
-                println!(
-                    "[Huya Danmaku] ws_url={} reg_len={}",
-                    ws_url,
-                    reg_data.len()
-                );
                 info!(
                     "[Huya Danmaku] ws_url={} reg_len={}",
                     ws_url,
                     reg_data.len()
                 );
 
-                println!("[Huya Danmaku] connecting to {}", ws_url);
                 info!("[Huya Danmaku] connecting to {}", ws_url);
                 let (ws_stream, _) = connect_async(&ws_url).await?;
 
@@ -173,8 +156,7 @@ pub async fn start_huya_danmaku_listener(
                     let mut hb_seq = 0usize;
                     while let Ok(_) = ws_write.send(WsMessage::Binary(HEARTBEAT.into())).await {
                         hb_seq += 1;
-                        println!("[Huya Danmaku] heartbeat sent #{}", hb_seq);
-                        info!("[Huya Danmaku] heartbeat sent #{}", hb_seq);
+                        debug!("[Huya Danmaku] heartbeat sent #{}", hb_seq);
                         sleep(Duration::from_secs(20)).await;
                     }
                     Err::<(), anyhow::Error>(anyhow::anyhow!("Huya heartbeat send failed"))
@@ -188,23 +170,8 @@ pub async fn start_huya_danmaku_listener(
                         };
                         match m {
                             WsMessage::Binary(bin) => {
-                                let (top_cmd, nested_cmd) = peek_cmds(&bin);
-                                println!(
-                                    "[Huya Danmaku] WS msg: len={} top_cmd={:?} nested_cmd={:?}",
-                                    bin.len(),
-                                    top_cmd,
-                                    nested_cmd
-                                );
-                                info!(
-                                    "[Huya Danmaku] WS msg: len={} top_cmd={:?} nested_cmd={:?}",
-                                    bin.len(),
-                                    top_cmd,
-                                    nested_cmd
-                                );
                                 match decode_msg_tars(&bin)? {
                                     Some((nick, text)) => {
-                                        println!("[Huya Danmaku] decoded chat: {} -> {}", nick, text);
-                                        info!("[Huya Danmaku] decoded chat: {} -> {}", nick, text);
                                         let _ = app_handle_clone.emit(
                                             "danmaku-message",
                                             crate::platforms::common::DanmakuFrontendPayload {
@@ -216,23 +183,11 @@ pub async fn start_huya_danmaku_listener(
                                             },
                                         );
                                     }
-                                    None => {
-                                        if top_cmd == Some(7) {
-                                            println!(
-                                                "[Huya Danmaku] non-chat or empty msg, nested={:?}",
-                                                nested_cmd
-                                            );
-                                            info!(
-                                                "[Huya Danmaku] non-chat or empty msg, nested={:?}",
-                                                nested_cmd
-                                            );
-                                        }
-                                    }
+                                    None => {}
                                 }
                             }
                             other => {
-                                println!("[Huya Danmaku] non-binary ws message: {:?}", other);
-                                info!("[Huya Danmaku] non-binary ws message: {:?}", other);
+                                debug!("[Huya Danmaku] non-binary ws message: {:?}", other);
                             }
                         }
                     }
@@ -242,11 +197,11 @@ pub async fn start_huya_danmaku_listener(
                 tokio::select! {
                     _ = rx_shutdown.recv() => Ok(ConnectionOutcome::Stop),
                     it = hb_task => {
-                        if let Err(e) = it { eprintln!("[Huya Danmaku] {}", e); }
+                        if let Err(e) = it { warn!("[Huya Danmaku] {}", e); }
                         Ok(ConnectionOutcome::Disconnected)
                     }
                     it = recv_task => {
-                        if let Err(e) = it { eprintln!("[Huya Danmaku] recv error: {}", e); }
+                        if let Err(e) = it { warn!("[Huya Danmaku] recv error: {}", e); }
                         Ok(ConnectionOutcome::Disconnected)
                     }
                 }
@@ -256,13 +211,13 @@ pub async fn start_huya_danmaku_listener(
             match result {
                 Ok(ConnectionOutcome::Stop) => break,
                 Ok(ConnectionOutcome::Disconnected) => {
-                    eprintln!(
+                    warn!(
                         "[Huya Danmaku] Disconnected, retrying in {}s.",
                         backoff_secs
                     );
                 }
                 Err(e) => {
-                    eprintln!(
+                    warn!(
                         "[Huya Danmaku] Connection error: {}. Retrying in {}s.",
                         e, backoff_secs
                     );
@@ -286,7 +241,7 @@ pub async fn stop_huya_danmaku_listener(
     room_id: String,
     state: tauri::State<'_, crate::platforms::common::HuyaDanmakuState>,
 ) -> Result<(), String> {
-    println!(
+    debug!(
         "[Huya Danmaku] stop_huya_danmaku_listener called for room_id={}",
         room_id
     );
@@ -299,12 +254,12 @@ pub async fn stop_huya_danmaku_listener(
 
     if let Some(tx) = tx {
         if let Err(_) = tx.send(()).await {
-            println!("[Huya Danmaku] 停止信号发送失败，监听器可能已经退出");
+            warn!("[Huya Danmaku] 停止信号发送失败，监听器可能已经退出");
         } else {
-            println!("[Huya Danmaku] 停止信号已发送给 room_id={}", room_id);
+            info!("[Huya Danmaku] 停止信号已发送给 room_id={}", room_id);
         }
     } else {
-        println!("[Huya Danmaku] 没有找到活跃的监听器需要停止");
+        debug!("[Huya Danmaku] 没有找到活跃的监听器需要停止");
     }
 
     Ok(())
@@ -343,19 +298,6 @@ impl StructFromTars for HuyaDanmakuFmt {
         let color = decoder.read_int32(0, false, 16777215)?;
         Ok(HuyaDanmakuFmt { color })
     }
-}
-
-fn peek_cmds(data: &[u8]) -> (Option<i32>, Option<i64>) {
-    let mut ios = TarsDecoder::from(data);
-    let top_cmd = ios.read_int32(0, false, -1).ok();
-    let nested_cmd = ios
-        .read_bytes(1, false, Default::default())
-        .ok()
-        .and_then(|b1| {
-            let mut inner = TarsDecoder::from(b1.as_ref());
-            inner.read_int32(1, false, -1).ok().map(|v| v as i64)
-        });
-    (top_cmd, nested_cmd)
 }
 
 fn find_uid_in_json(v: &serde_json::Value) -> Option<String> {
@@ -407,8 +349,7 @@ async fn get_ws_info_tars(room_id_or_url: &str) -> Result<(String, Vec<u8>), Str
         .path_segments()
         .and_then(|s| s.last())
         .ok_or_else(|| "房间ID解析失败".to_string())?;
-    println!("[Huya Danmaku] get_ws_info_tars rid={}", rid);
-    info!("[Huya Danmaku] get_ws_info_tars rid={}", rid);
+    debug!("[Huya Danmaku] get_ws_info_tars rid={}", rid);
 
     let client = reqwest::Client::builder()
         .http1_only()
@@ -426,8 +367,7 @@ async fn get_ws_info_tars(room_id_or_url: &str) -> Result<(String, Vec<u8>), Str
         .text()
         .await
         .map_err(|e| e.to_string())?;
-    println!("[Huya Danmaku] fetched room page len={}", resp_text.len());
-    info!("[Huya Danmaku] fetched room page len={}", resp_text.len());
+    debug!("[Huya Danmaku] fetched room page len={}", resp_text.len());
 
     // 先尝试 TT_PROFILE_INFO 提取 lp
     let mut ayyuid = {
@@ -489,14 +429,12 @@ async fn get_ws_info_tars(room_id_or_url: &str) -> Result<(String, Vec<u8>), Str
     if ayyuid.is_empty() {
         ayyuid = rid.to_string();
     }
-    println!("[Huya Danmaku] final ayyuid={}", ayyuid);
-    info!("[Huya Danmaku] final ayyuid={}", ayyuid);
+    debug!("[Huya Danmaku] final ayyuid={}", ayyuid);
 
     let mut topics = Vec::new();
     topics.push(format!("live:{}", ayyuid));
     topics.push(format!("chat:{}", ayyuid));
-    println!("[Huya Danmaku] topics={:?}", topics);
-    info!("[Huya Danmaku] topics={:?}", topics);
+    debug!("[Huya Danmaku] topics={:?}", topics);
 
     let mut oos = TarsEncoder::new();
     oos.write_list(0, &topics).map_err(|e| e.to_string())?;
@@ -509,8 +447,7 @@ async fn get_ws_info_tars(room_id_or_url: &str) -> Result<(String, Vec<u8>), Str
         .write_bytes(1, &oos.to_bytes())
         .map_err(|e| e.to_string())?;
     let b = wscmd.to_bytes();
-    println!("[Huya Danmaku] reg payload built, len={}", b.len());
-    info!("[Huya Danmaku] reg payload built, len={}", b.len());
+    debug!("[Huya Danmaku] reg payload built, len={}", b.len());
 
     Ok((WS_URL.to_owned(), b.as_ref().to_vec()))
 }
@@ -520,16 +457,12 @@ fn decode_msg_tars(data: &[u8]) -> anyhow::Result<Option<(String, String)>> {
     let mut ios = TarsDecoder::from(data);
     let top = ios.read_int32(0, false, -1)?;
     if top != 7 {
-        println!("[Huya Danmaku] ignore msg: top_cmd={}", top);
-        info!("[Huya Danmaku] ignore msg: top_cmd={}", top);
         return Ok(ret);
     }
     let b1 = ios.read_bytes(1, false, Default::default())?;
     let mut inner = TarsDecoder::from(b1.as_ref());
     let nested = inner.read_int32(1, false, -1).unwrap_or(-1);
     let b2 = inner.read_bytes(2, false, Default::default())?;
-    println!("[Huya Danmaku] nested={} payload_len={}", nested, b2.len());
-    info!("[Huya Danmaku] nested={} payload_len={}", nested, b2.len());
     let mut payload = TarsDecoder::from(b2.as_ref());
 
     if nested == 1400 {
@@ -563,22 +496,12 @@ fn decode_msg_tars(data: &[u8]) -> anyhow::Result<Option<(String, String)>> {
                 "匿名".to_string()
             };
             let _color_hex = format!("{:06x}", if fmt.color <= 0 { 16777215 } else { fmt.color });
-            println!(
-                "[Huya Danmaku] decoded nested=1400 nick={} text={}",
-                nick, text
-            );
-            info!(
-                "[Huya Danmaku] decoded nested=1400 nick={} text={}",
-                nick, text
-            );
             ret = Some((nick, text));
         } else {
-            println!("[Huya Danmaku] empty text in nested=1400");
-            info!("[Huya Danmaku] empty text in nested=1400");
+            debug!("[Huya Danmaku] empty text in nested=1400");
         }
     } else {
-        println!("[Huya Danmaku] non-chat nested={}, skip", nested);
-        info!("[Huya Danmaku] non-chat nested={}, skip", nested);
+        debug!("[Huya Danmaku] non-chat nested={}, skip", nested);
     }
     Ok(ret)
 }

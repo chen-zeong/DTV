@@ -48,9 +48,6 @@ importers:
       '@tauri-apps/plugin-updater':
         specifier: ^2.3.0
         version: 2.9.0
-      danmaku:
-        specifier: ^2.0.9
-        version: 2.0.9
       danmu.js:
         specifier: 1.1.13-douyin-1.5
         version: 1.1.13-douyin-1.5
@@ -63,6 +60,9 @@ importers:
       next:
         specifier: 16.2.3
         version: 16.2.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      qrcode.react:
+        specifier: ^4.2.0
+        version: 4.2.0(react@19.2.5)
       react:
         specifier: ^19.0.0
         version: 19.2.5
@@ -1518,9 +1518,6 @@ packages:
     resolution: {integrity: sha512-MOqHvMWF9/9MX6nza0KgvFH4HpMU0EF5uUDXqX/BtxtU8NfB0QzRtJ8Oe/6SuS4kbhyzVJwjd97EA4PKrzJ8bw==}
     engines: {node: '>=0.12'}
 
-  danmaku@2.0.9:
-    resolution: {integrity: sha512-K8XM3tWiKR7adbt45NgWucmFzY91eHKiLDPbeFXCZ2KWEju+3hgSIaWMkdg8dnxVTguKOc82vF/0DXm1Y02EUA==}
-
   danmu.js@1.1.13-douyin-1.5:
     resolution: {integrity: sha512-GMKwBdGjCeBpEjFamV8A0f83pkVNMJFC/W1r/eqkDPlUa3P598lBKGOXhFiJf7FDkg2mt+fppjB53SS0bHAtKQ==}
 
@@ -1747,6 +1744,11 @@ packages:
   postcss@8.5.6:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
+
+  qrcode.react@4.2.0:
+    resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react-aria-components@1.16.0:
     resolution: {integrity: sha512-MjHbTLpMFzzD2Tv5KbeXoZwPczuUWZcRavVvQQlNHRtXHH38D+sToMEYpNeir7Wh3K/XWtzeX3EujfJW6QNkrw==}
@@ -3580,8 +3582,6 @@ snapshots:
       es5-ext: 0.10.64
       type: 2.7.3
 
-  danmaku@2.0.9: {}
-
   danmu.js@1.1.13-douyin-1.5:
     dependencies:
       event-emitter: 0.3.5
@@ -3808,6 +3808,10 @@ snapshots:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  qrcode.react@4.2.0(react@19.2.5):
+    dependencies:
+      react: 19.2.5
 
   react-aria-components@1.16.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
     dependencies:

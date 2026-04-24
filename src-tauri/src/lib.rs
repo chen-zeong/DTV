@@ -1,4 +1,5 @@
 // pub mod fetch; // Removed
+mod logging;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -8,6 +9,7 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    logging::init();
     std::panic::set_hook(Box::new(|info| {
         eprintln!("[panic] {}", info);
     }));

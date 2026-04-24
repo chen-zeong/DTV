@@ -4,10 +4,11 @@ import {
   DANMU_OPACITY_MAX,
   DANMU_OPACITY_MIN,
   ICONS,
+  normalizeDanmuBlockKeywords,
   sanitizeDanmuArea,
   sanitizeDanmuOpacity,
 } from './constants';
-import type { DanmuUserSettings } from './constants';
+import type { DanmuKeywordBlockPreferences, DanmuUserSettings } from './constants';
 
 export class DanmuToggleControl extends Plugin {
   static override pluginName = 'danmuToggle';
@@ -500,5 +501,270 @@ export class DanmuSettingsControl extends Plugin {
       this.currentSettings.strokeColor = '#444444';
     }
     this.updateInputs();
+  }
+}
+
+export class DanmuKeywordBlockControl extends Plugin {
+  static override pluginName = 'danmuKeywordBlock';
+  static override defaultConfig = {
+    position: POSITIONS.CONTROLS_RIGHT,
+    index: 4.4,
+    disable: false,
+    getPreferences: (() => ({ enabled: true, keywords: [] })) as () => DanmuKeywordBlockPreferences,
+    onChange: (async (_next: DanmuKeywordBlockPreferences) => {}) as (next: DanmuKeywordBlockPreferences) => Promise<void> | void,
+  };
+
+  private panel: HTMLElement | null = null;
+  private handleToggle: ((event: Event) => void) | null = null;
+  private handleHoverEnter: ((event: Event) => void) | null = null;
+  private isOpen = false;
+
+  private current: DanmuKeywordBlockPreferences = { enabled: true, keywords: [] };
+  private inputEl: HTMLInputElement | null = null;
+  private listEl: HTMLElement | null = null;
+  private enableBtn: HTMLButtonElement | null = null;
+  private clearBtn: HTMLButtonElement | null = null;
+  private closeBtn: HTMLButtonElement | null = null;
+
+  override afterCreate() {
+    if (this.config.disable) {
+      return;
+    }
+
+    this.current = typeof this.config.getPreferences === 'function' ? this.config.getPreferences() : this.current;
+    this.current = { enabled: !!this.current.enabled, keywords: normalizeDanmuBlockKeywords(this.current.keywords) };
+
+    this.createPanel();
+    this.updateUi();
+
+    this.handleToggle = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.togglePanel(true);
+    };
+    this.bind(['click', 'touchend'], this.handleToggle);
+
+    this.handleHoverEnter = () => {
+      this.openPanel(false);
+    };
+    this.bind('mouseenter', this.handleHoverEnter);
+  }
+
+  override destroy() {
+    if (this.handleToggle) {
+      this.unbind(['click', 'touchend'], this.handleToggle);
+      this.handleToggle = null;
+    }
+    if (this.handleHoverEnter) {
+      this.unbind('mouseenter', this.handleHoverEnter);
+      this.handleHoverEnter = null;
+    }
+
+    (this.root as HTMLElement | null)?.classList.remove('menu-open');
+    this.panel?.remove();
+    this.panel = null;
+    this.inputEl = null;
+    this.listEl = null;
+    this.enableBtn = null;
+    this.clearBtn = null;
+    this.closeBtn = null;
+  }
+
+  override render() {
+    if (this.config.disable) {
+      return '';
+    }
+    return `<xg-icon class="xgplayer-danmu-block" title="弹幕屏蔽">
+      ${ICONS.filter}
+      <span class="danmu-block-dot" aria-hidden="true"></span>
+    </xg-icon>`;
+  }
+
+  private createPanel() {
+    this.panel = document.createElement('div');
+    this.panel.className = 'xgplayer-danmu-block-panel';
+    this.panel.innerHTML = `
+      <div class="block-shell">
+        <div class="block-header">
+          <div class="block-title">弹幕屏蔽</div>
+          <div class="block-actions">
+            <button type="button" class="block-enable-btn" aria-pressed="true">启用</button>
+            <button type="button" class="block-clear-btn" aria-disabled="true">清空</button>
+            <button type="button" class="block-close-btn" aria-label="关闭">×</button>
+          </div>
+        </div>
+        <div class="block-input-row">
+          <input class="block-input" type="text" placeholder="输入关键词，回车添加" spellcheck="false" />
+          <button type="button" class="block-add-btn">添加</button>
+        </div>
+        <div class="block-keywords" aria-label="已屏蔽关键词"></div>
+        <div class="block-hint">关键词对所有平台生效</div>
+      </div>
+    `;
+    this.root.appendChild(this.panel);
+
+    this.panel.addEventListener('click', (event) => event.stopPropagation());
+    this.panel.addEventListener('pointerdown', (event) => event.stopPropagation());
+    this.panel.addEventListener('mousedown', (event) => event.stopPropagation());
+
+    this.inputEl = this.panel.querySelector<HTMLInputElement>('.block-input');
+    this.listEl = this.panel.querySelector<HTMLElement>('.block-keywords');
+    this.enableBtn = this.panel.querySelector<HTMLButtonElement>('.block-enable-btn');
+    this.clearBtn = this.panel.querySelector<HTMLButtonElement>('.block-clear-btn');
+    this.closeBtn = this.panel.querySelector<HTMLButtonElement>('.block-close-btn');
+    const addBtn = this.panel.querySelector<HTMLButtonElement>('.block-add-btn');
+
+    const addKeyword = () => {
+      const raw = this.inputEl?.value ?? '';
+      const nextValue = raw.trim();
+      if (!nextValue) {
+        return;
+      }
+      const nextKeywords = normalizeDanmuBlockKeywords([...(this.current.keywords || []), nextValue]);
+      this.inputEl && (this.inputEl.value = '');
+      this.applyAndEmit({ ...this.current, keywords: nextKeywords });
+    };
+
+    addBtn?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      addKeyword();
+    });
+
+    this.inputEl?.addEventListener('keydown', (event) => {
+      event.stopPropagation();
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addKeyword();
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closePanel();
+      }
+    });
+
+    this.inputEl?.addEventListener('keyup', (event) => {
+      event.stopPropagation();
+    });
+
+    this.enableBtn?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.applyAndEmit({ ...this.current, enabled: !this.current.enabled });
+    });
+
+    this.clearBtn?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!this.current.keywords.length) {
+        return;
+      }
+      this.applyAndEmit({ ...this.current, keywords: [] });
+    });
+
+    this.closeBtn?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.closePanel();
+    });
+  }
+
+  private togglePanel(focusInput: boolean) {
+    if (this.isOpen) {
+      this.closePanel();
+    } else {
+      this.openPanel(focusInput);
+    }
+  }
+
+  private openPanel(focusInput: boolean) {
+    if (!this.panel || this.isOpen) {
+      return;
+    }
+    this.isOpen = true;
+    this.panel.classList.add('show');
+    this.root.classList.add('menu-open');
+    this.updateUi();
+    if (focusInput) {
+      try {
+        this.inputEl?.focus();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  private closePanel() {
+    if (!this.panel) {
+      return;
+    }
+    this.isOpen = false;
+    this.panel.classList.remove('show');
+    this.root.classList.remove('menu-open');
+  }
+
+  private updateUi() {
+    const keywords = Array.isArray(this.current.keywords) ? this.current.keywords : [];
+    const enabled = !!this.current.enabled;
+
+    (this.root as HTMLElement | null)?.classList.toggle('has-block', enabled && keywords.length > 0);
+    if (this.enableBtn) {
+      this.enableBtn.textContent = enabled ? '启用' : '停用';
+      this.enableBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+      this.enableBtn.classList.toggle('is-off', !enabled);
+    }
+    if (this.clearBtn) {
+      const canClear = keywords.length > 0;
+      this.clearBtn.setAttribute('aria-disabled', canClear ? 'false' : 'true');
+      this.clearBtn.classList.toggle('is-disabled', !canClear);
+    }
+
+    if (!this.listEl) {
+      return;
+    }
+    this.listEl.innerHTML = '';
+    if (!keywords.length) {
+      const empty = document.createElement('div');
+      empty.className = 'block-empty';
+      empty.textContent = '暂无关键词';
+      this.listEl.appendChild(empty);
+      return;
+    }
+
+    keywords.forEach((kw) => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'block-keyword-pill';
+      pill.innerHTML = `<span class="pill-text"></span><span class="pill-x" aria-hidden="true">×</span>`;
+      const text = pill.querySelector<HTMLElement>('.pill-text');
+      if (text) {
+        text.textContent = kw;
+      }
+      pill.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const nextKeywords = keywords.filter((x) => x !== kw);
+        this.applyAndEmit({ ...this.current, keywords: nextKeywords });
+      });
+      this.listEl?.appendChild(pill);
+    });
+  }
+
+  private applyAndEmit(next: DanmuKeywordBlockPreferences) {
+    const normalized: DanmuKeywordBlockPreferences = {
+      enabled: !!next.enabled,
+      keywords: normalizeDanmuBlockKeywords(next.keywords),
+    };
+    this.current = normalized;
+    this.updateUi();
+    const cb = this.config.onChange;
+    if (typeof cb === 'function') {
+      cb(normalized);
+    }
+  }
+
+  setPreferences(next: DanmuKeywordBlockPreferences) {
+    this.current = { enabled: !!next.enabled, keywords: normalizeDanmuBlockKeywords(next.keywords) };
+    this.updateUi();
   }
 }

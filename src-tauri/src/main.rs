@@ -3,14 +3,15 @@
 
 use reqwest;
 use std::panic;
-use std::collections::HashMap;
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::oneshot;
 #[cfg(target_os = "macos")]
 use tauri::Manager;
+mod logging;
 mod config_transfer;
+mod lan_sync;
 mod platforms;
 mod proxy;
 mod version_check;
@@ -36,7 +37,7 @@ pub struct StreamUrlStore {
 
 // State for managing Douyu danmaku listener handles (stop signals)
 #[derive(Default, Clone)]
-pub struct DouyuDanmakuHandles(Arc<Mutex<HashMap<String, oneshot::Sender<()>>>>);
+pub struct DouyuDanmakuHandles(Arc<Mutex<Option<oneshot::Sender<()>>>>);
 
 #[tauri::command]
 async fn get_stream_url_cmd(room_id: String) -> Result<String, String> {
@@ -92,17 +93,20 @@ async fn start_danmaku_listener(
     window: tauri::Window,
     danmaku_handles: tauri::State<'_, DouyuDanmakuHandles>,
 ) -> Result<(), String> {
-    // If a listener for this room_id already exists, stop it first.
-    if let Some(existing_sender) = danmaku_handles.0.lock().unwrap().remove(&room_id) {
-        let _ = existing_sender.send(());
+    // Business rule: only one room at a time. Always stop any previous listener first.
+    let previous_sender = {
+        let mut lock = danmaku_handles.0.lock().unwrap();
+        lock.take()
+    };
+    if let Some(sender) = previous_sender {
+        let _ = sender.send(());
     }
 
     let (stop_tx, stop_rx) = oneshot::channel();
-    danmaku_handles
-        .0
-        .lock()
-        .unwrap()
-        .insert(room_id.clone(), stop_tx);
+    {
+        let mut lock = danmaku_handles.0.lock().unwrap();
+        *lock = Some(stop_tx);
+    }
 
     let window_clone = window.clone();
     let room_id_clone = room_id.clone();
@@ -129,11 +133,17 @@ async fn stop_danmaku_listener(
     room_id: String,
     danmaku_handles: tauri::State<'_, DouyuDanmakuHandles>,
 ) -> Result<(), String> {
-    if let Some(sender) = danmaku_handles.0.lock().unwrap().remove(&room_id) {
+    // The `room_id` parameter is kept for frontend compatibility.
+    // This backend is single-instance, so we always stop the current listener (if any).
+    let sender = {
+        let mut lock = danmaku_handles.0.lock().unwrap();
+        lock.take()
+    };
+    if let Some(sender) = sender {
         match sender.send(()) {
             Ok(_) => Ok(()),
             Err(_) => Err(format!(
-                "Failed to stop Douyu danmaku listener for room {}: receiver dropped.",
+                "Failed to stop Douyu danmaku listener (requested room {}): receiver dropped.",
                 room_id
             )),
         }
@@ -152,6 +162,7 @@ async fn search_anchor(keyword: String) -> Result<String, String> {
 
 // Main function corrected
 fn main() {
+    logging::init();
     panic::set_hook(Box::new(|info| {
         eprintln!("[panic] {}", info);
     }));
@@ -170,7 +181,11 @@ fn main() {
             .plugin(tauri_plugin_os::init())
             .plugin(tauri_plugin_opener::init())
             .plugin(tauri_plugin_window_state::Builder::default()
-                .with_state_flags(tauri_plugin_window_state::StateFlags::SIZE)
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED
+                )
                 .build())
             .setup(|_app| {
                 // Apply macOS vibrancy to the main window when running on macOS
@@ -195,6 +210,7 @@ fn main() {
             .manage(StreamUrlStore::default())
             .manage(proxy::ProxyServerHandle::default())
             .manage(platforms::bilibili::state::BilibiliState::default())
+            .manage(lan_sync::LanSyncServerState::default())
             .invoke_handler(tauri::generate_handler![
                 get_stream_url_cmd,
                 get_stream_url_with_quality_cmd,
@@ -202,6 +218,11 @@ fn main() {
                 search_anchor,
                 config_transfer::save_config_export,
                 config_transfer::pick_config_import,
+                lan_sync::lan_sync_start_server,
+                lan_sync::lan_sync_stop_server,
+                lan_sync::lan_sync_status,
+                lan_sync::lan_sync_token,
+                lan_sync::lan_sync_discover,
                 start_danmaku_listener,      // Douyu danmaku start
                 stop_danmaku_listener,       // Douyu danmaku stop
                 start_douyin_danmu_listener, // Added Douyin danmaku listener command

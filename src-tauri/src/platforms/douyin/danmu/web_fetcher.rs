@@ -1,4 +1,5 @@
 use crate::platforms::common::http_client::HttpClient;
+use log::{debug, warn};
 use crate::platforms::douyin::web_api::{
     fetch_room_data, normalize_douyin_live_id, DouyinRoomData, DEFAULT_USER_AGENT,
 };
@@ -366,18 +367,18 @@ impl DouyinLiveWebFetcher {
                         } else {
                             "已结束"
                         };
-                        println!("【{}】[{}]直播间：{}.", nick, id, status_text);
+                        debug!("【{}】[{}]直播间：{}.", nick, id, status_text);
                     } else {
-                        println!("【X】无法解析直播间信息的部分字段 (status, id, nick)");
+                        warn!("【X】无法解析直播间信息的部分字段 (status, id, nick)");
                     }
                 } else {
-                    println!("【X】未找到用户信息 (owner data in room_data.room)");
+                    warn!("【X】未找到用户信息 (owner data in room_data.room)");
                 }
             } else {
-                println!("【X】未找到房间信息 (room object in room_data_top)");
+                warn!("【X】未找到房间信息 (room object in room_data_top)");
             }
         } else {
-            println!("【X】未找到顶层房间数据 (data object in response)");
+            warn!("【X】未找到顶层房间数据 (data object in response)");
         }
         Ok(())
     }
@@ -393,7 +394,7 @@ impl DouyinLiveWebFetcher {
 // New Tauri command
 #[tauri::command]
 pub async fn fetch_douyin_room_info(live_id: String) -> Result<DouyinFollowListRoomInfo, String> {
-    println!(
+    debug!(
         "[fetch_douyin_room_info] Fetching details for web_id: {}",
         live_id
     );

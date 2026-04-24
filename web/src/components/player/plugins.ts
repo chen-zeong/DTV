@@ -1,4 +1,4 @@
-export { DanmuSettingsControl, DanmuToggleControl } from './danmuPlugins';
+export { DanmuKeywordBlockControl, DanmuSettingsControl, DanmuToggleControl } from './danmuPlugins';
 export {
   LineControl,
   QualityControl,

@@ -191,15 +191,15 @@
   height: 38px;
   opacity: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045));
+  border: none;
   will-change: transform, height, opacity;
   z-index: 0;
 }
 
 :global(:root[data-theme="light"]) .hoverHighlight {
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid transparent;
+  background: rgba(15, 23, 42, 0.06);
+  border: none;
 }
 
 .listItemWrapper {
@@ -528,15 +528,15 @@
   height: 38px;
   opacity: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+  border: none;
   will-change: transform, height, opacity;
   z-index: 0;
 }
 
 :global(:root[data-theme="light"]) .folderHoverHighlight {
-  background: rgba(120, 120, 120, 0.16);
-  border: 1px solid transparent;
+  background: rgba(15, 23, 42, 0.06);
+  border: none;
 }
 
 .folderItemsInner {

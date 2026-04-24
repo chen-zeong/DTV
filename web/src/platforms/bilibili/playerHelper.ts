@@ -4,6 +4,7 @@ import type { LiveStreamInfo, StreamVariant } from '../common/types';
 import type { Ref } from '../common/ref';
 import type { DanmakuMessage, DanmuOverlayInstance, DanmuRenderOptions } from '../../components/player/types';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/utils/logger';
 
 export async function getBilibiliStreamConfig(
   roomId: string,
@@ -44,13 +45,13 @@ export async function getBilibiliStreamConfig(
 
   // 调试输出：真实上游地址与所有可用地址
   if (result.upstream_url) {
-    console.info('[Bilibili] 上游真实地址（可用于 VLC 测试）:', result.upstream_url);
+    logger.debug('[Bilibili] 上游真实地址（可用于 VLC 测试）:', result.upstream_url);
   }
   if (result.available_streams && Array.isArray(result.available_streams)) {
-    console.info(`[Bilibili] 可用播放地址（共 ${result.available_streams.length} 条）:`);
+    logger.debug(`[Bilibili] 可用播放地址（共 ${result.available_streams.length} 条）:`);
     (result.available_streams as StreamVariant[]).forEach((v, idx) => {
       const meta = [v.format, v.desc, v.qn?.toString(), v.protocol].filter(Boolean).join(' | ');
-      console.info(`  [${idx + 1}] ${v.url}${meta ? `  <<< ${meta}` : ''}`);
+      logger.debug(`  [${idx + 1}] ${v.url}${meta ? `  <<< ${meta}` : ''}`);
     });
   }
 

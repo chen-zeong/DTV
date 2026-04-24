@@ -1,10 +1,19 @@
 "use client";
 
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, m } from "framer-motion";
 
 import styles from "./PlayerOverlayProvider.module.css";
-import { PlayerPage } from "@/screens/PlayerPage";
+
+const PlayerPage = dynamic(() => import("@/screens/PlayerPage").then((m) => m.PlayerPage), {
+  ssr: false,
+  loading: () => (
+    <div style={{ padding: 18, color: "var(--secondary-text)", fontWeight: 700 }}>
+      加载播放器...
+    </div>
+  )
+});
 
 type PlayerOverlayOpenPayload = { platform: string; roomId: string };
 

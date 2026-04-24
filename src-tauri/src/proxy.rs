@@ -76,7 +76,9 @@ async fn image_proxy_handler(
                     Ok(bytes) => HttpResponse::Ok()
                         .content_type(content_type)
                         .insert_header(("Content-Length", bytes.len().to_string()))
-                        .insert_header(("Cache-Control", "no-store"))
+                        // Allow the WebView to cache proxied images to avoid re-downloading covers/avatars
+                        // when switching routes or scrolling lists.
+                        .insert_header(("Cache-Control", "public, max-age=86400, immutable"))
                         .body(bytes),
                     Err(e) => {
                         eprintln!("[Rust/proxy.rs image] Failed to read bytes: {}", e);

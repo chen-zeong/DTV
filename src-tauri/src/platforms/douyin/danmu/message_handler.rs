@@ -1,5 +1,6 @@
 use flate2::read::GzDecoder;
 use futures_util::{stream::SplitStream, StreamExt};
+use log::{debug, warn};
 use prost::Message as ProstMessage; // For decode/encode
 use std::io::Read;
 use tauri::Emitter;
@@ -17,10 +18,7 @@ pub async fn handle_received_messages(
     app_handle: tauri::AppHandle, // Added AppHandle
     room_id: String,              // Added room_id parameter
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!(
-        "[Douyin Danmaku] Message handler started for room_id: {}",
-        room_id
-    );
+    debug!("[Douyin Danmaku] Message handler started for room_id: {}", room_id);
     while let Some(message_result) = read_stream.next().await {
         match message_result {
             Ok(ws_msg) => {
@@ -31,7 +29,7 @@ pub async fn handle_received_messages(
                                 let mut gz = GzDecoder::new(push_frame.payload.as_slice());
                                 let mut decompressed_payload = Vec::new();
                                 if let Err(e) = gz.read_to_end(&mut decompressed_payload) {
-                                    eprintln!("[Douyin Danmaku] Gzip decompression error: {}", e);
+                                    warn!("[Douyin Danmaku] Gzip decompression error: {}", e);
                                     continue;
                                 }
                                 match Response::decode(decompressed_payload.as_slice()) {
@@ -52,10 +50,10 @@ pub async fn handle_received_messages(
                                                     .await
                                                     .is_err()
                                                 {
-                                                    eprintln!("[Douyin Danmaku] Failed to send ACK message via channel");
+                                                    warn!("[Douyin Danmaku] Failed to send ACK message via channel");
                                                 }
                                             } else {
-                                                eprintln!("[Douyin Danmaku] Failed to encode ACK PushFrame for channel");
+                                                warn!("[Douyin Danmaku] Failed to encode ACK PushFrame for channel");
                                             }
                                         }
                                         for msg in response.messages_list {
@@ -84,15 +82,12 @@ pub async fn handle_received_messages(
                                                     .emit("danmaku-message", payload.clone())
                                                 {
                                                     // payload needs to be Clone for emit
-                                                    eprintln!("[Douyin Danmaku] Failed to emit danmaku event: {}", e);
+                                                    warn!("[Douyin Danmaku] Failed to emit danmaku event: {}", e);
                                                 }
                                             }
                                         }
                                     }
-                                    Err(e) => eprintln!(
-                                        "[Douyin Danmaku] Failed to parse Response: {}",
-                                        e
-                                    ),
+                                    Err(e) => warn!("[Douyin Danmaku] Failed to parse Response: {}", e),
                                 }
                             } else if push_frame.payload_type == "ack" {
                                 // Optional: log received ACKs from server
@@ -102,22 +97,19 @@ pub async fn handle_received_messages(
                                 // println!("[Douyin Danmaku] Received Heartbeat from server.");
                             }
                         }
-                        Err(e) => eprintln!("[Douyin Danmaku] Failed to parse PushFrame: {}", e),
+                        Err(e) => warn!("[Douyin Danmaku] Failed to parse PushFrame: {}", e),
                     }
                 } else if let WsMessage::Ping(ping_data) = ws_msg {
                     if ack_tx.send(WsMessage::Pong(ping_data)).await.is_err() {
-                        eprintln!("[Douyin Danmaku] Failed to send PONG from message_handler");
+                        warn!("[Douyin Danmaku] Failed to send PONG from message_handler");
                     }
                 } else if let WsMessage::Close(close_frame) = ws_msg {
-                    println!(
-                        "[Douyin Danmaku] WebSocket closed by server: {:?}",
-                        close_frame
-                    );
+                    debug!("[Douyin Danmaku] WebSocket closed by server: {:?}", close_frame);
                     break;
                 }
             }
             Err(e) => {
-                eprintln!(
+                warn!(
                     "[Douyin Danmaku] WebSocket receive error in message_handler: {}",
                     e
                 );
@@ -125,6 +117,6 @@ pub async fn handle_received_messages(
             }
         }
     }
-    println!("[Douyin Danmaku] Message handler finished.");
+    debug!("[Douyin Danmaku] Message handler finished.");
     Ok(())
 }

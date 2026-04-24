@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { CommonStreamer } from "@/platforms/common/streamerTypes";
+import { logger } from "@/utils/logger";
 
 export function useDouyinLiveRooms(partitionId: string | null, partitionTypeId: string | null) {
   const [rooms, setRooms] = useState<CommonStreamer[]>([]);
@@ -64,7 +65,7 @@ export function useDouyinLiveRooms(partitionId: string | null, partitionTypeId: 
       setError(null);
 
       try {
-        console.info("[useDouyinLiveRooms] fetch rooms", {
+        logger.debug("[useDouyinLiveRooms] fetch rooms", {
           partition: partitionId,
           partition_type: partitionTypeId,
           offset
@@ -83,12 +84,12 @@ export function useDouyinLiveRooms(partitionId: string | null, partitionTypeId: 
           const nextOffset = response.next_offset ?? offset + newRooms.length;
           setCurrentOffset(typeof nextOffset === "string" ? Number(nextOffset) : nextOffset);
         } else {
-          console.warn("[useDouyinLiveRooms] No rooms array in response or invalid structure (expected response.rooms to be an array).");
+          logger.warn("[useDouyinLiveRooms] No rooms array in response or invalid structure (expected response.rooms to be an array).");
           if (!loadMore) setRooms([]);
           setHasMore(false);
         }
       } catch (e: any) {
-        console.error("[useDouyinLiveRooms] Error fetching rooms:", e);
+        logger.error("[useDouyinLiveRooms] Error fetching rooms:", e);
         // 提取更友好的错误信息
         let errorMsg = typeof e === "string" ? e : (e?.message || "Failed to fetch rooms");
         // 如果是抖音 API 的错误，显示更友好的提示
@@ -139,7 +140,7 @@ export function useDouyinLiveRooms(partitionId: string | null, partitionTypeId: 
       msTokenRef.current = null;
       return;
     }
-    console.info("[useDouyinLiveRooms] load initial", { partitionId, partitionTypeId });
+    logger.debug("[useDouyinLiveRooms] load initial", { partitionId, partitionTypeId });
     msTokenRef.current = null;
     void loadInitialRooms();
     // eslint-disable-next-line react-hooks/exhaustive-deps

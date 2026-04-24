@@ -3,6 +3,7 @@ import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import type { Ref } from '../common/ref';
 import type { DanmakuMessage, DanmuOverlayInstance, DanmuRenderOptions } from '../../components/player/types';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/utils/logger';
 
 export interface HuyaUnifiedEntry { quality: string; bitRate: number; url: string; }
 
@@ -20,10 +21,10 @@ export async function getHuyaStreamConfig(
   avatar?: string | null;
   isLive?: boolean | null;
 }> {
-  console.log('[HuyaPlayerHelper] getHuyaStreamConfig called with roomId:', roomId, 'quality:', quality);
+  logger.debug('[HuyaPlayerHelper] getHuyaStreamConfig', { roomId, quality, line });
   try {
     const result = await invoke<any>('get_huya_unified_cmd', { roomId: roomId, quality, line: line ?? null });
-    console.log('[HuyaPlayerHelper] getHuyaStreamConfig got result:', result);
+    logger.debug('[HuyaPlayerHelper] getHuyaStreamConfig result', result);
     
     if (result && result.flv_tx_urls && Array.isArray(result.flv_tx_urls)) {
       const upstreamStreamUrl = pickHuyaUrlByQuality(result.flv_tx_urls, quality) || result.flv_tx_urls[0]?.url;
@@ -59,7 +60,7 @@ export async function getHuyaStreamConfig(
       throw new Error('主播未开播或获取虎牙房间详情失败');
     }
   } catch (error: any) {
-    console.error('[HuyaPlayerHelper] getHuyaStreamConfig error:', error);
+    logger.error('[HuyaPlayerHelper] getHuyaStreamConfig error:', error);
     // 若后端明确返回未开播文案，直接透传；否则统一按未开播处理
     const msg = (error?.message || '').trim();
     if (msg.includes('未开播')) {
@@ -96,15 +97,15 @@ export async function startHuyaDanmakuListener(
   danmakuMessagesRef: Ref<DanmakuMessage[]>,
   renderOptions?: DanmuRenderOptions
 ): Promise<() => void> {
-  console.log('[HuyaPlayerHelper] Starting Huya danmaku listener for room:', roomId);
+  logger.debug('[HuyaPlayerHelper] Starting Huya danmaku listener', { roomId });
   currentHuyaRoomId = roomId;
   
   try {
     // 调用后端虎牙弹幕监听命令
     await invoke('start_huya_danmaku_listener', { payload: { args: { room_id_str: roomId } } });
-    console.log('[HuyaPlayerHelper] Backend Huya danmaku listener started');
+    logger.debug('[HuyaPlayerHelper] Backend Huya danmaku listener started');
   } catch (error) {
-    console.error('[HuyaPlayerHelper] Failed to start backend Huya danmaku listener:', error);
+    logger.error('[HuyaPlayerHelper] Failed to start backend Huya danmaku listener:', error);
     throw error;
   }
 
@@ -112,7 +113,7 @@ export async function startHuyaDanmakuListener(
   const eventName = 'danmaku-message';
   
   const unlisten = await listen<UnifiedRustDanmakuPayload>(eventName, (event: TauriEvent<UnifiedRustDanmakuPayload>) => {
-    console.log('[HuyaPlayerHelper] Received danmaku event:', event.payload);
+    logger.debug('[HuyaPlayerHelper] Received danmaku event', event.payload);
     
     // 只处理当前房间的弹幕（后端 payload 字段为 room_id/user/content/...）
     if (!event.payload || event.payload.room_id !== roomId) {
@@ -146,7 +147,7 @@ export async function startHuyaDanmakuListener(
           },
         });
       } catch (emitError) {
-        console.warn('[HuyaPlayerHelper] Failed emitting danmu.js comment:', emitError);
+        logger.warn('[HuyaPlayerHelper] Failed emitting danmu.js comment:', emitError);
       }
     }
 
@@ -160,7 +161,7 @@ export async function startHuyaDanmakuListener(
     }
   });
 
-  console.log('[HuyaPlayerHelper] Event listener registered for:', eventName);
+  logger.debug('[HuyaPlayerHelper] Event listener registered', { eventName });
   
   return unlisten;
 }
@@ -169,9 +170,9 @@ export async function stopHuyaDanmaku(currentUnlistenFn: (() => void) | null): P
   if (currentUnlistenFn) {
     try { 
       currentUnlistenFn(); 
-      console.log('[HuyaPlayerHelper] Event listener unregistered');
+      logger.debug('[HuyaPlayerHelper] Event listener unregistered');
     } catch (e) { 
-      console.warn('[HuyaPlayerHelper] stopHuyaDanmaku cleanup error:', e); 
+      logger.warn('[HuyaPlayerHelper] stopHuyaDanmaku cleanup error:', e); 
     }
   }
   
@@ -180,10 +181,10 @@ export async function stopHuyaDanmaku(currentUnlistenFn: (() => void) | null): P
     const roomIdToStop = currentHuyaRoomId || '';
     await invoke('stop_huya_danmaku_listener', { roomId: roomIdToStop });
   } catch (e) {
-    console.warn('[HuyaPlayerHelper] stopHuyaDanmaku: backend stop encountered error (ignored):', e);
+    logger.warn('[HuyaPlayerHelper] stopHuyaDanmaku: backend stop encountered error (ignored):', e);
   }
   currentHuyaRoomId = null;
-  console.log('[HuyaPlayerHelper] Huya danmaku stopped');
+  logger.debug('[HuyaPlayerHelper] Huya danmaku stopped');
 }
 
 function pickHuyaUrlByQuality(entries: HuyaUnifiedEntry[], quality: string): string | undefined {

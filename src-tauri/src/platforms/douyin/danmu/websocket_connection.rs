@@ -1,5 +1,6 @@
 use chrono::Utc;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
+use log::{debug, warn};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{self, Sender};
@@ -107,7 +108,7 @@ pub async fn connect_and_manage_websocket(
                 }
                 _ = ticker.tick() => {
                     if let Err(e) = write.send(ws_ping_msg.clone()).await {
-                        println!("[Douyin Danmaku] Heartbeat send error: {}", e);
+                        warn!("[Douyin Danmaku] Heartbeat send error: {}", e);
                         break;
                     }
                 }
@@ -115,7 +116,7 @@ pub async fn connect_and_manage_websocket(
                     match msg_opt {
                         Some(msg_to_send) => {
                             if let Err(e) = write.send(msg_to_send).await {
-                                println!("[Douyin Danmaku] Send error: {}", e);
+                                warn!("[Douyin Danmaku] Send error: {}", e);
                                 // Potentially break or signal error if a crucial message (like ACK) fails
                                 if matches!(e, tokio_tungstenite::tungstenite::Error::ConnectionClosed |
                                                tokio_tungstenite::tungstenite::Error::AlreadyClosed) {
@@ -132,7 +133,7 @@ pub async fn connect_and_manage_websocket(
                 }
             }
         }
-        println!("WebSocket send/heartbeat task ended.");
+        debug!("[Douyin Danmaku] WebSocket send/heartbeat task ended.");
     });
 
     Ok((read, tx, shutdown_tx)) // Return the read stream and the sender for other tasks to send messages

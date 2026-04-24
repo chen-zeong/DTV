@@ -11,12 +11,46 @@ export type DanmuUserSettings = {
 };
 
 export const DANMU_PREFERENCES_STORAGE_KEY = 'dtv_danmu_preferences_v1';
+export const DANMU_KEYWORD_BLOCK_STORAGE_KEY = 'dtv_danmu_keyword_block_v1';
 export const DANMU_AREA_OPTIONS = [0.25, 0.5, 0.75] as const;
 export const DANMU_OPACITY_MIN = 0.2;
 export const DANMU_OPACITY_MAX = 1;
 export const PLAYER_VOLUME_STORAGE_KEY = 'dtv_player_volume_v1';
 export const DEFAULT_DANMU_FONT_FAMILY = '"OPPO Sans", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif';
 export const WINDOWS_DANMU_FONT_FAMILY = '"OPPO Sans", "Microsoft YaHei", "Segoe UI", sans-serif';
+
+export type DanmuKeywordBlockPreferences = {
+  enabled: boolean;
+  keywords: string[];
+};
+
+export const normalizeDanmuBlockKeywords = (keywords: unknown): string[] => {
+  if (!Array.isArray(keywords)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of keywords) {
+    if (typeof raw !== 'string') {
+      continue;
+    }
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const normalized = trimmed.slice(0, 40);
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(normalized);
+    if (out.length >= 40) {
+      break;
+    }
+  }
+  return out;
+};
 
 export const sanitizeDanmuArea = (value: number): number => {
   return DANMU_AREA_OPTIONS.reduce((prev, curr) => (Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev), DANMU_AREA_OPTIONS[0]);
@@ -104,6 +138,46 @@ export const persistDanmuPreferences = (payload: { enabled: boolean; settings: D
   }
 };
 
+export const loadDanmuKeywordBlockPreferences = (): DanmuKeywordBlockPreferences | null => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(DANMU_KEYWORD_BLOCK_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return {
+      enabled: typeof (parsed as any).enabled === 'boolean' ? !!(parsed as any).enabled : true,
+      keywords: normalizeDanmuBlockKeywords((parsed as any).keywords),
+    };
+  } catch (error) {
+    console.warn('[DanmuKeywordBlock] Failed to load preferences:', error);
+    return null;
+  }
+};
+
+export const persistDanmuKeywordBlockPreferences = (payload: DanmuKeywordBlockPreferences) => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(
+      DANMU_KEYWORD_BLOCK_STORAGE_KEY,
+      JSON.stringify({
+        enabled: !!payload.enabled,
+        keywords: normalizeDanmuBlockKeywords(payload.keywords),
+      } satisfies DanmuKeywordBlockPreferences),
+    );
+  } catch (error) {
+    console.warn('[DanmuKeywordBlock] Failed to persist preferences:', error);
+  }
+};
+
 export const createLucideIconSvg = (name: string, inner: string) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-${name}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 };
@@ -116,6 +190,7 @@ export const ICONS = {
   fullscreen: createLucideIconSvg('fullscreen', '<path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><rect width="10" height="8" x="7" y="8" rx="1"></rect>'),
   pictureInPicture2: createLucideIconSvg('picture-in-picture-2', '<path d="M21 9V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10c0 1.1.9 2 2 2h4"></path><rect width="10" height="7" x="12" y="13" rx="2"></rect>'),
   cog: createLucideIconSvg('cog', '<path d="M11 10.27 7 3.34"></path><path d="m11 13.73-4 6.93"></path><path d="M12 22v-2"></path><path d="M12 2v2"></path><path d="M14 12h8"></path><path d="m17 20.66-1-1.73"></path><path d="m17 3.34-1 1.73"></path><path d="M2 12h2"></path><path d="m20.66 17-1.73-1"></path><path d="m20.66 7-1.73 1"></path><path d="m3.34 17 1.73-1"></path><path d="m3.34 7 1.73 1"></path><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="12" r="8"></circle>'),
+  filter: createLucideIconSvg('filter', '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>'),
   rotateCcw: createLucideIconSvg('rotate-ccw', '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path>'),
   volume2: createLucideIconSvg('volume-2', '<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"></path><path d="M16 9a5 5 0 0 1 0 6"></path><path d="M19.364 18.364a9 9 0 0 0 0-12.728"></path>')
 };

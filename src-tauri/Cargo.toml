@@ -44,6 +44,7 @@ window-vibrancy = "0.7.1"
 bytes = "1"
 bytes04 = { package = "bytes", version = "0.4.12" }
 log = "0.4"
+env_logger = "0.11"
 thiserror = "1.0"
 base64 = "0.21"
 anyhow = "1.0"
@@ -68,6 +69,8 @@ anyhow = "1.0"
  cookie = "0.18"
  html-escape = "0.2"
 rfd = "0.15"
+local-ip-address = "0.6"
+mdns-sd = "0.13"
 
 [profile.release]
 panic = "unwind"

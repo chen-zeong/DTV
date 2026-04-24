@@ -38,14 +38,15 @@
   top: 52px;
   right: 12px;
   width: min(280px, calc(100% - 24px));
-  background: rgba(15, 18, 30, 0.92);
+  background: rgba(17, 20, 28, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 10px 12px 12px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 14px 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 3;
-  box-shadow: 0 10px 24px rgba(7, 12, 24, 0.35);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .panel-header {
@@ -56,15 +57,16 @@
 }
 
 .panel-title {
-  font-size: 0.8rem;
-  color: rgba(229, 236, 255, 0.9);
-  font-weight: 600;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .panel-close {
   border: none;
   background: transparent;
-  color: rgba(229, 236, 255, 0.7);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 1rem;
   cursor: pointer;
 }
@@ -77,14 +79,19 @@
 
 .panel-input {
   flex: 1;
-  height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(236, 242, 255, 0.92);
-  padding: 0 8px;
-  font-size: 0.78rem;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
   outline: none;
+}
+
+.panel-input::placeholder {
+  color: rgba(148, 163, 184, 0.9);
 }
 
 .panel-list {
@@ -97,8 +104,9 @@
 }
 
 .panel-empty {
-  font-size: 0.76rem;
-  color: rgba(200, 210, 236, 0.75);
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.92);
+  font-weight: 700;
   text-align: center;
   padding: 6px 0;
 }
@@ -108,15 +116,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 6px 8px;
+  border-radius: 12px;
+  padding: 8px 10px;
 }
 
 .panel-item-text {
-  font-size: 0.78rem;
-  color: rgba(236, 242, 255, 0.9);
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -124,12 +133,17 @@
 
 .panel-remove {
   border: none;
-  background: rgba(255, 92, 92, 0.2);
-  color: #ffb2b2;
-  padding: 2px 6px;
-  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.14);
+  color: rgba(239, 68, 68, 0.95);
+  padding: 4px 8px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 0.72rem;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.panel-remove:hover {
+  background: rgba(239, 68, 68, 0.18);
 }
 
 .danmu-messages-area {
@@ -230,4 +244,37 @@
 :root[data-theme="light"] .system-message {
   background: rgba(99, 102, 241, 0.1);
   border-color: rgba(99, 102, 241, 0.18);
+}
+
+:root[data-theme="light"] .danmu-filter-panel {
+  background: rgba(248, 250, 252, 0.96);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+  box-shadow:
+    0 14px 34px rgba(15, 23, 42, 0.16),
+    0 26px 60px rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="light"] .panel-title {
+  color: rgba(15, 23, 42, 1);
+}
+
+:root[data-theme="light"] .panel-close {
+  color: rgba(71, 85, 105, 0.9);
+}
+
+:root[data-theme="light"] .panel-input,
+:root[data-theme="light"] .panel-item {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgba(15, 23, 42, 1);
+}
+
+:root[data-theme="light"] .panel-input::placeholder,
+:root[data-theme="light"] .panel-empty {
+  color: rgba(100, 116, 139, 1);
+}
+
+:root[data-theme="light"] .panel-item-text {
+  color: rgba(15, 23, 42, 1);
 }

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, useMotionValue, useSpring } from "framer-motion";
 import { Check, ChevronDown, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -110,7 +110,12 @@ export function FollowsList() {
   const streamersListRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const expandBtnRef = useRef<HTMLButtonElement | null>(null);
-  const [hover, setHover] = useState<{ visible: boolean; y: number; h: number }>({ visible: false, y: 0, h: 38 });
+
+  const hoverOpacity = useMotionValue(0);
+  const hoverYRaw = useMotionValue(0);
+  const hoverHRaw = useMotionValue(38);
+  const hoverY = useSpring(hoverYRaw, { stiffness: 520, damping: 44, mass: 0.7 });
+  const hoverH = useSpring(hoverHRaw, { stiffness: 520, damping: 44, mass: 0.7 });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [progressCurrent, setProgressCurrent] = useState(0);
@@ -208,8 +213,10 @@ export function FollowsList() {
     if (!root) return;
     const rr = root.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    setHover({ visible: true, y: r.top - rr.top + root.scrollTop, h: r.height });
-  }, []);
+    hoverYRaw.set(r.top - rr.top + root.scrollTop);
+    hoverHRaw.set(r.height);
+    hoverOpacity.set(1);
+  }, [hoverHRaw, hoverOpacity, hoverYRaw]);
 
   const refreshList = useCallback(async () => {
     if (isRefreshing) return;
@@ -667,7 +674,7 @@ export function FollowsList() {
   };
 
   function clearHoverHighlight() {
-    setHover((h) => (h.visible ? { ...h, visible: false } : h));
+    hoverOpacity.set(0);
   }
 
   return (
@@ -719,14 +726,12 @@ export function FollowsList() {
       <div
         className={styles.listContent}
         ref={listRef}
-        onScroll={() => setHover((h) => ({ ...h, visible: false }))}
-        onMouseLeave={() => setHover((h) => ({ ...h, visible: false }))}
+        onScroll={() => hoverOpacity.set(0)}
+        onMouseLeave={() => hoverOpacity.set(0)}
       >
         <m.div
           className={styles.hoverHighlight}
-          initial={false}
-          animate={{ opacity: hover.visible ? 1 : 0, y: hover.y, height: hover.h }}
-          transition={{ type: "spring", stiffness: 520, damping: 46, mass: 0.7 }}
+          style={{ opacity: hoverOpacity, y: hoverY, height: hoverH }}
         />
 
         <div className={`${styles.streamersList} ${dragUi.isDragging ? styles.draggingList : ""}`} ref={streamersListRef}>
@@ -1102,12 +1107,17 @@ function FolderChildren({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const [height, setHeight] = useState(0);
-  const [hover, setHover] = useState<{ visible: boolean; y: number; h: number }>({ visible: false, y: 0, h: 38 });
+
+  const hoverOpacity = useMotionValue(0);
+  const hoverYRaw = useMotionValue(0);
+  const hoverHRaw = useMotionValue(38);
+  const hoverY = useSpring(hoverYRaw, { stiffness: 520, damping: 44, mass: 0.7 });
+  const hoverH = useSpring(hoverHRaw, { stiffness: 520, damping: 44, mass: 0.7 });
 
   useLayoutEffect(() => {
     if (!expanded) {
       setHeight(0);
-      setHover((h) => ({ ...h, visible: false }));
+      hoverOpacity.set(0);
       return;
     }
 
@@ -1126,19 +1136,21 @@ function FolderChildren({
     const ro = new ResizeObserver(() => update());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [expanded]);
+  }, [expanded, hoverOpacity]);
 
   const onEnter = useCallback((el: HTMLElement) => {
     const root = panelRef.current;
     if (!root) return;
     const rr = root.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    setHover({ visible: true, y: r.top - rr.top + root.scrollTop, h: r.height });
-  }, []);
+    hoverYRaw.set(r.top - rr.top + root.scrollTop);
+    hoverHRaw.set(r.height);
+    hoverOpacity.set(1);
+  }, [hoverHRaw, hoverOpacity, hoverYRaw]);
 
   const onLeave = useCallback(() => {
-    setHover((h) => (h.visible ? { ...h, visible: false } : h));
-  }, []);
+    hoverOpacity.set(0);
+  }, [hoverOpacity]);
 
   return (
     <AnimatePresence initial={false}>
@@ -1155,9 +1167,7 @@ function FolderChildren({
         >
           <m.div
             className={styles.folderHoverHighlight}
-            initial={false}
-            animate={{ opacity: hover.visible ? 1 : 0, y: hover.y, height: hover.h }}
-            transition={{ type: "spring", stiffness: 520, damping: 46, mass: 0.7 }}
+            style={{ opacity: hoverOpacity, y: hoverY, height: hoverH }}
           />
           <div ref={innerRef} className={styles.folderItemsInner}>
             {streamerKeys.map((key) => {

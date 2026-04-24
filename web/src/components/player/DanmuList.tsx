@@ -132,6 +132,7 @@ export function DanmuList({
           className="panel-close"
           title="屏蔽关键词"
           onClick={() => setShowFilterPanel((v) => !v)}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           滤
         </button>
@@ -153,11 +154,18 @@ export function DanmuList({
               value={keywordInput}
               onChange={(e) => setKeywordInput(e.target.value)}
               onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === "Enter") {
                   e.preventDefault();
                   addKeyword();
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setShowFilterPanel(false);
                 }
               }}
+              onKeyUp={(e) => e.stopPropagation()}
             />
             <div className="panel-list">
               {blockedKeywords.length === 0 ? <div className="panel-empty">暂无屏蔽词</div> : null}
