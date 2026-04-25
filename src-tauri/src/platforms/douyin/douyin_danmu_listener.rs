@@ -1,4 +1,5 @@
 use crate::platforms::douyin::web_api::normalize_douyin_live_id;
+use rand::Rng;
 use tokio::sync::mpsc as tokio_mpsc;
 use tokio::time::{sleep, Duration};
 
@@ -58,6 +59,8 @@ pub async fn start_douyin_danmu_listener(
         let mut backoff_secs = 1u64;
 
         loop {
+            let mut increase_backoff = true;
+            let mut max_backoff_secs = 30u64;
             let result = async {
                 let mut fetcher = crate::platforms::douyin::danmu::web_fetcher::DouyinLiveWebFetcher::new(&room_id_str_clone)?;
                 fetcher
@@ -119,8 +122,20 @@ pub async fn start_douyin_danmu_listener(
                         "[Douyin Danmaku] Disconnected, retrying in {}s.",
                         backoff_secs
                     );
+                    // We had a successful session; reset backoff to minimize downtime on reconnect.
+                    backoff_secs = 1;
+                    increase_backoff = false;
                 }
                 Err(e) => {
+                    let err_text = e.to_string();
+                    // If the server is explicitly throttling / blocking, avoid hammering the same egress IP.
+                    if err_text.contains("http_status=429") || err_text.contains("http_status=403") {
+                        max_backoff_secs = 300;
+                        backoff_secs = backoff_secs.max(60);
+                    } else if err_text.contains("http_status=504") || err_text.contains(" 504 ") || err_text.contains("504 Gateway Timeout") {
+                        max_backoff_secs = 120;
+                        backoff_secs = backoff_secs.max(10);
+                    }
                     eprintln!(
                         "[Douyin Danmaku] Connection error: {}. Retrying in {}s.",
                         e, backoff_secs
@@ -128,12 +143,15 @@ pub async fn start_douyin_danmu_listener(
                 }
             }
 
-            let sleep_fut = sleep(Duration::from_secs(backoff_secs));
+            let jitter_ms: u64 = rand::thread_rng().gen_range(0..=800);
+            let sleep_fut = sleep(Duration::from_secs(backoff_secs) + Duration::from_millis(jitter_ms));
             tokio::select! {
                 _ = sleep_fut => {}
                 _ = rx_shutdown.recv() => break,
             }
-            backoff_secs = (backoff_secs * 2).min(30);
+            if increase_backoff {
+                backoff_secs = (backoff_secs * 2).min(max_backoff_secs);
+            }
         }
     });
     Ok(())

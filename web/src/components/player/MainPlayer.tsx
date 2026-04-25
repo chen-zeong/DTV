@@ -15,6 +15,7 @@ import type { DanmakuMessage, DanmuOverlayInstance, RustGetStreamUrlPayload } fr
 import type { DanmuKeywordBlockPreferences, DanmuUserSettings } from "@/components/player/constants";
 import {
   applyDanmuFontFamilyForOS,
+  DANMU_BLOCK_KEYWORDS_CHANGED_EVENT,
   ICONS,
   loadDanmuKeywordBlockPreferences,
   loadDanmuPreferences,
@@ -212,20 +213,46 @@ export function MainPlayer({
   });
   const [danmuKeywordBlock, setDanmuKeywordBlock] = useState<DanmuKeywordBlockPreferences>(() => {
     if (typeof window === "undefined") return { enabled: true, keywords: [] };
-    return loadDanmuKeywordBlockPreferences() ?? { enabled: true, keywords: [] };
+    const loaded = loadDanmuKeywordBlockPreferences();
+    return loaded ? { enabled: true, keywords: loaded.keywords } : { enabled: true, keywords: [] };
   });
   const danmuKeywordBlockPrefsRef = useRef<DanmuKeywordBlockPreferences>(danmuKeywordBlock);
   useEffect(() => {
     danmuKeywordBlockPrefsRef.current = danmuKeywordBlock;
   }, [danmuKeywordBlock]);
 
-  const danmuKeywordBlockRef = useRef<{ enabled: boolean; keywordsLower: string[] }>({ enabled: true, keywordsLower: [] });
+  const danmuKeywordBlockRef = useRef<{ keywordsLower: string[] }>({ keywordsLower: [] });
   useEffect(() => {
     danmuKeywordBlockRef.current = {
-      enabled: !!danmuKeywordBlock.enabled,
       keywordsLower: (danmuKeywordBlock.keywords ?? []).map((k) => String(k || "").trim().toLowerCase()).filter(Boolean)
     };
-  }, [danmuKeywordBlock.enabled, danmuKeywordBlock.keywords]);
+  }, [danmuKeywordBlock.keywords]);
+
+  useEffect(() => {
+    const keywordsEqual = (left: string[], right: string[]) => {
+      if (left === right) return true;
+      if (left.length !== right.length) return false;
+      for (let i = 0; i < left.length; i += 1) {
+        if (left[i] !== right[i]) return false;
+      }
+      return true;
+    };
+
+    const onKeywordsChanged = () => {
+      const next = loadDanmuKeywordBlockPreferences();
+      const nextKeywords = next?.keywords ?? [];
+      setDanmuKeywordBlock((prev) => {
+        const prevKeywords = prev.keywords ?? [];
+        if (keywordsEqual(prevKeywords, nextKeywords)) {
+          return prev;
+        }
+        return { enabled: true, keywords: nextKeywords };
+      });
+    };
+
+    window.addEventListener(DANMU_BLOCK_KEYWORDS_CHANGED_EVENT, onKeywordsChanged as EventListener);
+    return () => window.removeEventListener(DANMU_BLOCK_KEYWORDS_CHANGED_EVENT, onKeywordsChanged as EventListener);
+  }, []);
 
   const [chromeVisible, setChromeVisible] = useState(true);
   const hideChromeTimerRef = useRef<number | null>(null);
@@ -346,7 +373,7 @@ export function MainPlayer({
           // ignore
         }
         setChromeVisible(false);
-      }, 3000);
+      }, 8000);
     };
 
     // Start hidden-after-idle behavior immediately on mount.
@@ -556,7 +583,7 @@ export function MainPlayer({
 
         const contentLower = (msg.content || "").toLowerCase();
         const block = danmuKeywordBlockRef.current;
-        if (block.enabled && block.keywordsLower.length > 0) {
+        if (block.keywordsLower.length > 0) {
           for (const kw of block.keywordsLower) {
             if (kw && contentLower.includes(kw)) {
               return;
@@ -792,7 +819,7 @@ export function MainPlayer({
         position: POSITIONS.CONTROLS_RIGHT,
         index: 4.4,
         getPreferences: () => danmuKeywordBlockPrefsRef.current,
-        onChange: (next: DanmuKeywordBlockPreferences) => setDanmuKeywordBlock(next)
+        onChange: (next: DanmuKeywordBlockPreferences) => setDanmuKeywordBlock({ enabled: true, keywords: next.keywords ?? [] })
       });
 
       qualityPluginRef.current = player.registerPlugin?.(QualityControl, {
@@ -1060,6 +1087,46 @@ export function MainPlayer({
 
   return (
     <div className={`player-page${chromeHiddenClass}`} ref={pageRef}>
+      {isWindows ? (
+        <div className="player-window-controls" data-tauri-drag-region="false" aria-label="窗口控制">
+          <button type="button" className="window-btn" data-tauri-drag-region="false" aria-label="最小化" onClick={() => void minimizeWindow()}>
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="window-btn"
+            data-tauri-drag-region="false"
+            aria-label={isMaximized ? "还原" : "最大化"}
+            onClick={() => void toggleMaximizeWindow()}
+          >
+            {!isMaximized ? (
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="6.5" y="6.5" width="11" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.8" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M9 7.5h8a2 2 0 0 1 2 2v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <rect x="5.5" y="9.5" width="11" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.8" />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            className="window-btn window-btn--close"
+            data-tauri-drag-region="false"
+            aria-label="关闭软件"
+            onClick={() => void closeWindow()}
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 7l10 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M17 7L7 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
+
       <div className="player-layout">
         <div className="main-content">
           <div className="player-container player-container--solo">
@@ -1110,58 +1177,17 @@ export function MainPlayer({
                     <div className={`player-topbar-status ${playerIsLive === false ? "is-offline" : "is-live"}`}>
                       {playerIsLive === false ? "未开播" : "直播中"}
                     </div>
+                    <button
+                      type="button"
+                      className={`player-topbar-follow ${isFollowed ? "is-following" : ""}`}
+                      onClick={() => {
+                        if (isFollowed) follow.unfollowStreamer(followPayload.platform, followPayload.id);
+                        else follow.followStreamer(followPayload);
+                      }}
+                    >
+                      {isFollowed ? "取关" : "关注"}
+                    </button>
                   </div>
-                </div>
-
-                <div className="player-topbar-right">
-                  {isWindows ? (
-                    <div className="player-window-controls" aria-label="窗口控制">
-                      <button type="button" className="window-btn" aria-label="最小化" onClick={() => void minimizeWindow()}>
-                        <svg viewBox="0 0 24 24" fill="none">
-                          <path d="M6 12h12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className="window-btn"
-                        aria-label={isMaximized ? "还原" : "最大化"}
-                        onClick={() => void toggleMaximizeWindow()}
-                      >
-                        {!isMaximized ? (
-                          <svg viewBox="0 0 24 24" fill="none">
-                            <rect x="6.5" y="6.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2.2" />
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" fill="none">
-                            <path
-                              d="M9 7.5h8a2 2 0 0 1 2 2v8"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                            />
-                            <rect x="5.5" y="9.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2.2" />
-                          </svg>
-                        )}
-                      </button>
-                      <button type="button" className="window-btn window-btn--close" aria-label="关闭软件" onClick={() => void closeWindow()}>
-                        <svg viewBox="0 0 24 24" fill="none">
-                          <path d="M7 7l10 10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                          <path d="M17 7L7 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    className={`player-topbar-follow ${isFollowed ? "is-following" : ""}`}
-                    onClick={() => {
-                      if (isFollowed) follow.unfollowStreamer(followPayload.platform, followPayload.id);
-                      else follow.followStreamer(followPayload);
-                    }}
-                  >
-                    {isFollowed ? "取关" : "关注"}
-                  </button>
                 </div>
               </div>
 

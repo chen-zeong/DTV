@@ -75,7 +75,7 @@
 
 .platformTabActive {
   font-weight: 900;
-  color: var(--accent-text);
+  color: #ffffff;
 }
 
 :global(:root[data-theme="light"]) .platformTabs {
@@ -109,44 +109,61 @@
   gap: 10px;
 }
 
+.actionsWindows {
+  padding-right: 0;
+}
+
 .winControls {
   display: inline-flex;
-  align-items: stretch;
-  height: 32px;
-  border-radius: 0;
-  overflow: visible;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin-left: 6px;
   border: none;
   background: transparent;
 }
 
 .winBtn {
-  width: 46px;
-  height: 32px;
-  border: none;
-  background: transparent;
+  width: 44px;
+  height: 44px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--primary-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.14s ease, color 0.14s ease;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.winBtn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .winBtn:hover {
-  background: rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .winBtn:active {
-  background: rgba(15, 23, 42, 0.12);
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .winBtnClose:hover {
-  background: rgba(239, 68, 68, 0.92);
+  background: #e81123;
+  border-color: #e81123;
   color: #ffffff;
 }
 
 .winBtnClose:active {
-  background: rgba(220, 38, 38, 0.95);
+  background: #f1707a;
+  border-color: #f1707a;
   color: #ffffff;
 }
 
@@ -155,12 +172,47 @@
   border-color: transparent;
 }
 
-:global([data-theme="dark"]) .winBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
+:global([data-theme="dark"]) .winBtn:not(.winBtnClose):hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-:global([data-theme="dark"]) .winBtn:active {
-  background: rgba(255, 255, 255, 0.12);
+:global([data-theme="dark"]) .winBtn:not(.winBtnClose):active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+:global(:root[data-theme="light"]) .winBtn {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(148, 163, 184, 0.28);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+:global(:root[data-theme="light"]) .winBtn:hover {
+  transform: none;
+}
+
+:global(:root[data-theme="light"]) .winBtn:active {
+  transform: none;
+}
+
+:global(:root[data-theme="light"]) .winBtn:not(.winBtnClose):hover {
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+:global(:root[data-theme="light"]) .winBtn:not(.winBtnClose):active {
+  background: rgba(15, 23, 42, 0.1);
+}
+
+:global(:root[data-theme="light"]) .winBtnClose:hover {
+  background: #e81123;
+  border-color: #e81123;
+  color: #ffffff;
+}
+
+:global(:root[data-theme="light"]) .winBtnClose:active {
+  background: #f1707a;
+  border-color: #f1707a;
+  color: #ffffff;
 }
 
 .playerIsland {
@@ -476,6 +528,14 @@
 
 .primaryBtn:hover {
   transform: translateY(-1px);
+}
+
+.syncBigBtn {
+  width: 100%;
+  height: 46px;
+  justify-content: center;
+  border-radius: 16px;
+  margin-top: 12px;
 }
 
 .secondaryBtn {

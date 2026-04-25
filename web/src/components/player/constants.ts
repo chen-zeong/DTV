@@ -11,7 +11,11 @@ export type DanmuUserSettings = {
 };
 
 export const DANMU_PREFERENCES_STORAGE_KEY = 'dtv_danmu_preferences_v1';
-export const DANMU_KEYWORD_BLOCK_STORAGE_KEY = 'dtv_danmu_keyword_block_v1';
+// Keep compatible with legacy DTV-main project (portable config key).
+export const DANMU_BLOCK_KEYWORDS_STORAGE_KEY = 'danmu_block_keywords';
+// Used by older builds of this repo; read-only migration fallback.
+const LEGACY_DANMU_KEYWORD_BLOCK_STORAGE_KEY = 'dtv_danmu_keyword_block_v1';
+export const DANMU_BLOCK_KEYWORDS_CHANGED_EVENT = 'dtv:danmu_block_keywords_changed';
 export const DANMU_AREA_OPTIONS = [0.25, 0.5, 0.75] as const;
 export const DANMU_OPACITY_MIN = 0.2;
 export const DANMU_OPACITY_MAX = 1;
@@ -50,6 +54,50 @@ export const normalizeDanmuBlockKeywords = (keywords: unknown): string[] => {
     }
   }
   return out;
+};
+
+const parseDanmuBlockKeywords = (raw: string | null): string[] => {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .filter((v) => typeof v === 'string' && v.trim().length > 0)
+      .map((v) => v.trim());
+  } catch {
+    return [];
+  }
+};
+
+export const loadDanmuBlockKeywords = (): string[] => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return [];
+  }
+  const raw = window.localStorage.getItem(DANMU_BLOCK_KEYWORDS_STORAGE_KEY);
+  return parseDanmuBlockKeywords(raw);
+};
+
+export const persistDanmuBlockKeywords = (keywords: string[]): void => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  const next = keywords.filter((v) => typeof v === 'string' && v.trim().length > 0).map((v) => v.trim());
+  try {
+    window.localStorage.setItem(DANMU_BLOCK_KEYWORDS_STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.removeItem(LEGACY_DANMU_KEYWORD_BLOCK_STORAGE_KEY);
+  } catch (error) {
+    console.warn('[DanmuKeywordBlock] Failed to persist keywords:', error);
+    return;
+  }
+  try {
+    window.dispatchEvent(new CustomEvent(DANMU_BLOCK_KEYWORDS_CHANGED_EVENT, { detail: { keywords: next } }));
+  } catch {
+    // ignore
+  }
 };
 
 export const sanitizeDanmuArea = (value: number): number => {
@@ -143,18 +191,26 @@ export const loadDanmuKeywordBlockPreferences = (): DanmuKeywordBlockPreferences
     return null;
   }
   try {
-    const raw = window.localStorage.getItem(DANMU_KEYWORD_BLOCK_STORAGE_KEY);
-    if (!raw) {
+    const raw = window.localStorage.getItem(DANMU_BLOCK_KEYWORDS_STORAGE_KEY);
+    if (raw !== null) {
+      return {
+        enabled: true,
+        keywords: parseDanmuBlockKeywords(raw),
+      };
+    }
+
+    // Migration fallback: older builds stored an object payload under dtv_danmu_keyword_block_v1.
+    const legacyRaw = window.localStorage.getItem(LEGACY_DANMU_KEYWORD_BLOCK_STORAGE_KEY);
+    if (!legacyRaw) {
       return null;
     }
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
+    const legacyParsed = JSON.parse(legacyRaw);
+    if (!legacyParsed || typeof legacyParsed !== 'object') {
       return null;
     }
-    return {
-      enabled: typeof (parsed as any).enabled === 'boolean' ? !!(parsed as any).enabled : true,
-      keywords: normalizeDanmuBlockKeywords((parsed as any).keywords),
-    };
+    const migrated = normalizeDanmuBlockKeywords((legacyParsed as any).keywords);
+    persistDanmuBlockKeywords(migrated);
+    return { enabled: true, keywords: migrated };
   } catch (error) {
     console.warn('[DanmuKeywordBlock] Failed to load preferences:', error);
     return null;
@@ -166,13 +222,7 @@ export const persistDanmuKeywordBlockPreferences = (payload: DanmuKeywordBlockPr
     return;
   }
   try {
-    window.localStorage.setItem(
-      DANMU_KEYWORD_BLOCK_STORAGE_KEY,
-      JSON.stringify({
-        enabled: !!payload.enabled,
-        keywords: normalizeDanmuBlockKeywords(payload.keywords),
-      } satisfies DanmuKeywordBlockPreferences),
-    );
+    persistDanmuBlockKeywords(payload.keywords ?? []);
   } catch (error) {
     console.warn('[DanmuKeywordBlock] Failed to persist preferences:', error);
   }

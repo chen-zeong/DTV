@@ -835,7 +835,6 @@
   gap: 8px;
 }
 
-.xgplayer-danmu-block-panel .block-enable-btn,
 .xgplayer-danmu-block-panel .block-clear-btn,
 .xgplayer-danmu-block-panel .block-add-btn {
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -849,17 +848,11 @@
   transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
-.xgplayer-danmu-block-panel .block-enable-btn.is-off {
-  color: rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .xgplayer-danmu-block-panel .block-clear-btn.is-disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.xgplayer-danmu-block-panel .block-enable-btn:hover,
 .xgplayer-danmu-block-panel .block-clear-btn:hover,
 .xgplayer-danmu-block-panel .block-add-btn:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -1651,36 +1644,40 @@ html.web-fs-active .danmu-panel {
 }
 
 .player-window-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 520;
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 999px;
-  background: rgba(10, 10, 12, 0.44);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  align-items: stretch;
+  justify-content: flex-end;
+  height: 32px;
+  border-radius: 0;
+  overflow: visible;
+  border: none;
+  background: transparent;
+  padding: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .player-window-controls .window-btn {
-  width: 32px;
+  width: 46px;
   height: 32px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.9);
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .player-window-controls .window-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.18);
-  transform: translateY(-1px);
 }
 
 .player-window-controls .window-btn svg {
@@ -1690,8 +1687,17 @@ html.web-fs-active .danmu-panel {
 }
 
 .player-window-controls .window-btn--close:hover {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.38);
+  background: #e81123;
+  color: #ffffff;
+}
+
+.player-window-controls .window-btn:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.player-window-controls .window-btn--close:active {
+  background: #f1707a;
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .player-topbar-follow {
@@ -2145,9 +2151,9 @@ video.xgplayer-video {
 }
 
 /* 强制显示控制栏：避免 xgplayer-inactive / not-allow-autoplay 把 controls 隐藏掉 */
-.player-page .xgplayer.xgplayer-inactive .controls-autohide,
-.player-page .xgplayer.not-allow-autoplay .xgplayer-controls,
-.player-page .xgplayer.xgplayer-nostart .xgplayer-controls {
+.player-page:not(.player-chrome-hidden) .xgplayer.xgplayer-inactive .controls-autohide,
+.player-page:not(.player-chrome-hidden) .xgplayer.not-allow-autoplay .xgplayer-controls,
+.player-page:not(.player-chrome-hidden) .xgplayer.xgplayer-nostart .xgplayer-controls {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;

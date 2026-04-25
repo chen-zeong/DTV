@@ -4,8 +4,11 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 
 import "./DanmuList.css";
 import type { DanmakuMessage } from "@/components/player/types";
-
-const BLOCK_KEYWORDS_STORAGE = "danmu_block_keywords";
+import {
+  DANMU_BLOCK_KEYWORDS_CHANGED_EVENT,
+  loadDanmuBlockKeywords,
+  persistDanmuBlockKeywords
+} from "@/components/player/constants";
 
 function userColor(nickname: string | undefined) {
   if (!nickname) return "hsl(0, 0%, 75%)";
@@ -16,26 +19,6 @@ function userColor(nickname: string | undefined) {
   }
   const hue = ((hash % 360) + 360) % 360;
   return `hsl(${hue}, 70%, 75%)`;
-}
-
-function loadBlockedKeywords(): string[] {
-  try {
-    const raw = window.localStorage.getItem(BLOCK_KEYWORDS_STORAGE);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v) => typeof v === "string" && v.trim().length > 0);
-  } catch {
-    return [];
-  }
-}
-
-function persistBlockedKeywords(list: string[]) {
-  try {
-    window.localStorage.setItem(BLOCK_KEYWORDS_STORAGE, JSON.stringify(list));
-  } catch {
-    // ignore
-  }
 }
 
 export function DanmuList({
@@ -54,7 +37,10 @@ export function DanmuList({
   const scrollRafRef = useRef(0);
 
   useEffect(() => {
-    setBlockedKeywords(loadBlockedKeywords());
+    setBlockedKeywords(loadDanmuBlockKeywords());
+    const onChange = () => setBlockedKeywords(loadDanmuBlockKeywords());
+    window.addEventListener(DANMU_BLOCK_KEYWORDS_CHANGED_EVENT, onChange as EventListener);
+    return () => window.removeEventListener(DANMU_BLOCK_KEYWORDS_CHANGED_EVENT, onChange as EventListener);
   }, []);
 
   const filtered = useMemo(() => {
@@ -104,7 +90,7 @@ export function DanmuList({
     }
     const next = [...blockedKeywords, kw];
     setBlockedKeywords(next);
-    persistBlockedKeywords(next);
+    persistDanmuBlockKeywords(next);
     setKeywordInput("");
   };
 
@@ -112,7 +98,7 @@ export function DanmuList({
     if (idx < 0 || idx >= blockedKeywords.length) return;
     const next = blockedKeywords.filter((_, i) => i !== idx);
     setBlockedKeywords(next);
-    persistBlockedKeywords(next);
+    persistDanmuBlockKeywords(next);
   };
 
   const copyDanmaku = async (m: DanmakuMessage) => {

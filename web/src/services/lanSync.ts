@@ -4,10 +4,8 @@ export const LAN_SYNC_KIND = "dtv-lan-sync" as const;
 export const LAN_SYNC_VERSION = 1 as const;
 
 export const LAN_SYNC_KEYS = [
-  "followedStreamers",
   "followFolders",
-  "followListOrder",
-  "dtv_custom_categories_v1"
+  // NOTE: keep payload minimal for LAN sync: only share folder structure.
 ] as const;
 
 type LanSyncKey = (typeof LAN_SYNC_KEYS)[number];
@@ -156,8 +154,6 @@ type FollowFolder = {
 
 type FollowListItem = { type: "folder"; data: FollowFolder } | { type: "streamer"; data: FollowedStreamer };
 
-type CustomCategoryEntry = { key: string } & Record<string, unknown>;
-
 function normalizeStreamerKey(streamerKey: string) {
   const [rawPlatform, rawId] = String(streamerKey || "").split(":");
   const platform = String(rawPlatform || "").toUpperCase();
@@ -199,24 +195,18 @@ export type LanSyncImportResult = {
   addedStreamers: number;
   addedFolderCount: number;
   addedFolderItems: number;
-  addedCustomCategories: number;
 };
 
 export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: PortableEntries): LanSyncImportResult {
-  const remoteFollowed = safeParseJsonArray<FollowedStreamer>(remoteEntries["followedStreamers"]);
   const remoteFoldersFromKey = safeParseJsonArray<FollowFolder>(remoteEntries["followFolders"]);
-  const remoteOrder = safeParseJsonArray<FollowListItem>(remoteEntries["followListOrder"]);
-  const remoteCustom = safeParseJsonArray<CustomCategoryEntry>(remoteEntries["dtv_custom_categories_v1"]);
 
   const localFollowed = safeParseJsonArray<FollowedStreamer>(storage.getItem("followedStreamers"));
   const localFolders = safeParseJsonArray<FollowFolder>(storage.getItem("followFolders"));
   const localOrder = safeParseJsonArray<FollowListItem>(storage.getItem("followListOrder"));
-  const localCustom = safeParseJsonArray<CustomCategoryEntry>(storage.getItem("dtv_custom_categories_v1"));
 
   let addedStreamers = 0;
   let addedFolderCount = 0;
   let addedFolderItems = 0;
-  let addedCustomCategories = 0;
 
   const streamerByKey = new Map<string, FollowedStreamer>();
   for (const s of localFollowed) {
@@ -243,16 +233,7 @@ export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: P
     addedStreamers += 1;
   };
 
-  for (const s of remoteFollowed) {
-    if (!s?.platform || !s?.id) continue;
-    addStreamerIfMissing(s.platform, s.id, s);
-  }
-
-  const remoteFoldersFromOrder: FollowFolder[] = [];
-  for (const item of remoteOrder) {
-    if (item?.type === "folder" && item.data?.id && item.data?.name) remoteFoldersFromOrder.push(item.data);
-  }
-  const remoteFolders = [...remoteFoldersFromKey, ...remoteFoldersFromOrder];
+  const remoteFolders = [...remoteFoldersFromKey];
 
   // Ensure streamers referenced by folders/order exist (align with FollowProvider)
   for (const folder of remoteFolders) {
@@ -261,12 +242,6 @@ export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: P
       if (!norm.id || !isKnownPlatform(norm.platform)) continue;
       addStreamerIfMissing(norm.platform, norm.id);
     }
-  }
-  for (const item of remoteOrder) {
-    if (item?.type !== "streamer") continue;
-    const s = item.data;
-    if (!s?.platform || !s?.id) continue;
-    addStreamerIfMissing(s.platform, s.id, s);
   }
 
   const existingFolderIds = new Set(localFolders.map((f) => String(f?.id || "")).filter(Boolean));
@@ -326,17 +301,6 @@ export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: P
     addedFolderItems += nextStreamerIds.length;
   }
 
-  // Merge custom categories
-  const customByKey = new Set(localCustom.map((e) => String((e as any)?.key || "")).filter(Boolean));
-  const mergedCustom = [...localCustom];
-  for (const e of remoteCustom) {
-    const key = String((e as any)?.key || "");
-    if (!key || customByKey.has(key)) continue;
-    customByKey.add(key);
-    mergedCustom.push(e);
-    addedCustomCategories += 1;
-  }
-
   const mergedStreamers = Array.from(streamerByKey.values());
 
   // Rebuild list order: keep local order, append newly added folders/streamers.
@@ -386,7 +350,6 @@ export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: P
   storage.setItem("followedStreamers", JSON.stringify(mergedStreamers));
   storage.setItem("followFolders", JSON.stringify(mergedFolders));
   storage.setItem("followListOrder", JSON.stringify(mergedOrder));
-  storage.setItem("dtv_custom_categories_v1", JSON.stringify(mergedCustom));
 
-  return { addedStreamers, addedFolderCount, addedFolderItems, addedCustomCategories };
+  return { addedStreamers, addedFolderCount, addedFolderItems };
 }

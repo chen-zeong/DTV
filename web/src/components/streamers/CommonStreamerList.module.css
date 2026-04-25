@@ -26,7 +26,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 16px 8px 12px;
+  padding: 16px 0 12px;
   color: var(--secondary-text);
 }
 
@@ -37,7 +37,7 @@
 .scrollArea {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 8px 8px 22px;
+  padding: 8px 0 22px;
   --card-radius: 14px;
 }
 

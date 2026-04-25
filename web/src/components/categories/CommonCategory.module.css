@@ -50,7 +50,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 0 8px;
+  padding: 0;
 }
 
 .cate1List {
@@ -151,7 +151,7 @@
 }
 
 .cate2Container {
-  padding: 10px 12px 6px;
+  padding: 10px 0 6px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -333,6 +333,18 @@
   background: rgba(255, 255, 255, 0.975);
   border-color: rgba(148, 163, 184, 0.28);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+:global(:root[data-theme="light"]) .cate2Overlay .cate2Card:not(.cate2CardActive) {
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: rgba(15, 23, 42, 0.82);
+}
+
+:global(:root[data-theme="light"]) .cate2Overlay .cate2Card:hover:not(.cate2CardActive) {
+  background: rgba(15, 23, 42, 0.1);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgba(15, 23, 42, 0.92);
 }
 
 .cate2OverlayHeader {

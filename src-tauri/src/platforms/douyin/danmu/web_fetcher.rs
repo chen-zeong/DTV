@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use urlencoding;
 
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, REFERER, USER_AGENT};
 
@@ -136,20 +137,32 @@ impl DouyinLiveWebFetcher {
         // Ensure room_id has been resolved before collecting cookies
         self.resolve_room_info().await?;
 
-        let homepage_url = "https://live.douyin.com/";
+        if let Ok(cookie) = std::env::var("DTV_DOUYIN_COOKIE") {
+            let cookie = cookie.trim().to_string();
+            if !cookie.is_empty() {
+                self.dy_cookie = Some(cookie);
+            }
+        }
+
+        let room_page_url = format!("https://live.douyin.com/{}", self.live_id);
 
         // 先通过 HEAD 请求收集初始 Cookie
         let head_resp = self
             .http_client
             .inner
-            .head(homepage_url)
+            .head(&room_page_url)
             .header("User-Agent", &self.user_agent)
-            .header("Referer", "https://live.douyin.com")
-            .header("Authority", "live.douyin.com")
+            .header("Referer", "https://live.douyin.com/")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
             .send()
             .await?;
 
-        let mut dy_cookie = String::new();
+        let mut dy_cookie = self.dy_cookie.clone().unwrap_or_default();
+        if !dy_cookie.is_empty() && !dy_cookie.ends_with(';') {
+            dy_cookie.push(';');
+        }
+
         for val in head_resp.headers().get_all("set-cookie").iter() {
             if let Ok(s) = val.to_str() {
                 let first = s.split(';').next().unwrap_or("");
@@ -165,17 +178,22 @@ impl DouyinLiveWebFetcher {
             }
         }
 
-        // 再通过 GET 请求补全 Cookie
+        // 再通过 GET 请求补全 Cookie，并尽量解析页面 RENDER_DATA 获取 user_unique_id（更接近真实 webid）。
         let get_resp = self
             .http_client
             .inner
-            .get(homepage_url)
+            .get(&room_page_url)
             .header("User-Agent", &self.user_agent)
-            .header("Referer", "https://live.douyin.com")
+            .header("Referer", "https://live.douyin.com/")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
             .send()
             .await?;
 
-        for val in get_resp.headers().get_all("set-cookie").iter() {
+        let get_headers = get_resp.headers().clone();
+        let html = get_resp.text().await.unwrap_or_default();
+
+        for val in get_headers.get_all("set-cookie").iter() {
             if let Ok(s) = val.to_str() {
                 let first = s.split(';').next().unwrap_or("");
                 if first.contains("ttwid")
@@ -192,13 +210,43 @@ impl DouyinLiveWebFetcher {
             }
         }
 
+        let mut render_webid: Option<String> = None;
+        if !html.is_empty() {
+            let marker = "<script id=\"RENDER_DATA\" type=\"application/json\">";
+            if let Some(start_pos) = html.find(marker) {
+                let body_start = start_pos + marker.len();
+                if let Some(end_rel) = html[body_start..].find("</script>") {
+                    let raw = &html[body_start..body_start + end_rel];
+                    let decoded = urlencoding::decode(raw).unwrap_or_else(|_| raw.into());
+                    if let Ok(v) = serde_json::from_str::<Value>(&decoded) {
+                        let uid_val = v
+                            .get("app")
+                            .and_then(|a| a.get("odin"))
+                            .and_then(|o| o.get("user_unique_id"))
+                            .cloned();
+                        if let Some(uid_val) = uid_val {
+                            if let Some(s) = uid_val.as_str() {
+                                if !s.is_empty() {
+                                    render_webid = Some(s.to_string());
+                                }
+                            } else if uid_val.is_number() {
+                                render_webid = Some(uid_val.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 从 Cookie 中提取 user_unique_id（优先使用 s_v_web_id），失败则回退到 ttwid，最后生成一个临时值
-        let mut user_unique_id = String::new();
-        for kv in dy_cookie.split(';') {
-            let kv = kv.trim();
-            if let Some(v) = kv.strip_prefix("s_v_web_id=") {
-                user_unique_id = v.to_string();
-                break;
+        let mut user_unique_id = render_webid.unwrap_or_default();
+        if user_unique_id.is_empty() {
+            for kv in dy_cookie.split(';') {
+                let kv = kv.trim();
+                if let Some(v) = kv.strip_prefix("s_v_web_id=") {
+                    user_unique_id = v.to_string();
+                    break;
+                }
             }
         }
         if user_unique_id.is_empty() {

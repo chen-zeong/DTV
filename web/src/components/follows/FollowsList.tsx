@@ -679,15 +679,18 @@ export function FollowsList() {
 
   return (
     <div className={styles.followList}>
-      <div className={styles.listHeader} ref={headerRef}>
-        <h3 className={styles.headerTitle} aria-label="关注列表">
-          <span className={styles.headerLabel}>Live Channels</span>
+      <div className={styles.listHeader} ref={headerRef} data-tauri-drag-region>
+        <h3 className={styles.headerTitle} aria-label="关注列表" data-tauri-drag-region>
+          <span className={styles.headerLabel} data-tauri-drag-region>
+            Live Channels
+          </span>
         </h3>
-        <div className={styles.headerActions}>
+        <div className={styles.headerActions} data-tauri-drag-region="false">
           {!isRefreshing ? (
             <button
               type="button"
               className={`${styles.actionBtn} ${styles.refreshBtn}`}
+              data-tauri-drag-region="false"
               title="刷新列表"
               onClick={() => void refreshList()}
             >
@@ -705,6 +708,7 @@ export function FollowsList() {
           <button
             type="button"
             className={`${styles.actionBtn} ${styles.folderBtn}`}
+            data-tauri-drag-region="false"
             title="新建文件夹"
             onClick={openCreateFolderModal}
           >
@@ -714,6 +718,7 @@ export function FollowsList() {
           <button
             type="button"
             className={`${styles.actionBtn} ${styles.expandBtn}`}
+            data-tauri-drag-region="false"
             title="展开关注列表"
             ref={expandBtnRef}
             onClick={openOverlay}

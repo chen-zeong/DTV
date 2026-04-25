@@ -522,7 +522,6 @@ export class DanmuKeywordBlockControl extends Plugin {
   private current: DanmuKeywordBlockPreferences = { enabled: true, keywords: [] };
   private inputEl: HTMLInputElement | null = null;
   private listEl: HTMLElement | null = null;
-  private enableBtn: HTMLButtonElement | null = null;
   private clearBtn: HTMLButtonElement | null = null;
   private closeBtn: HTMLButtonElement | null = null;
 
@@ -532,7 +531,7 @@ export class DanmuKeywordBlockControl extends Plugin {
     }
 
     this.current = typeof this.config.getPreferences === 'function' ? this.config.getPreferences() : this.current;
-    this.current = { enabled: !!this.current.enabled, keywords: normalizeDanmuBlockKeywords(this.current.keywords) };
+    this.current = { enabled: true, keywords: normalizeDanmuBlockKeywords(this.current.keywords) };
 
     this.createPanel();
     this.updateUi();
@@ -565,7 +564,6 @@ export class DanmuKeywordBlockControl extends Plugin {
     this.panel = null;
     this.inputEl = null;
     this.listEl = null;
-    this.enableBtn = null;
     this.clearBtn = null;
     this.closeBtn = null;
   }
@@ -588,7 +586,6 @@ export class DanmuKeywordBlockControl extends Plugin {
         <div class="block-header">
           <div class="block-title">弹幕屏蔽</div>
           <div class="block-actions">
-            <button type="button" class="block-enable-btn" aria-pressed="true">启用</button>
             <button type="button" class="block-clear-btn" aria-disabled="true">清空</button>
             <button type="button" class="block-close-btn" aria-label="关闭">×</button>
           </div>
@@ -609,7 +606,6 @@ export class DanmuKeywordBlockControl extends Plugin {
 
     this.inputEl = this.panel.querySelector<HTMLInputElement>('.block-input');
     this.listEl = this.panel.querySelector<HTMLElement>('.block-keywords');
-    this.enableBtn = this.panel.querySelector<HTMLButtonElement>('.block-enable-btn');
     this.clearBtn = this.panel.querySelector<HTMLButtonElement>('.block-clear-btn');
     this.closeBtn = this.panel.querySelector<HTMLButtonElement>('.block-close-btn');
     const addBtn = this.panel.querySelector<HTMLButtonElement>('.block-add-btn');
@@ -645,12 +641,6 @@ export class DanmuKeywordBlockControl extends Plugin {
 
     this.inputEl?.addEventListener('keyup', (event) => {
       event.stopPropagation();
-    });
-
-    this.enableBtn?.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      this.applyAndEmit({ ...this.current, enabled: !this.current.enabled });
     });
 
     this.clearBtn?.addEventListener('click', (event) => {
@@ -705,14 +695,8 @@ export class DanmuKeywordBlockControl extends Plugin {
 
   private updateUi() {
     const keywords = Array.isArray(this.current.keywords) ? this.current.keywords : [];
-    const enabled = !!this.current.enabled;
 
-    (this.root as HTMLElement | null)?.classList.toggle('has-block', enabled && keywords.length > 0);
-    if (this.enableBtn) {
-      this.enableBtn.textContent = enabled ? '启用' : '停用';
-      this.enableBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-      this.enableBtn.classList.toggle('is-off', !enabled);
-    }
+    (this.root as HTMLElement | null)?.classList.toggle('has-block', keywords.length > 0);
     if (this.clearBtn) {
       const canClear = keywords.length > 0;
       this.clearBtn.setAttribute('aria-disabled', canClear ? 'false' : 'true');
@@ -752,7 +736,8 @@ export class DanmuKeywordBlockControl extends Plugin {
 
   private applyAndEmit(next: DanmuKeywordBlockPreferences) {
     const normalized: DanmuKeywordBlockPreferences = {
-      enabled: !!next.enabled,
+      // Always enabled. (UI has no on/off toggle.)
+      enabled: true,
       keywords: normalizeDanmuBlockKeywords(next.keywords),
     };
     this.current = normalized;
@@ -764,7 +749,7 @@ export class DanmuKeywordBlockControl extends Plugin {
   }
 
   setPreferences(next: DanmuKeywordBlockPreferences) {
-    this.current = { enabled: !!next.enabled, keywords: normalizeDanmuBlockKeywords(next.keywords) };
+    this.current = { enabled: true, keywords: normalizeDanmuBlockKeywords(next.keywords) };
     this.updateUi();
   }
 }

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { ArrowLeftRight, ChevronDown, Copy, ExternalLink, Heart, LayoutGrid, Maximize2, Minus, Moon, Search, Sun, X } from "lucide-react";
+import { ChevronDown, ExternalLink, FolderSync, LayoutGrid, Moon, Search, Sun, ThumbsUp, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -28,12 +28,46 @@ type VersionInfo = {
 
 const basePlatforms: Array<{ id: Exclude<UiPlatform, "custom">; name: string }> = [
   { id: "douyu", name: "斗鱼" },
-  { id: "douyin", name: "抖音" },
   { id: "huya", name: "虎牙" },
+  { id: "douyin", name: "抖音" },
   { id: "bilibili", name: "B站" }
 ];
 
 const customPlatform = { id: "custom" as const, name: "自定义" };
+
+function WinCaptionMinimizeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WinCaptionMaximizeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="6.5" y="6.5" width="11" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function WinCaptionRestoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 7.5h8a2 2 0 0 1 2 2v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="5.5" y="9.5" width="11" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function WinCaptionCloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 7l10 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M17 7L7 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export function Navbar({
   theme,
@@ -164,7 +198,7 @@ export function Navbar({
   const placeholderText = useMemo(() => {
     if (activePlatform === "huya") return "搜索虎牙主播/房间...";
     if (activePlatform === "bilibili") return "搜索B站直播间...";
-    if (activePlatform === "douyin") return "抖音暂不支持搜索（可直接输入房间号进入）";
+    if (activePlatform === "douyin") return "搜索直播间号";
     if (activePlatform === "custom") return "搜索：切到具体平台后可用";
     return "搜索斗鱼主播/房间...";
   }, [activePlatform]);
@@ -619,7 +653,7 @@ export function Navbar({
           aria-label="打赏"
           onClick={() => setDonateOpen(true)}
         >
-          <Heart size={18} />
+          <ThumbsUp size={18} />
         </button>
 
         <button
@@ -631,7 +665,7 @@ export function Navbar({
           aria-label="Data Sync"
           onClick={() => setLanSyncOpen(true)}
         >
-          <ArrowLeftRight size={18} />
+          <FolderSync size={18} />
         </button>
 
         <button
@@ -648,13 +682,13 @@ export function Navbar({
         {isWindows ? (
           <div className={styles.winControls} data-tauri-drag-region="false" aria-label="Window controls">
             <button type="button" className={styles.winBtn} title="最小化" onClick={() => void minimizeWindow()}>
-              <Minus size={14} />
+              <WinCaptionMinimizeIcon />
             </button>
             <button type="button" className={styles.winBtn} title={isMaximized ? "还原" : "最大化"} onClick={() => void toggleMaximizeWindow()}>
-              {isMaximized ? <Copy size={14} /> : <Maximize2 size={14} />}
+              {isMaximized ? <WinCaptionRestoreIcon /> : <WinCaptionMaximizeIcon />}
             </button>
             <button type="button" className={`${styles.winBtn} ${styles.winBtnClose}`} title="关闭" onClick={() => void closeWindow()}>
-              <X size={14} />
+              <WinCaptionCloseIcon />
             </button>
           </div>
         ) : null}
