@@ -180,6 +180,18 @@
   background: rgba(255, 255, 255, 0.14);
 }
 
+:global(:root[data-theme="dark"]) .winBtnClose:hover {
+  background: #e81123;
+  border-color: #e81123;
+  color: #ffffff;
+}
+
+:global(:root[data-theme="dark"]) .winBtnClose:active {
+  background: #f1707a;
+  border-color: #f1707a;
+  color: #ffffff;
+}
+
 :global(:root[data-theme="light"]) .winBtn {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(148, 163, 184, 0.28);
@@ -331,7 +343,7 @@
 
 .searchShell {
   height: 38px;
-  width: 320px;
+  width: 160px;
   max-width: 36vw;
   display: inline-flex;
   align-items: center;
@@ -467,6 +479,42 @@
   padding: 14px;
 }
 
+.syncBtnGlass {
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.syncBtnGlass.primaryBtn {
+  background: color-mix(in srgb, var(--accent) 28%, rgba(255, 255, 255, 0.08));
+  border-color: color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.18));
+}
+
+.syncBtnGlass.secondaryBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.syncBtnGlass.dangerBtn {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.34);
+}
+
+.syncBtnGlass.syncTab {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.syncBtnGlass.syncTabActive {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.syncBtnGlass.overlayClose {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .qrImage {
   width: min(320px, 72vw);
   max-width: 100%;
@@ -518,16 +566,29 @@
   align-items: center;
   gap: 8px;
   background: var(--accent-gradient);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
   color: var(--accent-text);
   font-weight: 900;
   font-size: 12px;
-  box-shadow: 0 14px 30px var(--accent-glow);
-  transition: transform 0.18s ease;
+  cursor: pointer;
+  transition: transform 0.18s ease, filter 0.18s ease, border-color 0.18s ease;
 }
 
 .primaryBtn:hover {
   transform: translateY(-1px);
+  filter: brightness(1.05) saturate(1.05);
+}
+
+.primaryBtn:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
 }
 
 .syncBigBtn {
@@ -550,10 +611,38 @@
   color: var(--primary-text);
   font-weight: 900;
   font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .secondaryBtn:hover {
   background: color-mix(in srgb, var(--hover-bg) 72%, transparent);
+  border-color: color-mix(in srgb, var(--border) 70%, var(--accent) 30%);
+}
+
+.secondaryBtn:active {
+  transform: translateY(0);
+  background: color-mix(in srgb, var(--hover-bg) 82%, transparent);
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+:global(:root[data-theme="dark"]) .secondaryBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+:global(:root[data-theme="dark"]) .secondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+:global(:root[data-theme="dark"]) .secondaryBtn:active {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .dangerBtn {
@@ -568,10 +657,23 @@
   color: rgba(239, 68, 68, 0.95);
   font-weight: 900;
   font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .dangerBtn:hover {
   background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.46);
+}
+
+.dangerBtn:active {
+  transform: translateY(0);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.dangerBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .syncTabs {
@@ -582,6 +684,11 @@
   background: color-mix(in srgb, var(--hover-bg) 70%, transparent);
   border: 1px solid var(--border);
   margin-bottom: 12px;
+}
+
+:global(:root[data-theme="dark"]) .syncTabs {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .syncTab {
@@ -595,18 +702,21 @@
   color: var(--secondary-text);
   font-weight: 900;
   font-size: 12px;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
 }
 
 .syncTab:hover {
   background: var(--hover-bg);
   color: var(--primary-text);
+  border-color: var(--border);
 }
 
 .syncTabActive {
   background: var(--bg-secondary);
   color: var(--primary-text);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--border);
 }
 
 .syncHint {

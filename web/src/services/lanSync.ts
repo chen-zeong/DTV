@@ -111,8 +111,13 @@ export function createLanSyncPayload(storage: Storage, source: Partial<ConfigSou
 
 export function parseLanSyncManifest(raw: unknown): LanSyncManifest {
   if (!isRecord(raw)) throw new Error("Manifest format is invalid.");
-  if (raw.kind !== LAN_SYNC_KIND) throw new Error("This is not a DTV LAN sync export.");
-  if (raw.version !== LAN_SYNC_VERSION) throw new Error(`Unsupported sync version: ${String(raw.version)}.`);
+
+  // Compatibility: some clients (e.g. older/mobile builds) omit kind/version fields.
+  const kind = typeof raw.kind === "string" ? raw.kind : null;
+  const version = typeof raw.version === "number" ? raw.version : null;
+  if (kind && kind !== LAN_SYNC_KIND) throw new Error("This is not a DTV LAN sync export.");
+  if (version != null && version !== LAN_SYNC_VERSION) throw new Error(`Unsupported sync version: ${String(raw.version)}.`);
+
   if (typeof raw.exportedAt !== "string" || Number.isNaN(Date.parse(raw.exportedAt))) throw new Error("Manifest exportedAt is invalid.");
   if (!isRecord(raw.source) || typeof raw.source.client !== "string" || !raw.source.client.trim()) throw new Error("Manifest source is invalid.");
   if (!isRecord(raw.summary)) throw new Error("Manifest summary is missing.");
@@ -140,8 +145,13 @@ export function parseLanSyncManifest(raw: unknown): LanSyncManifest {
 
 export function parseLanSyncPayload(raw: unknown): LanSyncPayload {
   if (!isRecord(raw)) throw new Error("Payload format is invalid.");
-  if (raw.kind !== LAN_SYNC_KIND) throw new Error("This is not a DTV LAN sync export.");
-  if (raw.version !== LAN_SYNC_VERSION) throw new Error(`Unsupported sync version: ${String(raw.version)}.`);
+
+  // Compatibility: some clients (e.g. older/mobile builds) omit kind/version fields.
+  const kind = typeof raw.kind === "string" ? raw.kind : null;
+  const version = typeof raw.version === "number" ? raw.version : null;
+  if (kind && kind !== LAN_SYNC_KIND) throw new Error("This is not a DTV LAN sync export.");
+  if (version != null && version !== LAN_SYNC_VERSION) throw new Error(`Unsupported sync version: ${String(raw.version)}.`);
+
   if (typeof raw.exportedAt !== "string" || Number.isNaN(Date.parse(raw.exportedAt))) throw new Error("Payload exportedAt is invalid.");
   if (!isRecord(raw.source) || typeof raw.source.client !== "string" || !raw.source.client.trim()) throw new Error("Payload source is invalid.");
   if (!isRecord(raw.entries)) throw new Error("Payload entries are missing.");

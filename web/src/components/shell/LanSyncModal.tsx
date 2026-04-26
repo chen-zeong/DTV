@@ -7,9 +7,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { QRCodeCanvas } from "qrcode.react";
 
 import styles from "./Navbar.module.css";
-import { applyIncrementalLanSyncImport, createLanSyncPayload } from "@/services/lanSync";
+import { applyIncrementalLanSyncImport, createLanSyncPayload, parseLanSyncManifest, parseLanSyncPayload } from "@/services/lanSync";
 
 type ServerInfo = { port: number; hosts: string[]; token: string };
+type DiscoveredPeer = { name: string; host: string; port: number; token?: string | null; baseUrl: string };
 
 const FIXED_PORT = 38999;
 const DEFAULT_TOKEN = "dtv";
@@ -51,31 +52,6 @@ function pickBestLanHost(hosts: string[]): string | null {
   return best;
 }
 
-async function copyText(text: string): Promise<void> {
-  const value = String(text || "");
-  if (!value) return;
-  try {
-    await navigator.clipboard.writeText(value);
-    return;
-  } catch {
-    // ignore and fallback
-  }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = value;
-    ta.setAttribute("readonly", "true");
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    ta.style.top = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-  } catch {
-    // ignore
-  }
-}
-
 function normalizeImportTarget(input: string, fallbackToken: string): { baseUrl: string; token: string } {
   const raw = String(input || "").trim();
   if (!raw) throw new Error("请输入共享端 IP。");
@@ -96,6 +72,45 @@ function normalizeImportTarget(input: string, fallbackToken: string): { baseUrl:
   return { baseUrl, token: fallbackToken };
 }
 
+function normalizeDiscoveredToken(raw: unknown, fallbackToken: string): string {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) return fallbackToken;
+
+  // Some peers may accidentally advertise txt like "token=dtv"; normalize to "dtv".
+  if (trimmed.includes("token=")) {
+    try {
+      const params = new URLSearchParams(trimmed.startsWith("?") ? trimmed.slice(1) : trimmed);
+      const t = params.get("token");
+      if (t) return t;
+    } catch {
+      // ignore
+    }
+    const idx = trimmed.lastIndexOf("token=");
+    if (idx >= 0) {
+      const maybe = trimmed.slice(idx + "token=".length);
+      if (maybe) return decodeURIComponent(maybe);
+    }
+  }
+
+  return trimmed;
+}
+
+async function fetchJsonWithTimeout(url: string, timeoutMs: number) {
+  const controller = new AbortController();
+  const id = window.setTimeout(() => controller.abort(), Math.max(200, timeoutMs));
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+      cache: "no-store",
+      headers: { Accept: "application/json" }
+    });
+    return res;
+  } finally {
+    window.clearTimeout(id);
+  }
+}
+
 export function LanSyncModal({
   open,
   onClose,
@@ -110,6 +125,9 @@ export function LanSyncModal({
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [jsonExportBusy, setJsonExportBusy] = useState(false);
+  const [jsonExportError, setJsonExportError] = useState<string | null>(null);
+  const [jsonExportPath, setJsonExportPath] = useState<string | null>(null);
 
   const [manualTarget, setManualTarget] = useState("");
   const [importBusy, setImportBusy] = useState(false);
@@ -118,20 +136,19 @@ export function LanSyncModal({
 
   const canUseStorage = typeof window !== "undefined" && !!window.localStorage;
 
-  const shareIpText = useMemo(() => {
-    const hosts = serverInfo?.hosts ?? [];
-    const best = pickBestLanHost(hosts);
-    return best ?? "未获取到";
+  const bestHost = useMemo(() => {
+    if (!serverInfo?.hosts?.length) return null;
+    return pickBestLanHost(serverInfo.hosts);
   }, [serverInfo?.hosts]);
 
   const shareImportUrl = useMemo(() => {
     const port = serverInfo?.port || FIXED_PORT;
-    const host = serverInfo?.hosts?.length ? pickBestLanHost(serverInfo.hosts) : null;
+    const host = bestHost;
     const token = serverInfo?.token || DEFAULT_TOKEN;
     if (!host) return null;
-    // Use manifest endpoint: smaller and still carries token; importer only needs origin + token.
-    return `http://${host}:${port}/dtv-sync?token=${encodeURIComponent(token)}`;
-  }, [serverInfo?.hosts, serverInfo?.port, serverInfo?.token]);
+    // Share the payload URL for easier manual testing/copying; importer only needs origin + token.
+    return `http://${host}:${port}/dtv-sync/payload?token=${encodeURIComponent(token)}`;
+  }, [bestHost, serverInfo?.port, serverInfo?.token]);
 
   useEffect(() => {
     if (!open) return;
@@ -139,6 +156,9 @@ export function LanSyncModal({
     setTab("export");
     setExportBusy(false);
     setExportError(null);
+    setJsonExportBusy(false);
+    setJsonExportError(null);
+    setJsonExportPath(null);
     setImportBusy(false);
     setImportError(null);
     setImportResult(null);
@@ -184,6 +204,123 @@ export function LanSyncModal({
     }
   }, [appVersion, canUseStorage]);
 
+  const exportToDesktopJson = useCallback(async () => {
+    if (!canUseStorage) return;
+    setJsonExportBusy(true);
+    setJsonExportError(null);
+    setJsonExportPath(null);
+
+    try {
+      const payload = createLanSyncPayload(window.localStorage, { client: "desktop", appVersion: appVersion || null });
+      const contents = JSON.stringify(payload, null, 2);
+      const savedPath = (await invoke<string>("export_lan_sync_json_to_desktop", {
+        contents,
+        defaultFileName: null
+      })) as string;
+      setJsonExportPath(savedPath);
+    } catch (e) {
+      setJsonExportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setJsonExportBusy(false);
+    }
+  }, [appVersion, canUseStorage]);
+
+  const importFromJsonFile = useCallback(async () => {
+    if (!canUseStorage) return;
+    setImportBusy(true);
+    setImportError(null);
+    setImportResult(null);
+
+    try {
+      const picked = (await invoke<any>("pick_lan_sync_json_import")) as { path: string; content: string } | null;
+      if (!picked?.content) return;
+
+      const payload = parseLanSyncPayload(JSON.parse(picked.content));
+      const result = applyIncrementalLanSyncImport(window.localStorage, payload.entries);
+      const extraParts: string[] = [];
+      if (typeof result.addedCustomCategories === "number") extraParts.push(`自定义分区新增 ${result.addedCustomCategories}`);
+      if (typeof result.addedDanmuBlockKeywords === "number") extraParts.push(`弹幕屏蔽词新增 ${result.addedDanmuBlockKeywords}`);
+      if (result.appliedDanmuPreferences) extraParts.push("已应用弹幕偏好设置");
+      const extra = extraParts.length ? `，${extraParts.join("，")}。` : "。";
+
+      setImportResult(
+        `导入成功（JSON）：新增关注 ${result.addedStreamers}，新增文件夹 ${result.addedFolderCount}，文件夹新增条目 ${result.addedFolderItems}${extra} 文件：${picked.path}。`
+      );
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImportBusy(false);
+    }
+  }, [canUseStorage]);
+
+  const importFromDiscoveredPeers = useCallback(async () => {
+    if (!canUseStorage) return;
+    setImportBusy(true);
+    setImportError(null);
+    setImportResult("正在搜索可用共享端…");
+
+    try {
+      const peers = (await invoke<any>("lan_sync_discover", { timeoutMs: 1600 })) as DiscoveredPeer[];
+      if (!Array.isArray(peers) || peers.length === 0) {
+        throw new Error("未发现可用共享端：请先在另一台设备点击「开启共享」。");
+      }
+
+      const candidates: Array<{ peer: DiscoveredPeer; exportedAt: number; token: string }> = [];
+      const probeFailures: Array<{ peer: DiscoveredPeer; reason: string }> = [];
+
+      const settled = await Promise.allSettled(
+        peers.map(async (peer) => {
+          if (!peer?.baseUrl) throw new Error("Peer baseUrl is empty.");
+          const token = normalizeDiscoveredToken(peer.token, DEFAULT_TOKEN);
+          const manifest = (await invoke<any>("lan_sync_fetch_manifest", { baseUrl: peer.baseUrl, token })) as any;
+          const parsed = parseLanSyncManifest(manifest);
+          const exportedAt = Date.parse(parsed.exportedAt);
+          return { peer, exportedAt: Number.isFinite(exportedAt) ? exportedAt : 0, token };
+        })
+      );
+
+      settled.forEach((item, idx) => {
+        const peer = peers[idx];
+        if (item.status === "fulfilled") {
+          candidates.push(item.value);
+          return;
+        }
+        const reasonMsg = item.reason instanceof Error ? item.reason.message : String(item.reason || "Failed to fetch");
+        probeFailures.push({ peer, reason: reasonMsg });
+      });
+
+      if (!candidates.length) {
+        const brief = probeFailures
+          .slice(0, 3)
+          .map((f) => `${f.peer.host}:${f.peer.port}（失败：${f.reason}）`)
+          .join("，");
+        const suffix = brief ? ` 探测结果：${brief}` : "";
+        throw new Error(`未找到可导入的数据：共享端可能已关闭、token 不匹配，或 mDNS 解析到了不可达 IP（如 169.254.*）。${suffix}`);
+      }
+      candidates.sort((a, b) => b.exportedAt - a.exportedAt);
+      const best = candidates[0];
+
+      const payloadRaw = (await invoke<any>("lan_sync_fetch_payload", { baseUrl: best.peer.baseUrl, token: best.token })) as any;
+      const payload = parseLanSyncPayload(payloadRaw);
+      const result = applyIncrementalLanSyncImport(window.localStorage, payload.entries);
+
+      const extraParts: string[] = [];
+      extraParts.push(`自定义分区新增 ${result.addedCustomCategories}`);
+      extraParts.push(`弹幕屏蔽词新增 ${result.addedDanmuBlockKeywords}`);
+      if (result.appliedDanmuPreferences) extraParts.push("已应用弹幕偏好设置");
+      const extra = extraParts.length ? `，${extraParts.join("，")}。` : "。";
+
+      setImportResult(
+        `导入成功（一键）：新增关注 ${result.addedStreamers}，新增文件夹 ${result.addedFolderCount}，文件夹新增条目 ${result.addedFolderItems}${extra} 来源：${best.peer.host}:${best.peer.port}`
+      );
+    } catch (e) {
+      setImportResult(null);
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImportBusy(false);
+    }
+  }, [canUseStorage]);
+
   const confirmImport = useCallback(async () => {
     if (!canUseStorage) return;
     setImportBusy(true);
@@ -191,13 +328,9 @@ export function LanSyncModal({
     setImportResult(null);
     try {
       const { baseUrl, token } = normalizeImportTarget(manualTarget, DEFAULT_TOKEN);
-      const payloadUrl = `${baseUrl}/dtv-sync/payload?token=${encodeURIComponent(token || DEFAULT_TOKEN)}`;
-      const res = await fetch(payloadUrl, { method: "GET" });
-      if (!res.ok) throw new Error(`下载数据失败：${res.status} ${res.statusText}`);
-      const json = await res.json();
-      const remoteEntries = (json?.entries ?? null) as Record<string, string> | null;
-      if (!remoteEntries || typeof remoteEntries !== "object") throw new Error("同步数据格式不正确。");
-      const result = applyIncrementalLanSyncImport(window.localStorage, remoteEntries);
+      const payloadRaw = (await invoke<any>("lan_sync_fetch_payload", { baseUrl, token })) as any;
+      const payload = parseLanSyncPayload(payloadRaw);
+      const result = applyIncrementalLanSyncImport(window.localStorage, payload.entries);
       const extraParts: string[] = [];
       if (typeof result.addedCustomCategories === "number") extraParts.push(`自定义分区新增 ${result.addedCustomCategories}`);
       if (typeof result.addedDanmuBlockKeywords === "number") extraParts.push(`弹幕屏蔽词新增 ${result.addedDanmuBlockKeywords}`);
@@ -242,19 +375,27 @@ export function LanSyncModal({
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className={styles.overlayHeader}>
-            <div className={styles.overlayTitle}>数据同步（局域网）</div>
-            <button type="button" className={styles.overlayClose} onClick={() => close()} aria-label="关闭">
+            <div className={styles.overlayTitle}>数据同步</div>
+            <button type="button" className={`${styles.overlayClose} ${styles.syncBtnGlass}`} onClick={() => close()} aria-label="关闭">
               <X size={16} />
             </button>
           </div>
 
           <div className={styles.overlayBody}>
             <div className={styles.syncTabs} aria-label="sync tabs">
-              <button type="button" className={`${styles.syncTab} ${tab === "export" ? styles.syncTabActive : ""}`} onClick={() => setTab("export")}>
+              <button
+                type="button"
+                className={`${styles.syncTab} ${styles.syncBtnGlass} ${tab === "export" ? styles.syncTabActive : ""}`}
+                onClick={() => setTab("export")}
+              >
                 <Upload size={16} />
-                导出共享
+                导出
               </button>
-              <button type="button" className={`${styles.syncTab} ${tab === "import" ? styles.syncTabActive : ""}`} onClick={() => setTab("import")}>
+              <button
+                type="button"
+                className={`${styles.syncTab} ${styles.syncBtnGlass} ${tab === "import" ? styles.syncTabActive : ""}`}
+                onClick={() => setTab("import")}
+              >
                 <Download size={16} />
                 导入
               </button>
@@ -262,49 +403,38 @@ export function LanSyncModal({
 
             {tab === "export" ? (
               <>
-                <p className={styles.syncHint}>
-                  固定端口 {FIXED_PORT}。接收端手动输入共享端 IP 导入（增量导入，自动跳过重复）。首次开启可能会弹出防火墙提示。
-                </p>
-
-                {serverInfo?.hosts?.length ? (
-                  <div className={styles.syncUrlList} aria-label="hosts">
-                    <div className={styles.syncUrlItem}>
-                      <div className={styles.syncUrlText}>本机 IP：{shareIpText}</div>
-                    </div>
-                    <div className={styles.syncUrlItem}>
-                      <div className={styles.syncUrlText}>共享端口：{serverInfo.port || FIXED_PORT}</div>
-                    </div>
-                  </div>
-                ) : null}
-
                 {serverInfo?.hosts?.length && shareImportUrl ? (
-                  <div className={styles.syncQrBlock} aria-label="scan-import">
-                    <div className={styles.syncQrTitle}>扫码导入（移动端）</div>
-                    <div className={styles.syncQrHint}>用手机扫码后复制链接，粘贴到“导入”里即可。</div>
+                  <div className={styles.syncQrBlock} aria-label="lan-qr">
                     <div className={styles.syncQrCanvasWrap}>
                       <QRCodeCanvas
                         value={shareImportUrl}
                         size={200}
                         includeMargin
                         level="M"
-                        bgColor="transparent"
-                        fgColor="white"
+                        bgColor="#ffffff"
+                        fgColor="#111827"
                       />
                     </div>
-                    <div className={styles.syncUrlText} style={{ marginTop: 8 }}>
-                      {shareImportUrl}
+                  </div>
+                ) : null}
+
+                {serverInfo?.hosts?.length && bestHost ? (
+                  <div className={styles.syncMetaGrid} aria-label="share-meta">
+                    <div className={styles.syncMetaItem}>
+                      <div className={styles.syncMetaKey}>IP</div>
+                      <div className={styles.syncMetaVal}>{bestHost}</div>
                     </div>
-                    <div className={styles.syncActionsRow}>
-                      <button
-                        type="button"
-                        className={styles.primaryBtn}
-                        onClick={() => void copyText(shareImportUrl)}
-                        disabled={!shareImportUrl}
-                      >
-                        复制导入链接
-                      </button>
+                    <div className={styles.syncMetaItem}>
+                      <div className={styles.syncMetaKey}>端口</div>
+                      <div className={styles.syncMetaVal}>{serverInfo?.port || FIXED_PORT}</div>
                     </div>
                   </div>
+                ) : null}
+
+                {jsonExportError ? (
+                  <p className={styles.syncHint} style={{ color: "rgba(239, 68, 68, 0.95)" }}>
+                    {jsonExportError}
+                  </p>
                 ) : null}
 
                 {exportError ? (
@@ -313,32 +443,70 @@ export function LanSyncModal({
                   </p>
                 ) : null}
 
-                {serverInfo?.hosts?.length ? (
-                  <button type="button" className={`${styles.dangerBtn} ${styles.syncBigBtn}`} onClick={() => void stopShare()} disabled={exportBusy}>
-                    结束共享
-                  </button>
-                ) : (
+                {jsonExportPath ? (
+                  <p className={styles.syncHint} style={{ color: "rgba(34, 197, 94, 0.95)" }}>
+                    导出成功：已导出到桌面。文件：{jsonExportPath}
+                  </p>
+                ) : null}
+
+                <div className={styles.syncActionsRow}>
                   <button
                     type="button"
-                    className={`${styles.primaryBtn} ${styles.syncBigBtn}`}
-                    onClick={() => void startShare()}
-                    disabled={exportBusy || !canUseStorage}
+                    className={`${styles.secondaryBtn} ${styles.syncBigBtn} ${styles.syncBtnGlass}`}
+                    onClick={() => void exportToDesktopJson()}
+                    disabled={jsonExportBusy || !canUseStorage}
                   >
-                    开始共享
+                    导出 JSON
                   </button>
-                )}
+
+                  {serverInfo?.hosts?.length ? (
+                    <button
+                      type="button"
+                      className={`${styles.dangerBtn} ${styles.syncBigBtn} ${styles.syncBtnGlass}`}
+                      onClick={() => void stopShare()}
+                      disabled={exportBusy}
+                    >
+                      结束共享
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`${styles.primaryBtn} ${styles.syncBigBtn} ${styles.syncBtnGlass}`}
+                      onClick={() => void startShare()}
+                      disabled={exportBusy || !canUseStorage}
+                    >
+                      开启共享
+                    </button>
+                  )}
+                </div>
               </>
             ) : (
               <>
-                <p className={styles.syncHint}>导入：同一局域网内使用。导入为增量，会自动跳过重复（不会覆盖）。</p>
+                <div className={styles.syncActionsRow} aria-label="json-import-actions">
+                  <button
+                    type="button"
+                    className={`${styles.primaryBtn} ${styles.syncBtnGlass}`}
+                    onClick={() => void importFromDiscoveredPeers()}
+                    disabled={importBusy || !canUseStorage}
+                  >
+                    一键导入
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.secondaryBtn} ${styles.syncBtnGlass}`}
+                    onClick={() => void importFromJsonFile()}
+                    disabled={importBusy || !canUseStorage}
+                  >
+                    导入 JSON
+                  </button>
+                </div>
 
                 <div className={styles.syncField}>
-                  <div className={styles.syncLabel}>共享端 IP</div>
                   <input
                     className={styles.syncInput}
                     value={manualTarget}
                     onChange={(e) => setManualTarget(e.target.value)}
-                    placeholder={`例如：192.168.1.8（端口固定 ${FIXED_PORT}）`}
+                    placeholder="共享端 IP，例如：192.168.1.8"
                     autoCapitalize="off"
                     autoCorrect="off"
                     spellCheck={false}
@@ -356,14 +524,18 @@ export function LanSyncModal({
                 <div className={styles.syncActionsRow}>
                   <button
                     type="button"
-                    className={styles.primaryBtn}
+                    className={`${styles.primaryBtn} ${styles.syncBtnGlass}`}
                     onClick={() => void confirmImport()}
                     disabled={importBusy || !manualTarget.trim() || !canUseStorage}
                   >
                     导入
                   </button>
                   {importResult ? (
-                    <button type="button" className={styles.secondaryBtn} onClick={() => window.location.reload()}>
+                    <button
+                      type="button"
+                      className={`${styles.secondaryBtn} ${styles.syncBtnGlass}`}
+                      onClick={() => window.location.reload()}
+                    >
                       刷新应用
                     </button>
                   ) : null}

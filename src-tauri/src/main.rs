@@ -9,9 +9,11 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 #[cfg(target_os = "macos")]
 use tauri::Manager;
+use tauri_plugin_opener::OpenerExt;
 mod logging;
 mod config_transfer;
 mod lan_sync;
+mod sync_transfer;
 mod platforms;
 mod proxy;
 mod version_check;
@@ -160,6 +162,17 @@ async fn search_anchor(keyword: String) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn open_in_default_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return Err("URL is empty.".to_string());
+    }
+    app.opener()
+        .open_url(trimmed, None::<String>)
+        .map_err(|e| e.to_string())
+}
+
 // Main function corrected
 fn main() {
     logging::init();
@@ -218,11 +231,16 @@ fn main() {
                 search_anchor,
                 config_transfer::save_config_export,
                 config_transfer::pick_config_import,
+                sync_transfer::export_lan_sync_json_to_desktop,
+                sync_transfer::pick_lan_sync_json_import,
+                sync_transfer::import_latest_lan_sync_json_from_desktop,
                 lan_sync::lan_sync_start_server,
                 lan_sync::lan_sync_stop_server,
                 lan_sync::lan_sync_status,
                 lan_sync::lan_sync_token,
                 lan_sync::lan_sync_discover,
+                lan_sync::lan_sync_fetch_manifest,
+                lan_sync::lan_sync_fetch_payload,
                 start_danmaku_listener,      // Douyu danmaku start
                 stop_danmaku_listener,       // Douyu danmaku stop
                 start_douyin_danmu_listener, // Added Douyin danmaku listener command
@@ -255,6 +273,7 @@ fn main() {
                 platforms::bilibili::cookie::bootstrap_bilibili_cookie,
                 platforms::bilibili::search::search_bilibili_rooms,
                 platforms::huya::search::search_huya_anchors,
+                open_in_default_browser,
                 version_check::check_version_cmd,
             ])
             .run(tauri::generate_context!())

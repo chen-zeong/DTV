@@ -34,6 +34,13 @@
   background: transparent;
 }
 
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .headerTitle {
   margin: 0;
   color: rgba(148, 163, 184, 1);
@@ -105,6 +112,11 @@
   background: rgba(255, 255, 255, 0.85);
   border-color: rgba(148, 163, 184, 0.35);
   color: rgba(15, 23, 42, 1);
+}
+
+.headerStaticIcon {
+  cursor: default;
+  pointer-events: none;
 }
 
 .refreshBtn:hover :global(svg) {

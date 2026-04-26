@@ -1,14 +1,17 @@
 use actix_cors::Cors;
 use actix_web::dev::ServerHandle;
+use actix_web::middleware::DefaultHeaders;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use local_ip_address::list_afinet_netifas;
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use tauri::State;
 
 pub const LAN_SYNC_KIND: &str = "dtv-lan-sync";
 pub const LAN_SYNC_VERSION: u32 = 1;
@@ -18,6 +21,20 @@ pub const LAN_SYNC_HTTP_PATH: &str = "/dtv-sync";
 
 fn fixed_token() -> String {
     std::env::var("DTV_LAN_SYNC_TOKEN").unwrap_or_else(|_| "dtv".to_string())
+}
+
+fn normalize_token_value(raw: Option<String>) -> String {
+    let trimmed = raw.unwrap_or_default().trim().to_string();
+    if trimmed.is_empty() {
+        return fixed_token();
+    }
+    if let Some(rest) = trimmed.strip_prefix("token=") {
+        let v = rest.trim();
+        if !v.is_empty() {
+            return v.to_string();
+        }
+    }
+    trimmed
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -401,6 +418,8 @@ pub async fn lan_sync_start_server(
 
         App::new()
             .wrap(cors)
+            // WebView/secure-context fetch to private LAN may require this (Private Network Access preflight).
+            .wrap(DefaultHeaders::new().add(("Access-Control-Allow-Private-Network", "true")))
             .app_data(web::Data::new(payload_data.clone()))
             .app_data(web::Data::new(token_state.clone()))
             .service(dtv_sync_manifest)
@@ -477,12 +496,28 @@ pub async fn lan_sync_discover(timeout_ms: Option<u64>) -> Result<Vec<LanSyncDis
             let token = info.get_property("token").map(|s| s.to_string());
 
             let mut host_ip: Option<String> = None;
+
+            // Prefer LAN-reachable IPv4 (avoid APIPA/link-local like 169.254.* that is often not routable between hosts).
             for ip in info.get_addresses() {
-                if matches!(ip, IpAddr::V4(v4) if !v4.is_loopback() && is_private_ipv4(v4)) {
-                    host_ip = Some(ip.to_string());
-                    break;
+                if let IpAddr::V4(v4) = ip {
+                    if is_shareable_lan_ipv4(v4) {
+                        host_ip = Some(ip.to_string());
+                        break;
+                    }
                 }
             }
+
+            // Fallback: any private IPv4 (still avoid loopback).
+            if host_ip.is_none() {
+                for ip in info.get_addresses() {
+                    if matches!(ip, IpAddr::V4(v4) if !v4.is_loopback() && v4.is_private()) {
+                        host_ip = Some(ip.to_string());
+                        break;
+                    }
+                }
+            }
+
+            // Last resort: whatever mdns gives us first.
             if host_ip.is_none() {
                 host_ip = info.get_addresses().iter().next().map(|ip| ip.to_string());
             }
@@ -507,4 +542,66 @@ pub async fn lan_sync_discover(timeout_ms: Option<u64>) -> Result<Vec<LanSyncDis
     let mut peers: Vec<LanSyncDiscoveredPeer> = found.into_values().collect();
     peers.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(peers)
+}
+
+#[tauri::command]
+pub async fn lan_sync_fetch_manifest(
+    base_url: String,
+    token: Option<String>,
+    client: State<'_, reqwest::Client>,
+) -> Result<JsonValue, String> {
+    let base = base_url.trim().trim_end_matches('/');
+    if base.is_empty() {
+        return Err("baseUrl is empty.".to_string());
+    }
+    let token = normalize_token_value(token);
+    let url = format!("{}/dtv-sync?token={}", base, urlencoding::encode(&token));
+
+    let resp = client
+        .get(url)
+        .timeout(Duration::from_millis(3000))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch manifest: {e}"))?;
+
+    let status = resp.status();
+    let text = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(format!("Manifest HTTP {}: {}", status.as_u16(), text));
+    }
+
+    serde_json::from_str::<JsonValue>(&text).map_err(|e| format!("Manifest JSON parse failed: {e}"))
+}
+
+#[tauri::command]
+pub async fn lan_sync_fetch_payload(
+    base_url: String,
+    token: Option<String>,
+    client: State<'_, reqwest::Client>,
+) -> Result<JsonValue, String> {
+    let base = base_url.trim().trim_end_matches('/');
+    if base.is_empty() {
+        return Err("baseUrl is empty.".to_string());
+    }
+    let token = normalize_token_value(token);
+    let url = format!(
+        "{}/dtv-sync/payload?token={}",
+        base,
+        urlencoding::encode(&token)
+    );
+
+    let resp = client
+        .get(url)
+        .timeout(Duration::from_millis(5000))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch payload: {e}"))?;
+
+    let status = resp.status();
+    let text = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(format!("Payload HTTP {}: {}", status.as_u16(), text));
+    }
+
+    serde_json::from_str::<JsonValue>(&text).map_err(|e| format!("Payload JSON parse failed: {e}"))
 }

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence, m, useMotionValue, useSpring } from "framer-motion";
-import { Check, ChevronDown, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
+import { Check, ChevronDown, ContactRound, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import styles from "./FollowsList.module.css";
@@ -680,11 +680,14 @@ export function FollowsList() {
   return (
     <div className={styles.followList}>
       <div className={styles.listHeader} ref={headerRef} data-tauri-drag-region>
-        <h3 className={styles.headerTitle} aria-label="关注列表" data-tauri-drag-region>
-          <span className={styles.headerLabel} data-tauri-drag-region>
-            Live Channels
+        <div className={styles.headerLeft} data-tauri-drag-region>
+          <span className={`${styles.actionBtn} ${styles.headerStaticIcon}`} aria-hidden="true">
+            <ContactRound size={18} />
           </span>
-        </h3>
+          <h3 className={styles.headerTitle} aria-label="关注列表" data-tauri-drag-region>
+            <span className={styles.headerLabel} data-tauri-drag-region />
+          </h3>
+        </div>
         <div className={styles.headerActions} data-tauri-drag-region="false">
           {!isRefreshing ? (
             <button
@@ -1119,6 +1122,18 @@ function FolderChildren({
   const hoverY = useSpring(hoverYRaw, { stiffness: 520, damping: 44, mass: 0.7 });
   const hoverH = useSpring(hoverHRaw, { stiffness: 520, damping: 44, mass: 0.7 });
 
+  const orderedStreamerKeys = useMemo(() => {
+    const live: string[] = [];
+    const rest: string[] = [];
+    for (const key of streamerKeys) {
+      const normKey = normalizeKey(key);
+      const s = streamerByKey.get(normKey);
+      if (s?.liveStatus === "LIVE") live.push(key);
+      else rest.push(key);
+    }
+    return [...live, ...rest];
+  }, [normalizeKey, streamerByKey, streamerKeys]);
+
   useLayoutEffect(() => {
     if (!expanded) {
       setHeight(0);
@@ -1175,7 +1190,7 @@ function FolderChildren({
             style={{ opacity: hoverOpacity, y: hoverY, height: hoverH }}
           />
           <div ref={innerRef} className={styles.folderItemsInner}>
-            {streamerKeys.map((key) => {
+            {orderedStreamerKeys.map((key) => {
               const normKey = normalizeKey(key);
               const s = streamerByKey.get(normKey);
               if (!s) return null;

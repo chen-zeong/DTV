@@ -272,7 +272,8 @@ export function MainPlayer({
         const osMod: any = await import("@tauri-apps/plugin-os");
         const p = typeof osMod?.platform === "function" ? await osMod.platform() : "";
         if (cancelled) return;
-        setIsWindows(String(p).toLowerCase() === "windows");
+        const platform = String(p).toLowerCase();
+        setIsWindows(platform === "windows" || platform === "linux");
       } catch {
         // non-tauri env: ignore
       }

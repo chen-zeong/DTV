@@ -95,7 +95,7 @@
   --tertiary-bg: var(--bg-tertiary);
   --accent-color: var(--accent);
   --accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  --accent-text: #000000;
+  --accent-text: #ffffff;
   --primary-text: var(--text-primary);
   --secondary-text: var(--text-secondary);
   --dim-text: rgba(134, 134, 139, 0.8);
@@ -150,7 +150,7 @@
   --tertiary-bg: var(--bg-tertiary);
   --accent-color: var(--accent);
   --accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  --accent-text: #000000;
+  --accent-text: #ffffff;
   --primary-text: var(--text-primary);
   --secondary-text: var(--text-secondary);
   --dim-text: rgba(161, 161, 166, 0.8);

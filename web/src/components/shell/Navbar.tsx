@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { ChevronDown, ExternalLink, FolderSync, LayoutGrid, Moon, Search, Sun, ThumbsUp, X } from "lucide-react";
+import { ChevronDown, ExternalLink, LayoutGrid, MonitorSmartphone, Moon, Search, Sun, ThumbsUp, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -25,6 +25,8 @@ type VersionInfo = {
   url?: string;
   published_at?: string;
 };
+
+const GITHUB_RELEASES_URL = "https://github.com/chen-zeong/DTV/releases";
 
 const basePlatforms: Array<{ id: Exclude<UiPlatform, "custom">; name: string }> = [
   { id: "douyu", name: "斗鱼" },
@@ -239,7 +241,8 @@ export function Navbar({
         const osMod: any = await import("@tauri-apps/plugin-os");
         const p = typeof osMod?.platform === "function" ? await osMod.platform() : "";
         if (cancelled) return;
-        setIsWindows(String(p).toLowerCase() === "windows");
+        const platform = String(p).toLowerCase();
+        setIsWindows(platform === "windows" || platform === "linux");
       } catch {
         // non-tauri env: ignore
       }
@@ -333,18 +336,39 @@ export function Navbar({
   }, [activePlatform]);
 
   const openExternal = useCallback(async (url: string) => {
-    if (!url) return;
+    const raw = String(url || "").trim();
+    if (!raw) return;
+
+    const normalizedUrl = (() => {
+      try {
+        return new URL(raw).toString();
+      } catch {
+        // allow passing github.com/xxx
+        try {
+          return new URL(`https://${raw}`).toString();
+        } catch {
+          return raw;
+        }
+      }
+    })();
+
+    try {
+      await invoke("open_in_default_browser", { url: normalizedUrl });
+      return;
+    } catch {
+      // ignore
+    }
     try {
       const opener: any = await import("@tauri-apps/plugin-opener");
       if (typeof opener?.open === "function") {
-        await opener.open(url);
+        await opener.open(normalizedUrl);
         return;
       }
     } catch {
       // ignore
     }
     try {
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.open(normalizedUrl, "_blank", "noopener,noreferrer");
     } catch {
       // ignore
     }
@@ -665,7 +689,7 @@ export function Navbar({
           aria-label="Data Sync"
           onClick={() => setLanSyncOpen(true)}
         >
-          <FolderSync size={18} />
+          <MonitorSmartphone size={18} />
         </button>
 
         <button
@@ -721,8 +745,7 @@ export function Navbar({
               </div>
               <div className={styles.overlayBody}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className={styles.qrImage} src="/donate-qr.png" alt="打赏二维码" />
-                <div className={styles.overlayHint}>感谢支持，扫码即可。</div>
+                <img className={styles.qrImage} src="/wechat.jpg" alt="微信赞赏码" />
               </div>
             </m.div>
           </m.div>
@@ -770,14 +793,16 @@ export function Navbar({
                   </ul>
                 ) : null}
 
-                {hasUpdate && versionInfo?.url ? (
-                  <div className={styles.updateActions}>
-                    <button type="button" className={styles.primaryBtn} onClick={() => void openExternal(versionInfo.url!)}>
-                      <ExternalLink size={16} />
-                      打开下载页
-                    </button>
-                  </div>
-                ) : null}
+                <div className={styles.updateActions}>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={() => void openExternal((versionInfo?.url || GITHUB_RELEASES_URL) as string)}
+                  >
+                    <ExternalLink size={16} />
+                    {hasUpdate ? "打开下载页" : "打开 GitHub"}
+                  </button>
+                </div>
               </div>
             </m.div>
           </m.div>
