@@ -13,6 +13,9 @@
 
 ## 说明
 
+> 想支持本项目？可以前往底部 [打赏](#打赏)  
+> 安卓版本：[`dtv_mobile`](https://github.com/chen-zeong/dtv_mobile)
+
 1. 本项目基于 Tauri 2.0 开发，体积小，占用率低，实测可以在双核、4GB内存的电脑上流畅运行
 2. 平台接口可能有访问频率限制，过于频繁的请求会触发验证码校验，建议合理使用搜索功能
 3. 本项目仅供学习编程目的使用，未进行任何逆向工程
@@ -97,3 +100,11 @@ pnpm tauri build --target aarch64-apple-darwin
 - 抖音弹幕参考了[@saermart/DouyinLiveWebFetcher](https://github.com/saermart/DouyinLiveWebFetcher)
 - 虎牙参考了https://github.com/liuchuancong/pure_live https://github.com/ihmily/DouyinLiveRecorder
 - b站弹幕参考了https://github.com/xfgryujk/blivedm
+
+## 打赏
+
+如果这个项目对你有帮助，欢迎打赏支持：
+
+<div align="center">
+  <img src="images/wechat.jpg" alt="微信赞赏码" width="260">
+</div>
