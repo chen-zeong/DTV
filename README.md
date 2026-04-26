@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="images/icon.png" alt="DTV Logo" width="128" height="128">
+  <img src="images/icon.png" alt="DTV" width="128">
   <h1>DTV</h1>
   <p>基于 Tauri 2.0 的跨平台斗鱼、虎牙、抖音、bilibili直播桌面客户端</p>
 </div>
