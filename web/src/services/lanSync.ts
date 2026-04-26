@@ -4,8 +4,12 @@ export const LAN_SYNC_KIND = "dtv-lan-sync" as const;
 export const LAN_SYNC_VERSION = 1 as const;
 
 export const LAN_SYNC_KEYS = [
+  "followedStreamers",
   "followFolders",
-  // NOTE: keep payload minimal for LAN sync: only share folder structure.
+  "followListOrder",
+  "dtv_custom_categories_v1",
+  "danmu_block_keywords",
+  "dtv_danmu_preferences_v1"
 ] as const;
 
 type LanSyncKey = (typeof LAN_SYNC_KEYS)[number];
@@ -53,6 +57,34 @@ function safeParseJsonArray<T>(raw: string | null | undefined): T[] {
   } catch {
     return [];
   }
+}
+
+function safeParseJsonObject(raw: string | null | undefined): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "string") return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeDanmuBlockKeywords(keywords: unknown): string[] {
+  if (!Array.isArray(keywords)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of keywords) {
+    if (typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const normalized = trimmed.slice(0, 40);
+    const dedupeKey = normalized.toLowerCase();
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    out.push(normalized);
+    if (out.length >= 40) break;
+  }
+  return out;
 }
 
 export function collectLanSyncEntries(storage: Storage): PortableEntries {
@@ -195,18 +227,33 @@ export type LanSyncImportResult = {
   addedStreamers: number;
   addedFolderCount: number;
   addedFolderItems: number;
+  addedCustomCategories: number;
+  addedDanmuBlockKeywords: number;
+  appliedDanmuPreferences: boolean;
 };
 
 export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: PortableEntries): LanSyncImportResult {
   const remoteFoldersFromKey = safeParseJsonArray<FollowFolder>(remoteEntries["followFolders"]);
+  const remoteStreamersFromKey = safeParseJsonArray<FollowedStreamer>(remoteEntries["followedStreamers"]);
+  const remoteOrderFromKey = safeParseJsonArray<FollowListItem>(remoteEntries["followListOrder"]);
+  const remoteCustomCategoriesFromKey = safeParseJsonArray<{ key: string }>(remoteEntries["dtv_custom_categories_v1"]);
+  const remoteDanmuBlockKeywordsFromKey = safeParseJsonArray<string>(remoteEntries["danmu_block_keywords"]);
+  const remoteDanmuPreferencesFromKey = safeParseJsonObject(remoteEntries["dtv_danmu_preferences_v1"]);
 
   const localFollowed = safeParseJsonArray<FollowedStreamer>(storage.getItem("followedStreamers"));
   const localFolders = safeParseJsonArray<FollowFolder>(storage.getItem("followFolders"));
   const localOrder = safeParseJsonArray<FollowListItem>(storage.getItem("followListOrder"));
+  const localCustomCategories = safeParseJsonArray<{ key: string }>(storage.getItem("dtv_custom_categories_v1"));
+  const localDanmuBlockKeywords = safeParseJsonArray<string>(storage.getItem("danmu_block_keywords"));
+  const localDanmuPreferencesRaw = storage.getItem("dtv_danmu_preferences_v1");
+  const localDanmuPreferences = safeParseJsonObject(localDanmuPreferencesRaw);
 
   let addedStreamers = 0;
   let addedFolderCount = 0;
   let addedFolderItems = 0;
+  let addedCustomCategories = 0;
+  let addedDanmuBlockKeywords = 0;
+  let appliedDanmuPreferences = false;
 
   const streamerByKey = new Map<string, FollowedStreamer>();
   for (const s of localFollowed) {
@@ -234,6 +281,33 @@ export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: P
   };
 
   const remoteFolders = [...remoteFoldersFromKey];
+
+  // Merge remote followed streamers if present.
+  for (const rs of remoteStreamersFromKey) {
+    if (!rs?.platform || !rs?.id) continue;
+    addStreamerIfMissing(String(rs.platform), String(rs.id), rs);
+  }
+
+  // Ensure streamers referenced by remote order exist.
+  for (const item of remoteOrderFromKey) {
+    if (!item || typeof item !== "object") continue;
+    if (item.type === "streamer") {
+      const s = (item as any).data as Partial<FollowedStreamer> | undefined;
+      const platform = String(s?.platform || "");
+      const id = String(s?.id || "");
+      if (!platform || !id) continue;
+      addStreamerIfMissing(platform, id, s);
+      continue;
+    }
+    if (item.type === "folder") {
+      const f = (item as any).data as Partial<FollowFolder> | undefined;
+      for (const rawKey of (f?.streamerIds ?? []) as any[]) {
+        const norm = normalizeStreamerKey(String(rawKey));
+        if (!norm.id || !isKnownPlatform(norm.platform)) continue;
+        addStreamerIfMissing(norm.platform, norm.id);
+      }
+    }
+  }
 
   // Ensure streamers referenced by folders/order exist (align with FollowProvider)
   for (const folder of remoteFolders) {
@@ -347,9 +421,50 @@ export function applyIncrementalLanSyncImport(storage: Storage, remoteEntries: P
 
   const mergedOrder: FollowListItem[] = [...updatedFolderItems, ...updatedStreamerItems];
 
+  // Merge custom categories by key (incremental).
+  const localCategories = Array.isArray(localCustomCategories) ? localCustomCategories : [];
+  const remoteCategories = Array.isArray(remoteCustomCategoriesFromKey) ? remoteCustomCategoriesFromKey : [];
+  const categoryByKey = new Map<string, any>();
+  const mergedCategories: any[] = [];
+  for (const c of localCategories) {
+    const key = String((c as any)?.key || "").trim();
+    if (!key || categoryByKey.has(key)) continue;
+    categoryByKey.set(key, c);
+    mergedCategories.push(c);
+  }
+  for (const c of remoteCategories) {
+    const key = String((c as any)?.key || "").trim();
+    if (!key || categoryByKey.has(key)) continue;
+    categoryByKey.set(key, c);
+    mergedCategories.push(c);
+    addedCustomCategories += 1;
+  }
+
+  // Merge danmu block keywords (incremental).
+  const localKeywords = normalizeDanmuBlockKeywords(localDanmuBlockKeywords);
+  const remoteKeywords = normalizeDanmuBlockKeywords(remoteDanmuBlockKeywordsFromKey);
+  const mergedKeywords = normalizeDanmuBlockKeywords([...localKeywords, ...remoteKeywords]);
+  addedDanmuBlockKeywords = Math.max(0, mergedKeywords.length - localKeywords.length);
+
+  // Apply danmu preferences only when local missing/invalid (incremental).
+  const canApplyRemotePreferences = !localDanmuPreferences && !!remoteDanmuPreferencesFromKey;
+
   storage.setItem("followedStreamers", JSON.stringify(mergedStreamers));
   storage.setItem("followFolders", JSON.stringify(mergedFolders));
   storage.setItem("followListOrder", JSON.stringify(mergedOrder));
+  if (mergedCategories.length) storage.setItem("dtv_custom_categories_v1", JSON.stringify(mergedCategories));
+  if (mergedKeywords.length) storage.setItem("danmu_block_keywords", JSON.stringify(mergedKeywords));
+  if (canApplyRemotePreferences) {
+    storage.setItem("dtv_danmu_preferences_v1", JSON.stringify(remoteDanmuPreferencesFromKey));
+    appliedDanmuPreferences = true;
+  }
 
-  return { addedStreamers, addedFolderCount, addedFolderItems };
+  return {
+    addedStreamers,
+    addedFolderCount,
+    addedFolderItems,
+    addedCustomCategories,
+    addedDanmuBlockKeywords,
+    appliedDanmuPreferences
+  };
 }

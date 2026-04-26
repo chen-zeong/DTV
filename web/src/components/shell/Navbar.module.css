@@ -681,6 +681,38 @@
   word-break: break-all;
 }
 
+.syncQrBlock {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--hover-bg) 65%, transparent);
+}
+
+.syncQrTitle {
+  font-size: 13px;
+  font-weight: 1000;
+  color: var(--primary-text);
+  margin-bottom: 6px;
+}
+
+.syncQrHint {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--secondary-text);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.syncQrCanvasWrap {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+}
+
 .syncMetaGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

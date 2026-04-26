@@ -152,11 +152,58 @@ fn is_private_ipv4(ip: &Ipv4Addr) -> bool {
         || (ip.octets()[0] == 169 && ip.octets()[1] == 254)
 }
 
+fn is_link_local_ipv4(ip: &Ipv4Addr) -> bool {
+    ip.octets()[0] == 169 && ip.octets()[1] == 254
+}
+
+fn is_benchmarking_ipv4(ip: &Ipv4Addr) -> bool {
+    // RFC 2544 benchmarking range: 198.18.0.0/15 (198.18.*.* and 198.19.*.*)
+    ip.octets()[0] == 198 && (ip.octets()[1] == 18 || ip.octets()[1] == 19)
+}
+
+fn is_cgnat_ipv4(ip: &Ipv4Addr) -> bool {
+    // 100.64.0.0/10
+    ip.octets()[0] == 100 && (64..=127).contains(&ip.octets()[1])
+}
+
+fn is_shareable_lan_ipv4(ip: &Ipv4Addr) -> bool {
+    // Prefer LAN-reachable addresses and hide "noise" from virtual adapters.
+    if ip.is_loopback() {
+        return false;
+    }
+    if is_link_local_ipv4(ip) {
+        return false;
+    }
+    if is_benchmarking_ipv4(ip) {
+        return false;
+    }
+    ip.is_private() || is_cgnat_ipv4(ip)
+}
+
 fn is_private_ip(ip: &IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => is_private_ipv4(v4),
         IpAddr::V6(v6) => v6.is_loopback() || v6.is_unique_local() || v6.is_unicast_link_local(),
     }
+}
+
+fn is_noise_iface_name(name: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    // Inspired by file-share's interface-name filtering.
+    n.contains("loopback")
+        || n == "lo"
+        || n.contains("internal")
+        || n.contains("vmware")
+        || n.contains("vethernet")
+        || n.contains("virtualbox")
+        || n.contains("hyper-v")
+        || n.contains("wsl")
+        || n.contains("docker")
+        || n.contains("tailscale")
+        || n.contains("zerotier")
+        || n.contains("tun")
+        || n.contains("tap")
+        || n.contains("vpn")
 }
 
 fn extract_peer_ip(req: &HttpRequest) -> Option<IpAddr> {
@@ -215,10 +262,26 @@ fn build_hosts() -> Vec<String> {
     let mut hosts: Vec<String> = vec!["127.0.0.1".to_string(), "localhost".to_string()];
 
     if let Ok(ifaces) = list_afinet_netifas() {
-        for (_name, ip) in ifaces {
+        let mut strict: Vec<String> = Vec::new();
+        let mut loose: Vec<String> = Vec::new();
+        for (name, ip) in ifaces {
             if ip.is_ipv4() && !ip.is_loopback() {
-                hosts.push(ip.to_string());
+                if let IpAddr::V4(v4) = ip {
+                    if !is_link_local_ipv4(&v4) && !is_benchmarking_ipv4(&v4) {
+                        loose.push(v4.to_string());
+                    }
+                    if is_shareable_lan_ipv4(&v4) && !is_noise_iface_name(&name) {
+                        strict.push(v4.to_string());
+                    }
+                }
             }
+        }
+
+        // Prefer strict candidates; fallback to loose if everything got filtered out.
+        if !strict.is_empty() {
+            hosts.extend(strict);
+        } else {
+            hosts.extend(loose);
         }
     }
 
@@ -230,7 +293,7 @@ fn build_hosts() -> Vec<String> {
 fn pick_advertise_ipv4(hosts: &[String]) -> Ipv4Addr {
     for h in hosts {
         if let Ok(ip) = h.parse::<Ipv4Addr>() {
-            if !ip.is_loopback() && is_private_ipv4(&ip) {
+            if is_shareable_lan_ipv4(&ip) {
                 return ip;
             }
         }

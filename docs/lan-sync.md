@@ -6,17 +6,26 @@
 
 - 固定端口：`38999`
 - HTTP 接口：
-  - `GET http://<host>:38999/dtv-sync`：返回 **Manifest（预览）**
-  - `GET http://<host>:38999/dtv-sync/payload`：返回 **Payload（完整数据）**
-- 无鉴权/无验证：仅建议在可信局域网使用
+  - `GET http://<host>:38999/dtv-sync?token=dtv`：返回 **Manifest（预览）**
+  - `GET http://<host>:38999/dtv-sync/payload?token=dtv`：返回 **Payload（完整数据）**
+- 简单鉴权：必须带 `token`（默认 `dtv`，可通过环境变量 `DTV_LAN_SYNC_TOKEN` 修改）；并限制仅允许私网来源访问（仍仅建议在可信局域网使用）
 - 导入策略：**增量合并**，不覆盖本地，重复跳过
 
 ## 手动输入 IP（移动端/桌面端通用）
 
 当前实现不做自动发现：接收端需要手动输入共享端的 IP（端口固定 `38999`），然后直接请求：
 
-- `GET http://<ip>:38999/dtv-sync`
-- `GET http://<ip>:38999/dtv-sync/payload`
+- `GET http://<ip>:38999/dtv-sync?token=dtv`
+- `GET http://<ip>:38999/dtv-sync/payload?token=dtv`
+
+同步的 localStorage keys（当前实现）：
+
+- `followedStreamers`
+- `followFolders`
+- `followListOrder`
+- `dtv_custom_categories_v1`
+- `danmu_block_keywords`
+- `dtv_danmu_preferences_v1`
 
 ## 数据协议
 
