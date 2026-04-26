@@ -164,6 +164,7 @@ export function MainPlayer({
 
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<any>(null);
+  const playbackKindRef = useRef<null | "hls" | "flv">(null);
   const danmuOverlayRef = useRef<DanmuOverlayInstance | null>(null);
   const unlistenRef = useRef<null | (() => void)>(null);
 
@@ -200,6 +201,12 @@ export function MainPlayer({
   const [currentLine, setCurrentLine] = useState<string | null>(() =>
     typeof window === "undefined" ? null : resolveStoredLine(platform, lineOptionsByPlatform[platform] ?? [])
   );
+  const currentQualityRef = useRef(currentQuality);
+  const currentLineRef = useRef(currentLine);
+  const lineOptionsRef = useRef<LineOption[]>(lineOptions);
+  currentQualityRef.current = currentQuality;
+  currentLineRef.current = currentLine;
+  lineOptionsRef.current = lineOptions;
 
   const [isDanmuEnabled, setIsDanmuEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -476,6 +483,7 @@ export function MainPlayer({
       // ignore
     }
     playerRef.current = null;
+    playbackKindRef.current = null;
 
     refreshPluginRef.current = null;
     volumePluginRef.current = null;
@@ -761,6 +769,7 @@ export function MainPlayer({
         playerRef.current = null;
         return;
       }
+      playbackKindRef.current = isHlsPlayback ? "hls" : "flv";
 
       try {
         const storedPlayerVolume = loadStoredVolume();
@@ -826,9 +835,9 @@ export function MainPlayer({
         position: POSITIONS.CONTROLS_RIGHT,
         index: 5,
         options: [...qualityOptions],
-        getCurrent: () => currentQuality,
+        getCurrent: () => currentQualityRef.current,
         onSelect: (value: string) => {
-          if (value === currentQuality) return;
+          if (value === currentQualityRef.current) return;
           setCurrentQuality(value);
           try {
             window.localStorage.setItem(`${platform}_preferred_quality`, value);
@@ -842,13 +851,13 @@ export function MainPlayer({
         position: POSITIONS.CONTROLS_RIGHT,
         index: 5.2,
         options: [...lineOptions],
-        getCurrentKey: () => resolveCurrentLineFor(lineOptions, currentLine) ?? "",
+        getCurrentKey: () => resolveCurrentLineFor(lineOptionsRef.current, currentLineRef.current) ?? "",
         getCurrentLabel: () => {
-          const key = resolveCurrentLineFor(lineOptions, currentLine);
-          return lineOptions.find((o) => o.key === key)?.label ?? "线路";
+          const key = resolveCurrentLineFor(lineOptionsRef.current, currentLineRef.current);
+          return lineOptionsRef.current.find((o) => o.key === key)?.label ?? "线路";
         },
         onSelect: (lineKey: string) => {
-          if (lineKey === currentLine) return;
+          if (lineKey === currentLineRef.current) return;
           setCurrentLine(lineKey);
           persistLinePreference(platform, lineKey);
         }
@@ -893,7 +902,6 @@ export function MainPlayer({
       const effectiveQuality = overrides?.quality ?? currentQuality;
       const effectiveLine = typeof overrides?.line !== "undefined" ? overrides.line : currentLine;
 
-      destroyPlayer();
       await stopAllDanmakuBackends();
       await stopAllProxies();
       if (!isSessionActive(sessionId)) return;
@@ -918,7 +926,31 @@ export function MainPlayer({
           const { streamUrl, streamType } = await getDouyuStreamConfig(roomId, effectiveQuality, resolvedLine);
           if (!isSessionActive(sessionId)) return;
           setPlayerIsLive(true);
-          await mountPlayer(sessionId, streamUrl, streamType);
+          const nextIsHls = (streamType || "").toLowerCase() === "hls" || streamUrl.toLowerCase().includes(".m3u8");
+          const nextKind: "hls" | "flv" = nextIsHls ? "hls" : "flv";
+          const player = playerRef.current;
+          const canSoftSwitch =
+            !!player &&
+            !!danmuOverlayRef.current &&
+            typeof player.switchURL === "function" &&
+            !!playbackKindRef.current &&
+            playbackKindRef.current === nextKind;
+          if (canSoftSwitch) {
+            try {
+              const ret = player.switchURL(streamUrl, { seamless: false });
+              if (ret && typeof (ret as any).then === "function") await ret;
+              if (isSessionActive(sessionId)) {
+                playbackKindRef.current = nextKind;
+                await startDanmaku(sessionId, danmuOverlayRef.current, platform, roomId);
+              }
+            } catch {
+              destroyPlayer();
+              await mountPlayer(sessionId, streamUrl, streamType);
+            }
+          } else {
+            destroyPlayer();
+            await mountPlayer(sessionId, streamUrl, streamType);
+          }
         } else if (platform === Platform.DOUYIN) {
           const resp = await fetchAndPrepareDouyinStreamConfig(roomId, effectiveQuality);
           if (!isSessionActive(sessionId)) return;
@@ -927,7 +959,31 @@ export function MainPlayer({
           setPlayerAvatar(resp.avatar ?? null);
           setPlayerIsLive(resp.isLive);
           if (!resp.streamUrl) throw new Error(resp.initialError || "主播未开播或无法获取直播流");
-          await mountPlayer(sessionId, resp.streamUrl, resp.streamType);
+          const nextIsHls = (resp.streamType || "").toLowerCase() === "hls" || resp.streamUrl.toLowerCase().includes(".m3u8");
+          const nextKind: "hls" | "flv" = nextIsHls ? "hls" : "flv";
+          const player = playerRef.current;
+          const canSoftSwitch =
+            !!player &&
+            !!danmuOverlayRef.current &&
+            typeof player.switchURL === "function" &&
+            !!playbackKindRef.current &&
+            playbackKindRef.current === nextKind;
+          if (canSoftSwitch) {
+            try {
+              const ret = player.switchURL(resp.streamUrl, { seamless: false });
+              if (ret && typeof (ret as any).then === "function") await ret;
+              if (isSessionActive(sessionId)) {
+                playbackKindRef.current = nextKind;
+                await startDanmaku(sessionId, danmuOverlayRef.current, platform, roomId);
+              }
+            } catch {
+              destroyPlayer();
+              await mountPlayer(sessionId, resp.streamUrl, resp.streamType);
+            }
+          } else {
+            destroyPlayer();
+            await mountPlayer(sessionId, resp.streamUrl, resp.streamType);
+          }
         } else if (platform === Platform.HUYA) {
           const resolvedLine = resolveCurrentLineFor(lineOptions, effectiveLine);
           const { streamUrl, streamType, title, anchorName, avatar, isLive } = await getHuyaStreamConfig(
@@ -940,7 +996,31 @@ export function MainPlayer({
           setPlayerAnchorName(anchorName ?? null);
           setPlayerAvatar(avatar ?? null);
           setPlayerIsLive(isLive ?? true);
-          await mountPlayer(sessionId, streamUrl, streamType);
+          const nextIsHls = (streamType || "").toLowerCase() === "hls" || streamUrl.toLowerCase().includes(".m3u8");
+          const nextKind: "hls" | "flv" = nextIsHls ? "hls" : "flv";
+          const player = playerRef.current;
+          const canSoftSwitch =
+            !!player &&
+            !!danmuOverlayRef.current &&
+            typeof player.switchURL === "function" &&
+            !!playbackKindRef.current &&
+            playbackKindRef.current === nextKind;
+          if (canSoftSwitch) {
+            try {
+              const ret = player.switchURL(streamUrl, { seamless: false });
+              if (ret && typeof (ret as any).then === "function") await ret;
+              if (isSessionActive(sessionId)) {
+                playbackKindRef.current = nextKind;
+                await startDanmaku(sessionId, danmuOverlayRef.current, platform, roomId);
+              }
+            } catch {
+              destroyPlayer();
+              await mountPlayer(sessionId, streamUrl, streamType);
+            }
+          } else {
+            destroyPlayer();
+            await mountPlayer(sessionId, streamUrl, streamType);
+          }
         } else if (platform === Platform.BILIBILI) {
           const cookie = typeof localStorage !== "undefined" ? localStorage.getItem("bilibili_cookie") : null;
           try {
@@ -955,7 +1035,31 @@ export function MainPlayer({
           const { streamUrl, streamType } = await getBilibiliStreamConfig(roomId, effectiveQuality, cookie || undefined);
           if (!isSessionActive(sessionId)) return;
           setPlayerIsLive(true);
-          await mountPlayer(sessionId, streamUrl, streamType);
+          const nextIsHls = (streamType || "").toLowerCase() === "hls" || streamUrl.toLowerCase().includes(".m3u8");
+          const nextKind: "hls" | "flv" = nextIsHls ? "hls" : "flv";
+          const player = playerRef.current;
+          const canSoftSwitch =
+            !!player &&
+            !!danmuOverlayRef.current &&
+            typeof player.switchURL === "function" &&
+            !!playbackKindRef.current &&
+            playbackKindRef.current === nextKind;
+          if (canSoftSwitch) {
+            try {
+              const ret = player.switchURL(streamUrl, { seamless: false });
+              if (ret && typeof (ret as any).then === "function") await ret;
+              if (isSessionActive(sessionId)) {
+                playbackKindRef.current = nextKind;
+                await startDanmaku(sessionId, danmuOverlayRef.current, platform, roomId);
+              }
+            } catch {
+              destroyPlayer();
+              await mountPlayer(sessionId, streamUrl, streamType);
+            }
+          } else {
+            destroyPlayer();
+            await mountPlayer(sessionId, streamUrl, streamType);
+          }
         }
       } catch (e: any) {
         if (!isSessionActive(sessionId)) return;
