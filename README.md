@@ -10,31 +10,31 @@
   </a>
 </p>
 
-
 ## 说明
 
-> 想支持本项目？可以前往底部 [打赏](#打赏)  
+> 支持本项目？可以前往底部 [打赏](#打赏)  
 > 安卓版本：[`dtv_mobile`](https://github.com/chen-zeong/dtv_mobile)
 
 1. 本项目基于 Tauri 2.0 开发，体积小，占用率低，实测可以在双核、4GB内存的电脑上流畅运行
 2. 平台接口可能有访问频率限制，过于频繁的请求会触发验证码校验，建议合理使用搜索功能
 3. 本项目仅供学习编程目的使用，未进行任何逆向工程
+4. 本项目所有的直播版权都归属各个平台
 
 ### 支持平台
 
-| 平台 | 直播流 | 弹幕 | 搜索 |
-| --- | --- | --- | --- |
-| 斗鱼 | ✅ | ✅ | ✅ |
-| 虎牙 | ✅ | ✅ | ✅ |
-| bilibili | ✅ | ✅ | ✅ |
-| 抖音 | ✅ | ✅ | 仅房间号 |
+| 平台       | 直播流 | 弹幕  | 搜索   |
+| -------- | --- | --- | ---- |
+| 斗鱼       | ✅   | ✅   | ✅    |
+| 虎牙       | ✅   | ✅   | ✅    |
+| bilibili | ✅   | ✅   | ✅    |
+| 抖音       | ✅   | ✅   | 仅房间号 |
 
 ## 功能
 
 - 📺 平台支持：支持斗鱼、虎牙、bilibili、抖音直播
 - 💬 弹幕显示：实时显示直播间弹幕，只显示聊天弹幕，不显示礼物等其他类型弹幕
 - ⭐ 主播收藏：支持收藏喜欢的主播，支持收藏列表手动拖拽排序
-- 🔁 局域网同步：支持同一局域网内与移动端/其他设备增量同步关注与订阅数据（见 `docs/lan-sync.md`）
+- 🔁 数据同步：支持局域网一键同步或者json文件手动同步，可以与桌面端或者移动端同步数据
 - 📋 支持平台：Mac(Intel+Arm)，Windows(Win7需要自行安装Webview2)，Linux(包括Ubuntu和各类发行版)
 - 🌓 主题切换：支持明暗主题切换
 
@@ -54,7 +54,6 @@
   <img src="images/iShot_dark.webp" alt="mac-夜间模式" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
 </div>
 
-
 <br>
 
 <div align="center">
@@ -62,11 +61,7 @@
   <img src="images/iShot_light2.webp" alt="日间模式播放器页面" style="width: 100%; max-width: 800px; display: block; margin-left: auto; margin-right: auto;">
 </div>
 
-
 <br>
-
-
-
 
 ## 安装方式
 
@@ -94,7 +89,7 @@ pnpm tauri build      # 构建当前系统的安装包
 pnpm tauri build --target aarch64-apple-darwin
 ```
 
-##  参考
+## 参考
 
 - 斗鱼直播流获取参考了 [@wbt5/real-url](https://github.com/wbt5/real-url)  
 - 抖音弹幕参考了[@saermart/DouyinLiveWebFetcher](https://github.com/saermart/DouyinLiveWebFetcher)
@@ -103,7 +98,7 @@ pnpm tauri build --target aarch64-apple-darwin
 
 ## 打赏
 
-如果这个项目对你有帮助，欢迎打赏支持：
+软件完全免费，如果这个项目对你有帮助，欢迎打赏支持：
 
 <div align="center">
   <img src="images/wechat.jpg" alt="微信赞赏码" width="260">
