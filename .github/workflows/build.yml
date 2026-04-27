@@ -108,6 +108,14 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      # macOS runners ship Apple's ld/clang (LLVM) which can be incompatible with Rust LTO bitcode,
+      # causing errors like: "failed to load bitcode of module ... .rcgu.o".
+      # Disable LTO on macOS to make release builds reliable.
+      - name: Disable Rust LTO (macOS)
+        if: startsWith(matrix.platform, 'macos-')
+        run: |
+          echo "CARGO_PROFILE_RELEASE_LTO=false" >> $GITHUB_ENV
+
       - name: Install frontend dependencies
         run: pnpm install
 
