@@ -22,10 +22,22 @@ export async function fetchAndPrepareDouyinStreamConfig(roomId: string, quality:
   anchorName?: string | null; 
   avatar?: string | null; 
   isLive: boolean; 
+  normalizedRoomId?: string | null;
+  webRid?: string | null;
   initialError: string | null; // Made non-optional, will always be string or null
 }> {
   if (!roomId) {
-    return { streamUrl: null, streamType: undefined, title: null, anchorName: null, avatar: null, isLive: false, initialError: '房间ID未提供' };
+    return {
+      streamUrl: null,
+      streamType: undefined,
+      title: null,
+      anchorName: null,
+      avatar: null,
+      isLive: false,
+      normalizedRoomId: null,
+      webRid: null,
+      initialError: '房间ID未提供'
+    };
   }
 
   try {
@@ -46,6 +58,8 @@ export async function fetchAndPrepareDouyinStreamConfig(roomId: string, quality:
         anchorName: result.anchor_name,
         avatar: result.avatar,
         isLive: result.status === 2,
+        normalizedRoomId: result.normalized_room_id ?? null,
+        webRid: result.web_rid ?? null,
         initialError: result.error_message, // string | null from Rust
       };
     }
@@ -85,6 +99,8 @@ export async function fetchAndPrepareDouyinStreamConfig(roomId: string, quality:
       anchorName: result.anchor_name,
       avatar: result.avatar,
       isLive: streamAvailable,
+      normalizedRoomId: result.normalized_room_id ?? null,
+      webRid: result.web_rid ?? null,
       initialError: uiMessage, // uiMessage is definitely string or null here.
     };
 
@@ -97,6 +113,8 @@ export async function fetchAndPrepareDouyinStreamConfig(roomId: string, quality:
         anchorName: null, 
         avatar: null, 
         isLive: false, 
+        normalizedRoomId: null,
+        webRid: null,
         initialError: e.message || '获取直播信息失败: 未知错误' // Ensure string here
     };
   }
@@ -175,11 +193,7 @@ export async function stopDouyinDanmaku(currentUnlistenFn: (() => void) | null):
     currentUnlistenFn();
   }
   try {
-    const rustPayload: RustGetStreamUrlPayload = { 
-      args: { room_id_str: "stop_listening" }, 
-      platform: Platform.DOUYIN, 
-    };
-    await invoke('start_douyin_danmu_listener', { payload: rustPayload });
+    await invoke('stop_douyin_danmu_listener');
   } catch (error) {
     console.error('[DouyinPlayerHelper] Error stopping Douyin danmaku listener:', error);
   }

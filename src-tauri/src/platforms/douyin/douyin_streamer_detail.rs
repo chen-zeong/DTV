@@ -79,6 +79,12 @@ pub async fn get_douyin_live_stream_url_with_quality(
     if let Some(url) = origin_from_html.as_deref() {
         insert_origin_flv(&mut room, url);
     }
+    let room_id_str = room
+        .get("id_str")
+        .and_then(|v| v.as_str())
+        .or_else(|| room.get("id").and_then(|v| v.as_str()))
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| normalized_id.clone());
     let web_rid = extract_web_rid(&room).unwrap_or_else(|| normalized_id.clone());
     let status = room
         .get("status")
@@ -106,7 +112,7 @@ pub async fn get_douyin_live_stream_url_with_quality(
             error_message: None,
             upstream_url: None,
             available_streams: available_streams.clone(),
-            normalized_room_id: None,
+            normalized_room_id: Some(room_id_str),
             web_rid: Some(web_rid),
         });
     }
@@ -135,7 +141,7 @@ pub async fn get_douyin_live_stream_url_with_quality(
         error_message: None,
         upstream_url: Some(sanitized_url),
         available_streams,
-        normalized_room_id: None,
+        normalized_room_id: Some(room_id_str),
         web_rid: Some(web_rid),
     })
 }

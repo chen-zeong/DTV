@@ -22,7 +22,7 @@ use platforms::douyin::danmu::signature::generate_douyin_ms_token;
 use platforms::douyin::fetch_douyin_partition_rooms;
 use platforms::douyin::fetch_douyin_room_info;
 use platforms::douyin::fetch_douyin_streamer_info;
-use platforms::douyin::start_douyin_danmu_listener;
+use platforms::douyin::{start_douyin_danmu_listener, stop_douyin_danmu_listener};
 use platforms::douyin::{get_douyin_live_stream_url, get_douyin_live_stream_url_with_quality};
 use platforms::douyu::fetch_categories;
 use platforms::douyu::fetch_douyu_room_info;
@@ -244,6 +244,7 @@ fn main() {
                 start_danmaku_listener,      // Douyu danmaku start
                 stop_danmaku_listener,       // Douyu danmaku stop
                 start_douyin_danmu_listener, // Added Douyin danmaku listener command
+                stop_douyin_danmu_listener,  // Added Douyin danmaku stop command
                 start_huya_danmaku_listener, // Added Huya danmaku listener command
                 stop_huya_danmaku_listener,  // Added Huya danmaku stop command
                 platforms::bilibili::danmaku::start_bilibili_danmaku_listener,

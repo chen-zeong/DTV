@@ -229,6 +229,24 @@ export const createDanmuOverlay = (
           console.warn('[Player] Failed emitting danmu.js comment:', error);
         }
       },
+      clear: () => {
+        try {
+          const state: any = (danmu as any)?.state;
+          if (state?.bullets && Array.isArray(state.bullets)) {
+            state.bullets.splice(0, state.bullets.length);
+          }
+          if (state?.comments && Array.isArray(state.comments)) {
+            state.comments.splice(0, state.comments.length);
+          }
+        } catch {
+          // ignore internal state clearing
+        }
+        try {
+          overlayHost.innerHTML = '';
+        } catch {
+          // ignore DOM clearing
+        }
+      },
       play: () => {
         currentEnabled = true;
         currentOpacity = sanitizeDanmuOpacity(currentSettings.opacity);

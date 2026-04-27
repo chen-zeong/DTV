@@ -107,8 +107,8 @@ pub struct ChatMessage {
     #[prost(bool, tag = "18")]
     pub intercom_hide_user_card: bool,
     ///   repeated chatTagsList = 19;
-    #[prost(string, tag = "20")]
-    pub chat_by: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "20")]
+    pub chat_by: u32,
     #[prost(uint32, tag = "21")]
     pub individual_chat_priority: u32,
     #[prost(message, optional, tag = "22")]

@@ -30,6 +30,7 @@ export interface DanmuOverlayInstance {
     mode?: string;
     style?: Record<string, string>;
   }) => void;
+  clear?: () => void;
   play?: () => void;
   pause?: () => void;
   stop?: () => void;
@@ -52,4 +53,3 @@ export interface DanmuRenderOptions {
     style?: Record<string, string>;
   };
 }
-

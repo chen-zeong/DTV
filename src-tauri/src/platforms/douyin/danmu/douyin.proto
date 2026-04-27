@@ -57,7 +57,9 @@ message ChatMessage {
   bool fromIntercom = 17;
   bool intercomHideUserCard = 18;
   //  repeated chatTagsList = 19;
-  string chatBy = 20;
+  // NOTE: Field 20 wire type has been observed as Varint in live traffic (2026-04),
+  // so keep it as an integer for forward compatibility.
+  uint32 chatBy = 20;
   uint32 individualChatPriority = 21;
   Text rtfContent = 22;
 }

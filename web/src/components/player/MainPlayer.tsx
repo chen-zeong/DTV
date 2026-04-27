@@ -472,6 +472,7 @@ export function MainPlayer({
     unlistenRef.current = null;
 
     try {
+      danmuOverlayRef.current?.clear?.();
       danmuOverlayRef.current?.stop?.();
     } catch {
       // ignore
@@ -504,8 +505,7 @@ export function MainPlayer({
       // ignore
     }
     try {
-      const payload: RustGetStreamUrlPayload = { args: { room_id_str: "stop_listening" }, platform: Platform.DOUYIN };
-      await invoke("start_douyin_danmu_listener", { payload });
+      await invoke("stop_douyin_danmu_listener");
     } catch {
       // ignore
     }
@@ -536,7 +536,13 @@ export function MainPlayer({
   }, []);
 
   const startDanmaku = useCallback(
-    async (sessionId: number, overlay: DanmuOverlayInstance | null, platformToStart: Platform, roomIdToStart: string) => {
+    async (
+      sessionId: number,
+      overlay: DanmuOverlayInstance | null,
+      platformToStart: Platform,
+      roomIdToStart: string,
+      roomIdToFilter?: string
+    ) => {
       try {
         unlistenRef.current?.();
       } catch {
@@ -544,51 +550,53 @@ export function MainPlayer({
       }
       unlistenRef.current = null;
 
-      if (!roomIdToStart) return;
-      if (!isSessionActive(sessionId)) return;
+       if (!roomIdToStart) return;
+       if (!isSessionActive(sessionId)) return;
 
-      try {
-        // Always stop existing backends first (cross-platform), then start the current one.
-        await stopAllDanmakuBackends();
-        if (!isSessionActive(sessionId)) return;
+       try {
+         try {
+           overlay?.clear?.();
+         } catch {
+           // ignore
+         }
+         // Always stop existing backends first (cross-platform), then start the current one.
+         await stopAllDanmakuBackends();
+         if (!isSessionActive(sessionId)) return;
 
-        if (platformToStart === Platform.DOUYU) {
-          await invoke("start_danmaku_listener", { roomId: roomIdToStart });
-        } else if (platformToStart === Platform.DOUYIN) {
-          const payload: RustGetStreamUrlPayload = { args: { room_id_str: roomIdToStart }, platform: Platform.DOUYIN };
-          await invoke("start_douyin_danmu_listener", { payload });
-        } else if (platformToStart === Platform.HUYA) {
-          await invoke("start_huya_danmaku_listener", { payload: { args: { room_id_str: roomIdToStart } } });
-        } else if (platformToStart === Platform.BILIBILI) {
-          const cookie = typeof localStorage !== "undefined" ? localStorage.getItem("bilibili_cookie") : null;
-          await invoke("start_bilibili_danmaku_listener", {
-            payload: { args: { room_id_str: roomIdToStart } },
-            cookie: cookie || null
-          });
-        }
-      } catch (e) {
-        console.warn("[Player] start danmaku backend failed:", e);
-        return;
-      }
+         if (platformToStart === Platform.DOUYU) {
+           await invoke("start_danmaku_listener", { roomId: roomIdToStart });
+         } else if (platformToStart === Platform.DOUYIN) {
+           const payload: RustGetStreamUrlPayload = { args: { room_id_str: roomIdToStart }, platform: Platform.DOUYIN };
+           await invoke("start_douyin_danmu_listener", { payload });
+         } else if (platformToStart === Platform.HUYA) {
+           await invoke("start_huya_danmaku_listener", { payload: { args: { room_id_str: roomIdToStart } } });
+         } else if (platformToStart === Platform.BILIBILI) {
+           const cookie = typeof localStorage !== "undefined" ? localStorage.getItem("bilibili_cookie") : null;
+           await invoke("start_bilibili_danmaku_listener", {
+             payload: { args: { room_id_str: roomIdToStart } },
+             cookie: cookie || null
+           });
+         }
+       } catch (e) {
+         console.warn("[Player] start danmaku backend failed:", e);
+         return;
+       }
 
-      const unlisten = await listen<UnifiedRustDanmakuPayload>("danmaku-message", (event: TauriEvent<UnifiedRustDanmakuPayload>) => {
-        if (!isSessionActive(sessionId)) return;
-        const p = event.payload;
-        if (!p) return;
-        // Douyin 后端 emit 的 room_id 是解析后的“真实 room_id”（与用户输入的短 roomId 不同），
-        // 这里不能用 room_id 做过滤，否则会把所有抖音弹幕丢掉。
-        if (platformToStart !== Platform.DOUYIN) {
-          if (p.room_id && p.room_id !== roomIdToStart) return;
-        }
+       const effectiveFilterRoomId = roomIdToFilter || roomIdToStart;
+       const unlisten = await listen<UnifiedRustDanmakuPayload>("danmaku-message", (event: TauriEvent<UnifiedRustDanmakuPayload>) => {
+         if (!isSessionActive(sessionId)) return;
+         const p = event.payload;
+         if (!p) return;
+        if (p.room_id && p.room_id !== effectiveFilterRoomId) return;
 
-        const msg: DanmakuMessage = {
-          id: uuidv4(),
-          nickname: p.user || "未知用户",
-          content: p.content || "",
-          level: String(p.user_level || 0),
-          badgeLevel: p.fans_club_level > 0 ? String(p.fans_club_level) : undefined,
-          room_id: p.room_id || roomIdToStart
-        };
+         const msg: DanmakuMessage = {
+           id: uuidv4(),
+           nickname: p.user || "未知用户",
+           content: p.content || "",
+           level: String(p.user_level || 0),
+           badgeLevel: p.fans_club_level > 0 ? String(p.fans_club_level) : undefined,
+           room_id: p.room_id || effectiveFilterRoomId
+         };
 
         const contentLower = (msg.content || "").toLowerCase();
         const block = danmuKeywordBlockRef.current;
@@ -623,7 +631,13 @@ export function MainPlayer({
   );
 
   const mountPlayer = useCallback(
-    async (sessionId: number, url: string, streamType: string | undefined) => {
+    async (
+      sessionId: number,
+      url: string,
+      streamType: string | undefined,
+      danmakuBackendRoomIdOverride?: string | null,
+      danmakuFilterRoomIdOverride?: string | null
+    ) => {
       if (!isSessionActive(sessionId)) return;
       // 等待 DOM 渲染完成，确保 ref 可用
       let attempts = 0;
@@ -876,7 +890,9 @@ export function MainPlayer({
         // ignore
       }
 
-      await startDanmaku(sessionId, overlay, platform, roomId);
+      const backendRoomId = danmakuBackendRoomIdOverride || roomId;
+      const filterRoomId = danmakuFilterRoomIdOverride || backendRoomId;
+      await startDanmaku(sessionId, overlay, platform, backendRoomId, filterRoomId);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [currentLine, currentQuality, danmuSettings, isDanmuEnabled, isSessionActive, lineOptions, platform, roomId, startDanmaku]
@@ -960,6 +976,9 @@ export function MainPlayer({
           setPlayerAvatar(resp.avatar ?? null);
           setPlayerIsLive(resp.isLive);
           if (!resp.streamUrl) throw new Error(resp.initialError || "主播未开播或无法获取直播流");
+          // Douyin backend expects web_rid/live_id to bootstrap cookies, but emitted danmaku payload uses real room_id.
+          const danmakuBackendRoomId = resp.webRid || roomId;
+          const danmakuFilterRoomId = resp.normalizedRoomId || roomId;
           const nextIsHls = (resp.streamType || "").toLowerCase() === "hls" || resp.streamUrl.toLowerCase().includes(".m3u8");
           const nextKind: "hls" | "flv" = nextIsHls ? "hls" : "flv";
           const player = playerRef.current;
@@ -975,15 +994,15 @@ export function MainPlayer({
               if (ret && typeof (ret as any).then === "function") await ret;
               if (isSessionActive(sessionId)) {
                 playbackKindRef.current = nextKind;
-                await startDanmaku(sessionId, danmuOverlayRef.current, platform, roomId);
+                await startDanmaku(sessionId, danmuOverlayRef.current, platform, danmakuBackendRoomId, danmakuFilterRoomId);
               }
             } catch {
               destroyPlayer();
-              await mountPlayer(sessionId, resp.streamUrl, resp.streamType);
+              await mountPlayer(sessionId, resp.streamUrl, resp.streamType, danmakuBackendRoomId, danmakuFilterRoomId);
             }
           } else {
             destroyPlayer();
-            await mountPlayer(sessionId, resp.streamUrl, resp.streamType);
+            await mountPlayer(sessionId, resp.streamUrl, resp.streamType, danmakuBackendRoomId, danmakuFilterRoomId);
           }
         } else if (platform === Platform.HUYA) {
           const resolvedLine = resolveCurrentLineFor(lineOptions, effectiveLine);
@@ -1064,6 +1083,8 @@ export function MainPlayer({
         }
       } catch (e: any) {
         if (!isSessionActive(sessionId)) return;
+        // When the target room fails to load (e.g. offline), keep UI consistent by clearing any previous playback surface.
+        destroyPlayer();
         const msg = e?.message ? String(e.message) : String(e);
         setStreamError(maybeAppendHevcInstallHint(msg));
         setIsOfflineError(isOfflineMessage(msg));
@@ -1095,12 +1116,17 @@ export function MainPlayer({
       destroyPlayer();
 
       const capturedGen = mountGenRef.current;
-      window.setTimeout(() => {
+      const stopAll = () => {
         const currentGen = (globalThis as any).__DTV_PLAYER_MOUNT_GEN ?? 0;
         if (currentGen !== capturedGen) return;
         void stopAllDanmakuBackends();
         void stopAllProxies();
-      }, 200);
+      };
+      if (process.env.NODE_ENV === "development") {
+        window.setTimeout(stopAll, 200);
+      } else {
+        stopAll();
+      }
     };
   }, [destroyPlayer, stopAllDanmakuBackends, stopAllProxies]);
 
@@ -1300,7 +1326,6 @@ export function MainPlayer({
 
               {isLoadingStream ? (
                 <div className="loading-player" style={{ position: "absolute", inset: 0, zIndex: 20 }}>
-                  <div style={{ padding: 18, color: "var(--secondary-text)", fontWeight: 700 }}>加载中...</div>
                 </div>
               ) : null}
 

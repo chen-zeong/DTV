@@ -9,6 +9,7 @@ pub mod a_bogus;
 
 pub use self::danmu::web_fetcher::fetch_douyin_room_info;
 pub use self::douyin_danmu_listener::start_douyin_danmu_listener;
+pub use self::douyin_danmu_listener::stop_douyin_danmu_listener;
 pub use self::douyin_streamer_detail::{
     get_douyin_live_stream_url, get_douyin_live_stream_url_with_quality,
 };

@@ -9,6 +9,24 @@ enum ConnectionOutcome {
 }
 
 #[tauri::command]
+pub async fn stop_douyin_danmu_listener(
+    state: tauri::State<'_, crate::platforms::common::DouyinDanmakuState>,
+) -> Result<(), String> {
+    let previous_tx = {
+        let mut lock = state.inner().0.lock().unwrap();
+        lock.take()
+    };
+
+    if let Some(tx) = previous_tx {
+        if tx.send(()).await.is_err() {
+            eprintln!("[Douyin Danmaku] Failed to send shutdown. Task might have already completed or panicked.");
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn start_douyin_danmu_listener(
     payload: crate::platforms::common::GetStreamUrlPayload,
     app_handle: tauri::AppHandle,
