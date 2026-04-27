@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { usePathname } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence, m, useMotionValue, useSpring } from "framer-motion";
-import { Check, ChevronDown, ContactRound, Folder, FolderPlus, ListCollapse, RotateCw, UsersRound, X } from "lucide-react";
+import { Check, ChevronDown, Folder, FolderPlus, ListCollapse, RotateCw, Users, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import styles from "./FollowsList.module.css";
@@ -121,6 +121,7 @@ export function FollowsList() {
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
   const [showCheckIcon, setShowCheckIcon] = useState(false);
+  const [isMac, setIsMac] = useState(false);
 
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [overlayAlignLeft, setOverlayAlignLeft] = useState(240);
@@ -150,6 +151,24 @@ export function FollowsList() {
       void ensureProxyStarted();
     }
   }, [allStreamers, ensureProxyStarted]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const osMod: any = await import("@tauri-apps/plugin-os");
+        const p = typeof osMod?.platform === "function" ? await osMod.platform() : "";
+        if (cancelled) return;
+        const platform = String(p).toLowerCase();
+        setIsMac(platform === "macos" || platform === "darwin");
+      } catch {
+        // non-tauri env: ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 仅在“本次启动首次进入软件”时：延迟 + idle 自动刷新一次；后续只能手动刷新
   useEffect(() => {
@@ -478,8 +497,20 @@ export function FollowsList() {
   }, [allStreamers]);
 
   const overlayItems = useMemo(() => {
-    if (overlayFilter === "ALL") return allStreamers;
-    return allStreamers.filter((s) => s.platform === overlayFilter);
+    const base = overlayFilter === "ALL" ? allStreamers : allStreamers.filter((s) => s.platform === overlayFilter);
+    const rank = (status: FollowedStreamer["liveStatus"]) => {
+      if (status === "LIVE") return 0;
+      if (status === "UNKNOWN") return 1;
+      return 2;
+    };
+    return base
+      .map((s, idx) => ({ s, idx }))
+      .sort((a, b) => {
+        const diff = rank(a.s.liveStatus) - rank(b.s.liveStatus);
+        if (diff !== 0) return diff;
+        return a.idx - b.idx;
+      })
+      .map((x) => x.s);
   }, [allStreamers, overlayFilter]);
 
   const platformLabel = useCallback((p: "ALL" | FollowPlatform) => {
@@ -681,9 +712,11 @@ export function FollowsList() {
     <div className={styles.followList}>
       <div className={styles.listHeader} ref={headerRef} data-tauri-drag-region>
         <div className={styles.headerLeft} data-tauri-drag-region>
-          <span className={`${styles.actionBtn} ${styles.headerStaticIcon}`} aria-hidden="true">
-            <ContactRound size={18} />
-          </span>
+          {!isMac ? (
+            <span className={`${styles.actionBtn} ${styles.headerStaticIcon}`} aria-hidden="true">
+              <Users size={18} />
+            </span>
+          ) : null}
           <h3 className={styles.headerTitle} aria-label="关注列表" data-tauri-drag-region>
             <span className={styles.headerLabel} data-tauri-drag-region />
           </h3>
@@ -893,6 +926,8 @@ export function FollowsList() {
                       {overlayItems.map((s) => {
                         const avatarSrc = getAvatarSrc(s.platform, s.avatarUrl);
                         const liveDotClass = s.liveStatus === "LIVE" ? styles.liveDotLive : s.liveStatus === "UNKNOWN" ? styles.liveDotUnknown : styles.liveDotOffline;
+                        const liveText = s.liveStatus === "LIVE" ? "直播中" : s.liveStatus === "OFFLINE" ? "离线" : "未知";
+                        const roomTitle = s.roomTitle || "暂无直播标题";
                         return (
                           <div
                             key={`${s.platform}:${s.id}`}
@@ -921,13 +956,14 @@ export function FollowsList() {
                               <div className={styles.resultAvatar}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 {avatarSrc ? <img className={styles.resultAvatarImg} src={avatarSrc} alt={s.nickname} /> : <div className={styles.resultAvatarFallback}>{(s.nickname || "?").slice(0, 1)}</div>}
+                                <span className={`${styles.liveDot} ${styles.liveDotOnAvatar} ${liveDotClass}`} aria-hidden="true" />
                               </div>
                               <div className={styles.resultMain}>
                                 <div className={styles.resultName} title={s.nickname}>
                                   {s.nickname}
                                 </div>
-                              <div className={styles.resultTitle} title={`${platformLabel(s.platform)} · ${s.id}`}>
-                                {platformLabel(s.platform)} · {s.id}
+                              <div className={styles.resultTitle} title={`${platformLabel(s.platform)} · ${liveText} · ${roomTitle}`}>
+                                {platformLabel(s.platform)} · {liveText} · {roomTitle}
                               </div>
                             </div>
                           </div>

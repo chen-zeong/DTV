@@ -574,7 +574,6 @@ export class DanmuKeywordBlockControl extends Plugin {
     }
     return `<xg-icon class="xgplayer-danmu-block" title="弹幕屏蔽">
       ${ICONS.filter}
-      <span class="danmu-block-dot" aria-hidden="true"></span>
     </xg-icon>`;
   }
 
@@ -696,7 +695,6 @@ export class DanmuKeywordBlockControl extends Plugin {
   private updateUi() {
     const keywords = Array.isArray(this.current.keywords) ? this.current.keywords : [];
 
-    (this.root as HTMLElement | null)?.classList.toggle('has-block', keywords.length > 0);
     if (this.clearBtn) {
       const canClear = keywords.length > 0;
       this.clearBtn.setAttribute('aria-disabled', canClear ? 'false' : 'true');

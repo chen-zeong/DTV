@@ -761,26 +761,6 @@
   color: #ffffff;
 }
 
-.xgplayer-danmu-block .danmu-block-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--player-accent);
-  box-shadow: 0 0 0 2px rgba(17, 20, 28, 0.9);
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 0.18s ease, transform 0.18s ease;
-  pointer-events: none;
-}
-
-.xgplayer-danmu-block.has-block .danmu-block-dot {
-  opacity: 1;
-  transform: scale(1);
-}
-
 .xgplayer-danmu-block-panel {
   position: absolute;
   bottom: 48px;
@@ -912,8 +892,8 @@
 }
 
 .xgplayer-danmu-block-panel .block-keyword-pill {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.14);
   color: rgba(255, 255, 255, 0.92);
   border-radius: 999px;
   padding: 6px 10px;
@@ -924,6 +904,7 @@
   align-items: center;
   gap: 8px;
   max-width: 100%;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .xgplayer-danmu-block-panel .block-keyword-pill .pill-text {
@@ -938,9 +919,10 @@
   line-height: 1;
 }
 
-.xgplayer-danmu-block-panel .block-keyword-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.18);
+.xgplayer-danmu-block-panel .block-keyword-pill:hover,
+.xgplayer-danmu-block-panel .block-keyword-pill:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
 .xgplayer-danmu-block-panel .block-hint {
