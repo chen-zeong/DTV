@@ -107,6 +107,8 @@ pub struct ChatMessage {
     #[prost(bool, tag = "18")]
     pub intercom_hide_user_card: bool,
     ///   repeated chatTagsList = 19;
+    /// NOTE: Field 20 wire type has been observed as Varint in live traffic (2026-04),
+    /// so keep it as an integer for forward compatibility.
     #[prost(uint32, tag = "20")]
     pub chat_by: u32,
     #[prost(uint32, tag = "21")]

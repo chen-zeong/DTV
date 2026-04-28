@@ -44,6 +44,30 @@ declare global {
 
 const qualityOptions = ["原画", "高清", "标清"] as const;
 
+const PLAYER_DRAG_EXCLUDED_SELECTOR = [
+  // App chrome / topbar (主播信息栏 & 关闭/关注按钮等)
+  ".player-topbar",
+  ".player-window-controls",
+  // Stream error overlay (中间刷新按钮)
+  ".retry-btn",
+  // Generic interactive elements
+  "button",
+  "a",
+  "input",
+  "textarea",
+  "select",
+  "[role='button']",
+  "[role='link']",
+  "[contenteditable='true']",
+  // xgplayer controls / popups (播放器控制栏及其菜单)
+  ".xgplayer-controls",
+  ".xgplayer-controls *",
+  ".xgplayer-danmu-block-panel",
+  ".xgplayer-danmu-settings-panel",
+  ".xgplayer-quality-dropdown",
+  ".xgplayer-line-dropdown"
+].join(", ");
+
 const DEFAULT_DANMU_SETTINGS: DanmuUserSettings = {
   color: "#ffffff",
   strokeColor: "#444444",
@@ -161,6 +185,8 @@ export function MainPlayer({
   const { setIsland, clearIsland, setFullscreen } = usePlayerUi();
   const { ensureProxyStarted, getAvatarSrc } = useImageProxy();
   const pageRef = useRef<HTMLDivElement | null>(null);
+  const dragStartArmedRef = useRef(false);
+  const dragCandidateRef = useRef<null | { pointerId: number; x: number; y: number }>(null);
 
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<any>(null);
@@ -352,6 +378,79 @@ export function MainPlayer({
     } catch {
       // ignore
     }
+  }, []);
+
+  const startWindowDragging = useCallback(async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().startDragging();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const isDragExcludedTarget = useCallback((target: HTMLElement) => {
+    return !!target.closest(PLAYER_DRAG_EXCLUDED_SELECTOR);
+  }, []);
+
+  const onPlayerPointerDownCapture = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const root = pageRef.current;
+      if (!root || !root.contains(target)) return;
+      if (isDragExcludedTarget(target)) return;
+
+      // Defer dragging until the pointer moves a bit, so normal "click-to-toggle" behaviors still work.
+      dragCandidateRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY };
+    },
+    [isDragExcludedTarget]
+  );
+
+  const onPlayerPointerMoveCapture = useCallback(
+    (e: React.PointerEvent) => {
+      const candidate = dragCandidateRef.current;
+      if (!candidate) return;
+      if (candidate.pointerId !== e.pointerId) return;
+      if (dragStartArmedRef.current) return;
+
+      const dx = e.clientX - candidate.x;
+      const dy = e.clientY - candidate.y;
+      if (dx * dx + dy * dy < 36) return; // 6px threshold
+
+      const target = e.target as HTMLElement | null;
+      const root = pageRef.current;
+      if (!target || !root || !root.contains(target)) {
+        dragCandidateRef.current = null;
+        return;
+      }
+
+      if (isDragExcludedTarget(target)) {
+        dragCandidateRef.current = null;
+        return;
+      }
+
+      dragStartArmedRef.current = true;
+      dragCandidateRef.current = null;
+      e.preventDefault();
+
+      void startWindowDragging().finally(() => {
+        window.setTimeout(() => {
+          dragStartArmedRef.current = false;
+        }, 300);
+      });
+    },
+    [isDragExcludedTarget, startWindowDragging]
+  );
+
+  const onPlayerPointerUpCapture = useCallback((e: React.PointerEvent) => {
+    const candidate = dragCandidateRef.current;
+    if (!candidate) return;
+    if (candidate.pointerId !== e.pointerId) return;
+    dragCandidateRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -1217,7 +1316,14 @@ export function MainPlayer({
   }, [platform, playerAnchorName, playerAvatar, playerTitle, roomId]);
 
   return (
-    <div className={`player-page${chromeHiddenClass}`} ref={pageRef}>
+    <div
+      className={`player-page${chromeHiddenClass}`}
+      ref={pageRef}
+      onPointerDownCapture={onPlayerPointerDownCapture}
+      onPointerMoveCapture={onPlayerPointerMoveCapture}
+      onPointerUpCapture={onPlayerPointerUpCapture}
+      onPointerCancelCapture={onPlayerPointerUpCapture}
+    >
       {isWindows ? (
         <div className="player-window-controls" data-tauri-drag-region="false" aria-label="窗口控制">
           <button type="button" className="window-btn" data-tauri-drag-region="false" aria-label="最小化" onClick={() => void minimizeWindow()}>
