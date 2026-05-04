@@ -1114,7 +1114,7 @@ export function MainPlayer({
           setPlayerTitle(title ?? null);
           setPlayerAnchorName(anchorName ?? null);
           setPlayerAvatar(avatar ?? null);
-          setPlayerIsLive(isLive ?? true);
+          setPlayerIsLive(typeof isLive === "boolean" ? isLive : true);
           const nextIsHls = (streamType || "").toLowerCase() === "hls" || streamUrl.toLowerCase().includes(".m3u8");
           const nextKind: "hls" | "flv" = nextIsHls ? "hls" : "flv";
           const player = playerRef.current;
@@ -1186,7 +1186,9 @@ export function MainPlayer({
         destroyPlayer();
         const msg = e?.message ? String(e.message) : String(e);
         setStreamError(maybeAppendHevcInstallHint(msg));
-        setIsOfflineError(isOfflineMessage(msg));
+        // Per product decision: stream load failure => treat as "not live" (最多重试一次后仍失败则认为主播不在线)
+        setIsOfflineError(true);
+        setPlayerIsLive(false);
       } finally {
         if (isSessionActive(sessionId)) {
           setIsLoadingStream(false);
@@ -1412,7 +1414,7 @@ export function MainPlayer({
                       </div>
                     </div>
                     <div className={`player-topbar-status ${playerIsLive === false ? "is-offline" : "is-live"}`}>
-                      {playerIsLive === false ? "未开播" : "直播中"}
+                      {isLoadingStream ? "加载中" : playerIsLive === false ? "未开播" : "直播中"}
                     </div>
                     <button
                       type="button"
@@ -1437,10 +1439,10 @@ export function MainPlayer({
 
               {streamError ? (
                 <div className={isOfflineError ? "offline-player" : "error-player"} style={{ position: "absolute", inset: 0, zIndex: 20 }}>
-                  <div style={{ padding: 18 }}>
+                  <div style={{ padding: 18, width: "min(520px, 92vw)", margin: "0 auto", textAlign: "left" }}>
                     <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>{isOfflineError ? "主播未开播" : "加载失败"}</div>
                     <div style={{ color: "var(--secondary-text)", fontWeight: 600, whiteSpace: "pre-wrap" }}>{streamError}</div>
-                    <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                    <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-start" }}>
                       <button className="retry-btn" onClick={() => void reloadStream("refresh")}>
                         再试一次
                       </button>

@@ -17,29 +17,52 @@ export async function getBilibiliStreamConfig(
   const payloadData = { args: { room_id_str: roomId } };
   // 若未显式传入 cookie，则尝试从 localStorage 读取，以确保最高画质可用
   const effectiveCookie = cookie ?? (typeof localStorage !== 'undefined' ? (localStorage.getItem('bilibili_cookie') || undefined) : undefined);
-  const result = await invoke<LiveStreamInfo>('get_bilibili_live_stream_url_with_quality', {
-    payload: payloadData,
-    quality,
-    cookie: effectiveCookie || null,
-  });
 
-  // 若后端返回错误，统一按“未开播”处理（除非明确包含未开播字样）
-  if (result.error_message) {
-    const msg = result.error_message.trim();
-    if (msg.includes('未开播')) {
-      throw new Error(msg);
+  const MAX_ATTEMPTS = 2; // 最多重试一次
+  let result: LiveStreamInfo | null = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const fetched = await invoke<LiveStreamInfo>('get_bilibili_live_stream_url_with_quality', {
+        payload: payloadData,
+        quality,
+        cookie: effectiveCookie || null,
+      });
+      result = fetched;
+
+      // 若后端返回错误，统一按“未开播”处理（除非明确包含未开播字样）
+      if (result.error_message) {
+        const msg = result.error_message.trim();
+        if (msg.includes('未开播')) {
+          throw new Error(msg);
+        }
+        throw new Error('主播未开播或无法获取直播流');
+      }
+
+      // 根据返回的状态判断是否在线（B 站约定 status === 1 为在线）
+      if (typeof result.status !== 'undefined' && result.status !== 1) {
+        throw new Error('主播未开播');
+      }
+
+      // 无播放地址也按未开播处理
+      if (!result.stream_url) {
+        throw new Error('主播未开播或无法获取直播流');
+      }
+
+      break;
+    } catch (e: any) {
+      const msg = (e?.message || '').trim();
+      const looksOffline = msg.includes('未开播') || msg.includes('房间不存在') || msg.includes('不存在');
+      if (looksOffline) {
+        throw new Error(msg || '主播未开播或无法获取直播流');
+      }
+      if (attempt >= MAX_ATTEMPTS) {
+        throw new Error(msg || '主播未开播或无法获取直播流');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 450));
     }
-    // 其他错误也按未开播处理，以便显示离线页面
-    throw new Error('主播未开播或无法获取直播流');
   }
 
-  // 根据返回的状态判断是否在线（B 站约定 status === 1 为在线）
-  if (typeof result.status !== 'undefined' && result.status !== 1) {
-    throw new Error('主播未开播');
-  }
-
-  // 无播放地址也按未开播处理
-  if (!result.stream_url) {
+  if (!result) {
     throw new Error('主播未开播或无法获取直播流');
   }
 

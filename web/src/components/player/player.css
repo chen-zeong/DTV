@@ -2071,31 +2071,30 @@ html.web-fs-active .danmu-panel {
 .error-player .retry-btn,
 .offline-player .retry-btn {
   /* Ensure .offline-player .retry-btn also uses these styles */
-  margin-top: 25px;
-  /* Increased margin-top slightly */
+  margin-top: 0;
   padding: 12px 28px;
-  background-color: #FB7299;
-  color: white;
-  border: none;
+  background: var(--accent-gradient);
+  color: var(--accent-text);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 10px;
   cursor: pointer;
   font-size: 1.05em;
   font-weight: 500;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(251, 114, 153, 0.2);
+  box-shadow: 0 6px 18px var(--accent-glow);
 }
 
 .error-player .retry-btn:hover,
 .offline-player .retry-btn:hover {
-  background-color: #e06387;
+  filter: brightness(1.03) saturate(1.04);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(251, 114, 153, 0.3);
+  box-shadow: 0 10px 26px var(--accent-glow);
 }
 
 .error-player .retry-btn:active,
 .offline-player .retry-btn:active {
   transform: translateY(0px);
-  box-shadow: 0 3px 10px rgba(251, 114, 153, 0.15);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-glow) 70%, transparent);
 }
 
 /* 视频元素样式 */
@@ -2412,20 +2411,21 @@ video.xgplayer-video {
 
 :root[data-theme="light"] .error-player .retry-btn,
 :root[data-theme="light"] .offline-player .retry-btn {
-  background-color: var(--accent-color-light, #007bff);
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+  background: var(--accent-gradient);
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 6px 18px var(--accent-glow);
 }
 
 :root[data-theme="light"] .error-player .retry-btn:hover,
 :root[data-theme="light"] .offline-player .retry-btn:hover {
-  background-color: var(--accent-color-hover-light, #0056b3);
-  box-shadow: 0 6px 16px rgba(0, 123, 255, 0.3);
+  filter: brightness(1.03) saturate(1.04);
+  box-shadow: 0 10px 26px var(--accent-glow);
 }
 
 :root[data-theme="light"] .error-player .retry-btn:active,
 :root[data-theme="light"] .offline-player .retry-btn:active {
-  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.15);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-glow) 70%, transparent);
 }
 
 :root[data-theme="light"] .streamer-info-offline {

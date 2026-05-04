@@ -516,7 +516,6 @@ export class DanmuKeywordBlockControl extends Plugin {
 
   private panel: HTMLElement | null = null;
   private handleToggle: ((event: Event) => void) | null = null;
-  private handleHoverEnter: ((event: Event) => void) | null = null;
   private isOpen = false;
 
   private current: DanmuKeywordBlockPreferences = { enabled: true, keywords: [] };
@@ -542,21 +541,12 @@ export class DanmuKeywordBlockControl extends Plugin {
       this.togglePanel(true);
     };
     this.bind(['click', 'touchend'], this.handleToggle);
-
-    this.handleHoverEnter = () => {
-      this.openPanel(false);
-    };
-    this.bind('mouseenter', this.handleHoverEnter);
   }
 
   override destroy() {
     if (this.handleToggle) {
       this.unbind(['click', 'touchend'], this.handleToggle);
       this.handleToggle = null;
-    }
-    if (this.handleHoverEnter) {
-      this.unbind('mouseenter', this.handleHoverEnter);
-      this.handleHoverEnter = null;
     }
 
     (this.root as HTMLElement | null)?.classList.remove('menu-open');

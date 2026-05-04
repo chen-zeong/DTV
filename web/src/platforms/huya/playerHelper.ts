@@ -22,52 +22,70 @@ export async function getHuyaStreamConfig(
   isLive?: boolean | null;
 }> {
   logger.debug('[HuyaPlayerHelper] getHuyaStreamConfig', { roomId, quality, line });
-  try {
-    const result = await invoke<any>('get_huya_unified_cmd', { roomId: roomId, quality, line: line ?? null });
-    logger.debug('[HuyaPlayerHelper] getHuyaStreamConfig result', result);
-    
-    if (result && result.flv_tx_urls && Array.isArray(result.flv_tx_urls)) {
-      const upstreamStreamUrl = pickHuyaUrlByQuality(result.flv_tx_urls, quality) || result.flv_tx_urls[0]?.url;
-      if (!upstreamStreamUrl) throw new Error('主播未开播或无法获取直播流');
+  const MAX_ATTEMPTS = 2; // 最多重试一次
 
-      const sanitizedUpstream = enforceHttps(upstreamStreamUrl);
-      const streamType = inferStreamType(sanitizedUpstream);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const result = await invoke<any>('get_huya_unified_cmd', { roomId: roomId, quality, line: line ?? null });
+      logger.debug('[HuyaPlayerHelper] getHuyaStreamConfig result', result);
 
-      // 对齐 pure_live：虎牙播放需要稳定的 UA/Referer/Origin；WebView 无法给 FLV 请求加自定义 Header，走本地 proxy 注入。
-      let finalStreamUrl = sanitizedUpstream;
-      try {
-        await invoke('set_stream_url_cmd', { url: sanitizedUpstream });
-        const proxyUrl = await invoke<string>('start_proxy');
-        if (proxyUrl) {
-          finalStreamUrl = proxyUrl;
-          huyaProxyActive = true;
+      if (result && result.flv_tx_urls && Array.isArray(result.flv_tx_urls)) {
+        const upstreamStreamUrl = pickHuyaUrlByQuality(result.flv_tx_urls, quality) || result.flv_tx_urls[0]?.url;
+        if (!upstreamStreamUrl) throw new Error('主播未开播或无法获取直播流');
+
+        const sanitizedUpstream = enforceHttps(upstreamStreamUrl);
+        const streamType = inferStreamType(sanitizedUpstream);
+
+        // 对齐 pure_live：虎牙播放需要稳定的 UA/Referer/Origin；WebView 无法给 FLV 请求加自定义 Header，走本地 proxy 注入。
+        let finalStreamUrl = sanitizedUpstream;
+        try {
+          await invoke('set_stream_url_cmd', { url: sanitizedUpstream });
+          const proxyUrl = await invoke<string>('start_proxy');
+          if (proxyUrl) {
+            finalStreamUrl = proxyUrl;
+            huyaProxyActive = true;
+          }
+        } catch {
+          // proxy 非关键：失败则回退直连（避免阻断播放），但可能更容易断流
+          huyaProxyActive = false;
         }
-      } catch {
-        // proxy 非关键：失败则回退直连（避免阻断播放），但可能更容易断流
-        huyaProxyActive = false;
+
+        return {
+          streamUrl: finalStreamUrl,
+          streamType,
+          title: result?.title ?? null,
+          anchorName: result?.nick ?? null,
+          avatar: result?.avatar ?? null,
+          isLive: typeof result?.is_live === 'boolean' ? result.is_live : null,
+        };
       }
 
-      return {
-        streamUrl: finalStreamUrl,
-        streamType,
-        title: result?.title ?? null,
-        anchorName: result?.nick ?? null,
-        avatar: result?.avatar ?? null,
-        isLive: typeof result?.is_live === 'boolean' ? result.is_live : null,
-      };
-    } else {
       // 数据异常或为空，一般意味着未开播或房间详情获取失败
       throw new Error('主播未开播或获取虎牙房间详情失败');
+    } catch (error: any) {
+      const msg = (error?.message || '').trim();
+      const looksOffline = msg.includes('未开播') || msg.includes('房间') || msg.includes('不存在');
+
+      // 未开播属于正常业务分支：避免刷 error 日志
+      if (looksOffline) {
+        logger.debug(`[HuyaPlayerHelper] getHuyaStreamConfig offline (attempt ${attempt}/${MAX_ATTEMPTS}): ${msg || 'offline'}`);
+      } else {
+        logger.error(`[HuyaPlayerHelper] getHuyaStreamConfig error (attempt ${attempt}/${MAX_ATTEMPTS}):`, error);
+      }
+
+      if (looksOffline) {
+        throw new Error(msg.includes('未开播') ? msg : '主播未开播或无法获取直播流');
+      }
+
+      if (attempt >= MAX_ATTEMPTS) {
+        throw new Error('主播未开播或无法获取直播流');
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 450));
     }
-  } catch (error: any) {
-    logger.error('[HuyaPlayerHelper] getHuyaStreamConfig error:', error);
-    // 若后端明确返回未开播文案，直接透传；否则统一按未开播处理
-    const msg = (error?.message || '').trim();
-    if (msg.includes('未开播')) {
-      throw new Error(msg);
-    }
-    throw new Error('主播未开播或无法获取直播流');
   }
+
+  throw new Error('主播未开播或无法获取直播流');
 }
 
 export async function stopHuyaProxy(): Promise<void> {

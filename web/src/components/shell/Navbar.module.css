@@ -488,6 +488,12 @@
   border-color: color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.18));
 }
 
+:global(:root[data-theme="light"]) .syncBtnGlass.primaryBtn {
+  background: var(--accent-gradient);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--accent-text);
+}
+
 .syncBtnGlass.secondaryBtn {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.16);

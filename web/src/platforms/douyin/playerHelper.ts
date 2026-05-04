@@ -40,38 +40,79 @@ export async function fetchAndPrepareDouyinStreamConfig(roomId: string, quality:
     };
   }
 
-  try {
-    const payloadData = { args: { room_id_str: roomId } };
-    const backendQuality = normalizeDouyinQuality(quality);
-    // 使用画质参数调用抖音画质切换API
-    const result = await invoke<LiveStreamInfo>('get_douyin_live_stream_url_with_quality', { 
-      payload: payloadData,
-      quality: backendQuality 
-    });
+  const payloadData = { args: { room_id_str: roomId } };
+  const backendQuality = normalizeDouyinQuality(quality);
+  const MAX_ATTEMPTS = 2; // 最多重试一次
 
-    if (result.error_message) {
-      console.error(`[DouyinPlayerHelper] Error from backend for room ${roomId}: ${result.error_message}`);
-      return {
-        streamUrl: null,
-        streamType: undefined,
-        title: result.title,
-        anchorName: result.anchor_name,
-        avatar: result.avatar,
-        isLive: result.status === 2,
-        normalizedRoomId: result.normalized_room_id ?? null,
-        webRid: result.web_rid ?? null,
-        initialError: result.error_message, // string | null from Rust
-      };
-    }
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      // 使用画质参数调用抖音画质切换API
+      const result = await invoke<LiveStreamInfo>('get_douyin_live_stream_url_with_quality', {
+        payload: payloadData,
+        quality: backendQuality,
+      });
 
-    const streamAvailable = result.status === 2 && !!result.stream_url;
-    let streamType: string | undefined = undefined;
-    let uiMessage: string | null = null; 
+      const errorMsg = (result.error_message || '').trim();
+      if (errorMsg) {
+        console.error(`[DouyinPlayerHelper] Error from backend for room ${roomId}: ${errorMsg}`);
+        const definitelyOffline = errorMsg.includes('未开播') || errorMsg.includes('不存在') || result.status !== 2;
+        if (definitelyOffline || attempt >= MAX_ATTEMPTS) {
+          return {
+            streamUrl: null,
+            streamType: undefined,
+            title: result.title,
+            anchorName: result.anchor_name,
+            avatar: result.avatar,
+            isLive: result.status === 2,
+            normalizedRoomId: result.normalized_room_id ?? null,
+            webRid: result.web_rid ?? null,
+            initialError: errorMsg,
+          };
+        }
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        continue;
+      }
 
-    const rawStreamUrl = result.stream_url ?? null;
-    const sanitizedStreamUrl = streamAvailable && rawStreamUrl ? enforceHttps(rawStreamUrl) : null;
+      const streamAvailable = result.status === 2 && !!result.stream_url;
+      const rawStreamUrl = result.stream_url ?? null;
 
-    if (streamAvailable && rawStreamUrl) {
+      // 未开播：不重试
+      if (result.status !== 2) {
+        return {
+          streamUrl: null,
+          streamType: undefined,
+          title: result.title,
+          anchorName: result.anchor_name,
+          avatar: result.avatar,
+          isLive: false,
+          normalizedRoomId: result.normalized_room_id ?? null,
+          webRid: result.web_rid ?? null,
+          initialError: '主播未开播。',
+        };
+      }
+
+      // 在线但没拿到流：允许重试一次
+      if (!streamAvailable || !rawStreamUrl) {
+        if (attempt >= MAX_ATTEMPTS) {
+          return {
+            streamUrl: null,
+            streamType: undefined,
+            title: result.title,
+            anchorName: result.anchor_name,
+            avatar: result.avatar,
+            isLive: false,
+            normalizedRoomId: result.normalized_room_id ?? null,
+            webRid: result.web_rid ?? null,
+            initialError: '主播在线，但获取直播流失败。',
+          };
+        }
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        continue;
+      }
+
+      const sanitizedStreamUrl = enforceHttps(rawStreamUrl);
+      let streamType: string | undefined = undefined;
+
       if (rawStreamUrl.startsWith('http://127.0.0.1') && rawStreamUrl.endsWith('/live.flv')) {
         streamType = 'flv';
       } else if (rawStreamUrl.includes('pull-hls') || rawStreamUrl.endsWith('.m3u8')) {
@@ -83,41 +124,48 @@ export async function fetchAndPrepareDouyinStreamConfig(roomId: string, quality:
         console.warn(`[DouyinPlayerHelper] Could not determine stream type for URL: ${rawStreamUrl}. Defaulting to flv.`);
         streamType = 'flv';
       }
-      // uiMessage remains null if stream is available and no prior error.
-    } else {
-      if (result.status !== 2) {
-        uiMessage = result.title ? `主播 ${result.anchor_name || ''} 未开播。` : '主播未开播或房间不存在。';
-      } else {
-        uiMessage = '主播在线，但获取直播流失败。';
+
+      return {
+        streamUrl: sanitizedStreamUrl,
+        streamType,
+        title: result.title,
+        anchorName: result.anchor_name,
+        avatar: result.avatar,
+        isLive: true,
+        normalizedRoomId: result.normalized_room_id ?? null,
+        webRid: result.web_rid ?? null,
+        initialError: null,
+      };
+    } catch (e: any) {
+      console.error(`[DouyinPlayerHelper] Exception while fetching Douyin stream details for ${roomId} (attempt ${attempt}/${MAX_ATTEMPTS}):`, e);
+      if (attempt >= MAX_ATTEMPTS) {
+        return {
+          streamUrl: null,
+          streamType: undefined,
+          title: null,
+          anchorName: null,
+          avatar: null,
+          isLive: false,
+          normalizedRoomId: null,
+          webRid: null,
+          initialError: e?.message || '获取直播信息失败: 未知错误',
+        };
       }
+      await new Promise((resolve) => setTimeout(resolve, 450));
     }
-
-    return {
-      streamUrl: sanitizedStreamUrl,
-      streamType: streamType,
-      title: result.title,
-      anchorName: result.anchor_name,
-      avatar: result.avatar,
-      isLive: streamAvailable,
-      normalizedRoomId: result.normalized_room_id ?? null,
-      webRid: result.web_rid ?? null,
-      initialError: uiMessage, // uiMessage is definitely string or null here.
-    };
-
-  } catch (e: any) {
-    console.error(`[DouyinPlayerHelper] Exception while fetching Douyin stream details for ${roomId}:`, e);
-    return { 
-        streamUrl: null, 
-        streamType: undefined, 
-        title: null, 
-        anchorName: null, 
-        avatar: null, 
-        isLive: false, 
-        normalizedRoomId: null,
-        webRid: null,
-        initialError: e.message || '获取直播信息失败: 未知错误' // Ensure string here
-    };
   }
+
+  return {
+    streamUrl: null,
+    streamType: undefined,
+    title: null,
+    anchorName: null,
+    avatar: null,
+    isLive: false,
+    normalizedRoomId: null,
+    webRid: null,
+    initialError: '主播未开播或无法获取直播流',
+  };
 }
 
 function normalizeDouyinQuality(input: string): string {
