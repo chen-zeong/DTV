@@ -78,8 +78,13 @@ export async function getBilibiliStreamConfig(
     });
   }
 
+  const streamUrl = result.stream_url;
+  if (!streamUrl) {
+    throw new Error('主播未开播或无法获取直播流');
+  }
+
   let streamType: string | undefined;
-  const streamUrlLower = result.stream_url.toLowerCase();
+  const streamUrlLower = streamUrl.toLowerCase();
 
   if (
     streamUrlLower.startsWith('http://127.0.0.1') ||
@@ -99,7 +104,7 @@ export async function getBilibiliStreamConfig(
       const formatLower = variant.format?.toLowerCase() ?? '';
       const protocolLower = variant.protocol?.toLowerCase() ?? '';
       const isSameAsPrimary =
-        variant.url === result.stream_url || variant.url === result.upstream_url;
+        variant.url === streamUrl || variant.url === result.upstream_url;
       const isHlsCandidate =
         formatLower === 'ts' ||
         formatLower === 'fmp4' ||
@@ -130,7 +135,7 @@ export async function getBilibiliStreamConfig(
     streamType = 'flv';
   }
 
-  return { streamUrl: result.stream_url, streamType };
+  return { streamUrl, streamType };
 }
 
 // 统一的 Rust 弹幕事件负载（与 Douyin/Douyu/Huya 保持一致）
