@@ -30,7 +30,7 @@ pub fn parse_chat_message(
                     content: chat_msg.content.clone(),
                     user_level,
                     fans_club_level,
-                    // r#type: "chat".to_string(),
+                    color: None,
                 }))
             } else {
                 // 对于没有用户信息的聊天消息 (例如系统消息)，也可能需要发送，但等级为0
@@ -40,6 +40,7 @@ pub fn parse_chat_message(
                     content: chat_msg.content.clone(),
                     user_level: 0,
                     fans_club_level: 0,
+                    color: None,
                 }))
             }
         }

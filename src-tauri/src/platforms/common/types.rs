@@ -92,4 +92,5 @@ pub struct DanmakuFrontendPayload {
     pub content: String,
     pub user_level: i64,
     pub fans_club_level: i32,
+    pub color: Option<String>,
 }

@@ -63,6 +63,7 @@ pub async fn start_bilibili_danmaku_listener(
                                 content: text,
                                 user_level: 0,
                                 fans_club_level: 0,
+                                color: None,
                             },
                         );
                     }
@@ -75,6 +76,7 @@ pub async fn start_bilibili_danmaku_listener(
                                 content: format!("[礼物] {}", gift),
                                 user_level: 0,
                                 fans_club_level: 0,
+                                color: None,
                             },
                         );
                     }

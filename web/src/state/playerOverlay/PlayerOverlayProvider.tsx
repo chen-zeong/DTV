@@ -66,7 +66,7 @@ export function PlayerOverlayHost() {
             exit={{ opacity: 0, y: 110, rotate: 0.6, scale: 0.985 }}
             transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
           >
-            <PlayerPage platform={platform} roomId={roomId} onRequestClose={closePlayer} />
+            <PlayerPage platform={platform} roomId={roomId} onRequestCloseAction={closePlayer} />
           </m.div>
         </m.div>
       ) : null}
