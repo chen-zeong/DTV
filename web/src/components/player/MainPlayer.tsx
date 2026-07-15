@@ -129,7 +129,24 @@ type UnifiedRustDanmakuPayload = {
   content: string;
   user_level: number;
   fans_club_level: number;
+  color?: string | null;
 };
+
+const DOUYU_COLORS: Record<number, string> = {
+  // 斗鱼官方计算色值。
+  1: '#FFFFFF', // 蓝/白
+  2: '#70C150', // 绿
+  3: '#E04AC0', // 粉
+  4: '#D4A113', // 黄
+  5: '#8A5BE9', // 紫
+  6: '#FF314E', // 红
+  7: '#FF314E', // 渐变色在覆盖层中降级为红色
+};
+
+function douyuColor(color: string | null | undefined): string | undefined {
+  if (!color) return undefined;
+  return DOUYU_COLORS[parseInt(color, 10)];
+}
 
 type LineOption = { key: string; label: string };
 const lineOptionsByPlatform: Partial<Record<Platform, LineOption[]>> = {
@@ -174,11 +191,11 @@ function resolveCurrentLineFor(options: LineOption[], currentLine: string | null
 export function MainPlayer({
   platform,
   roomId,
-  onRequestClose
+  onRequestCloseAction
 }: {
   platform: Platform;
   roomId: string;
-  onRequestClose?: () => void;
+  onRequestCloseAction?: () => void;
 }) {
   const router = useRouter();
   const follow = useFollow();
@@ -683,9 +700,9 @@ export function MainPlayer({
 
        const effectiveFilterRoomId = roomIdToFilter || roomIdToStart;
        const unlisten = await listen<UnifiedRustDanmakuPayload>("danmaku-message", (event: TauriEvent<UnifiedRustDanmakuPayload>) => {
-         if (!isSessionActive(sessionId)) return;
-         const p = event.payload;
-         if (!p) return;
+        if (!isSessionActive(sessionId)) return;
+        const p = event.payload;
+        if (!p) return;
         if (p.room_id && p.room_id !== effectiveFilterRoomId) return;
 
          const msg: DanmakuMessage = {
@@ -694,7 +711,8 @@ export function MainPlayer({
            content: p.content || "",
            level: String(p.user_level || 0),
            badgeLevel: p.fans_club_level > 0 ? String(p.fans_club_level) : undefined,
-           room_id: p.room_id || effectiveFilterRoomId
+           room_id: p.room_id || effectiveFilterRoomId,
+           color: douyuColor(p.color)
          };
 
         const contentLower = (msg.content || "").toLowerCase();
@@ -744,7 +762,7 @@ export function MainPlayer({
         await new Promise(resolve => setTimeout(resolve, 50));
         attempts++;
       }
-      
+
       if (!playerContainerRef.current) {
         console.error("[Player] Player container ref is not available after waiting");
         throw new Error("播放器容器初始化失败，请刷新页面重试。");
@@ -1378,7 +1396,7 @@ export function MainPlayer({
                     title="关闭"
                     aria-label="关闭"
                     onClick={() => {
-                      if (onRequestClose) onRequestClose();
+                      if (onRequestCloseAction) onRequestCloseAction();
                       else router.back();
                     }}
                   >

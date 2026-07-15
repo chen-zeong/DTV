@@ -180,6 +180,7 @@ pub async fn start_huya_danmaku_listener(
                                                 content: text,
                                                 user_level: 0,
                                                 fans_club_level: 0,
+                                                color: None,
                                             },
                                         );
                                     }

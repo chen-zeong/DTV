@@ -163,6 +163,7 @@ impl DanmakuClient {
                                             .unwrap_or(&zero)
                                             .parse::<i32>()
                                             .unwrap_or(0),
+                                        color: result.get("col").map(|c| c.to_string()),
                                     },
                                 );
                             } else if result.get("type").map_or(false, |t| t == "uenter") {
