@@ -12,6 +12,7 @@ use tauri::Manager;
 use tauri_plugin_opener::OpenerExt;
 mod logging;
 mod config_transfer;
+mod flv_relay;
 mod lan_sync;
 mod sync_transfer;
 mod platforms;
@@ -35,6 +36,9 @@ use platforms::huya::{fetch_huya_live_list, start_huya_danmaku_listener};
 #[derive(Default, Clone)]
 pub struct StreamUrlStore {
     pub url: Arc<Mutex<String>>,
+    /// 斗鱼直链 300 秒后会被 CDN 主动断开，代理层据此提前续流。
+    /// 仅斗鱼会设置；其余平台保持 None，代理保持原有的一次性直通行为。
+    pub renew: Arc<Mutex<Option<flv_relay::StreamRenewContext>>>,
 }
 
 // State for managing Douyu danmaku listener handles (stop signals)
@@ -83,8 +87,36 @@ async fn set_stream_url_cmd(
     url: String,
     state: tauri::State<'_, StreamUrlStore>,
 ) -> Result<(), String> {
-    let mut current_url = state.url.lock().unwrap();
-    *current_url = url;
+    {
+        let mut current_url = state.url.lock().unwrap();
+        *current_url = url;
+    }
+    // 换流即失效：需要续流的平台会在此之后显式调用 set_stream_renew_cmd，
+    // 这样未适配的平台默认拿不到续流上下文，行为与改造前一致。
+    let mut renew = state.renew.lock().unwrap();
+    *renew = None;
+    Ok(())
+}
+
+/// 登记重新取流所需的上下文，供代理层在直链到期前续签。目前仅斗鱼使用。
+/// 传入空的 room_id 表示清除。
+#[tauri::command]
+async fn set_stream_renew_cmd(
+    room_id: String,
+    quality: String,
+    line: Option<String>,
+    state: tauri::State<'_, StreamUrlStore>,
+) -> Result<(), String> {
+    let mut renew = state.renew.lock().unwrap();
+    *renew = if room_id.is_empty() {
+        None
+    } else {
+        Some(flv_relay::StreamRenewContext {
+            room_id,
+            quality,
+            line,
+        })
+    };
     Ok(())
 }
 
@@ -228,6 +260,7 @@ fn main() {
                 get_stream_url_cmd,
                 get_stream_url_with_quality_cmd,
                 set_stream_url_cmd,
+                set_stream_renew_cmd,
                 search_anchor,
                 config_transfer::save_config_export,
                 config_transfer::pick_config_import,

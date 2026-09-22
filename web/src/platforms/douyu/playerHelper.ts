@@ -58,6 +58,13 @@ export async function getDouyuStreamConfig(
 
   try {
     await invoke('set_stream_url_cmd', { url: finalStreamUrl });
+    // 斗鱼直链 300 秒后会被 CDN 主动断开，登记房间信息让代理层在到期前自行续流，
+    // 否则播放器每 5 分钟就会停在最后一帧并显示「重播」。
+    await invoke('set_stream_renew_cmd', {
+      roomId: roomId,
+      quality: quality,
+      line: line ?? null,
+    });
     const proxyUrl = await invoke<string>('start_proxy');
     douyuProxyActive = true;
     return { streamUrl: proxyUrl, streamType };
