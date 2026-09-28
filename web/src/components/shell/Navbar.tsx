@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "framer-motion";
 import { ChevronDown, ExternalLink, LayoutGrid, MonitorSmartphone, Moon, Search, Sun, ThumbsUp, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -92,6 +93,13 @@ export function Navbar({
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [hasUpdate, setHasUpdate] = useState(false);
   const [localVersion, setLocalVersion] = useState<string>("");
+
+  // modal 渲染在 .navbar 内会被其 backdrop-filter 拦下 fixed 包含块，
+  // 须 portal 到 body；等客户端挂载后再开 portal 以避开 SSR。
+  const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const playerUi = usePlayerUi();
   const playerOverlay = usePlayerOverlay();
@@ -718,96 +726,106 @@ export function Navbar({
         ) : null}
       </div>
 
-      <AnimatePresence>
-        {donateOpen ? (
-          <m.div
-            className={styles.overlayBackdrop}
-            // eslint-disable-next-line react/no-unknown-property
-            data-tauri-drag-region="false"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onMouseDown={() => setDonateOpen(false)}
-          >
-            <m.div
-              className={styles.overlayCard}
-              initial={{ opacity: 0, y: 10, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.99 }}
-              transition={{ type: "spring", stiffness: 520, damping: 44, mass: 0.7 }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <div className={styles.overlayHeader}>
-                <div className={styles.overlayTitle}>打赏支持</div>
-                <button type="button" className={styles.overlayClose} onClick={() => setDonateOpen(false)} aria-label="关闭">
-                  <X size={16} />
-                </button>
-              </div>
-              <div className={styles.overlayBody}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className={styles.qrImage} src="/wechat.jpg" alt="微信赞赏码" />
-              </div>
-            </m.div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {updateOpen ? (
-          <m.div
-            className={styles.overlayBackdrop}
-            // eslint-disable-next-line react/no-unknown-property
-            data-tauri-drag-region="false"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onMouseDown={() => setUpdateOpen(false)}
-          >
-            <m.div
-              className={styles.overlayCard}
-              initial={{ opacity: 0, y: 10, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.99 }}
-              transition={{ type: "spring", stiffness: 520, damping: 44, mass: 0.7 }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <div className={styles.overlayHeader}>
-                <div className={styles.overlayTitle}>
-                  {hasUpdate && versionInfo ? versionInfo.title || `发现新版本 v${versionInfo.version}` : "版本信息"}
-                </div>
-                <button type="button" className={styles.overlayClose} onClick={() => setUpdateOpen(false)} aria-label="关闭">
-                  <X size={16} />
-                </button>
-              </div>
-              <div className={styles.overlayBody}>
-                <div className={styles.updateMeta}>
-                  <span>当前版本：v{localVersion || "?"}</span>
-                  {hasUpdate && versionInfo ? <span>最新版本：v{versionInfo.version}</span> : <span>已是最新</span>}
-                  {hasUpdate && versionInfo?.published_at ? <span>发布日期：{versionInfo.published_at}</span> : null}
-                </div>
-                {hasUpdate && versionInfo?.notes?.length ? (
-                  <ul className={styles.updateNotes}>
-                    {versionInfo.notes.map((n) => (
-                      <li key={n}>{n}</li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                <div className={styles.updateActions}>
-                  <button
-                    type="button"
-                    className={styles.primaryBtn}
-                    onClick={() => void openExternal((versionInfo?.url || GITHUB_RELEASES_URL) as string)}
+      {portalReady
+        ? createPortal(
+            <AnimatePresence>
+              {donateOpen ? (
+                <m.div
+                  className={styles.overlayBackdrop}
+                  // eslint-disable-next-line react/no-unknown-property
+                  data-tauri-drag-region="false"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onMouseDown={() => setDonateOpen(false)}
+                >
+                  <m.div
+                    className={styles.overlayCard}
+                    initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.99 }}
+                    transition={{ type: "spring", stiffness: 520, damping: 44, mass: 0.7 }}
+                    onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <ExternalLink size={16} />
-                    {hasUpdate ? "打开下载页" : "打开 GitHub"}
-                  </button>
-                </div>
-              </div>
-            </m.div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+                    <div className={styles.overlayHeader}>
+                      <div className={styles.overlayTitle}>打赏支持</div>
+                      <button type="button" className={styles.overlayClose} onClick={() => setDonateOpen(false)} aria-label="关闭">
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className={styles.overlayBody}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img className={styles.qrImage} src="/wechat.jpg" alt="微信赞赏码" />
+                    </div>
+                  </m.div>
+                </m.div>
+              ) : null}
+            </AnimatePresence>,
+            document.body
+          )
+        : null}
+
+      {portalReady
+        ? createPortal(
+            <AnimatePresence>
+              {updateOpen ? (
+                <m.div
+                  className={styles.overlayBackdrop}
+                  // eslint-disable-next-line react/no-unknown-property
+                  data-tauri-drag-region="false"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onMouseDown={() => setUpdateOpen(false)}
+                >
+                  <m.div
+                    className={styles.overlayCard}
+                    initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.99 }}
+                    transition={{ type: "spring", stiffness: 520, damping: 44, mass: 0.7 }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <div className={styles.overlayHeader}>
+                      <div className={styles.overlayTitle}>
+                        {hasUpdate && versionInfo ? versionInfo.title || `发现新版本 v${versionInfo.version}` : "版本信息"}
+                      </div>
+                      <button type="button" className={styles.overlayClose} onClick={() => setUpdateOpen(false)} aria-label="关闭">
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className={styles.overlayBody}>
+                      <div className={styles.updateMeta}>
+                        <span>当前版本：v{localVersion || "?"}</span>
+                        {hasUpdate && versionInfo ? <span>最新版本：v{versionInfo.version}</span> : <span>已是最新</span>}
+                        {hasUpdate && versionInfo?.published_at ? <span>发布日期：{versionInfo.published_at}</span> : null}
+                      </div>
+                      {hasUpdate && versionInfo?.notes?.length ? (
+                        <ul className={styles.updateNotes}>
+                          {versionInfo.notes.map((n) => (
+                            <li key={n}>{n}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+
+                      <div className={styles.updateActions}>
+                        <button
+                          type="button"
+                          className={styles.primaryBtn}
+                          onClick={() => void openExternal((versionInfo?.url || GITHUB_RELEASES_URL) as string)}
+                        >
+                          <ExternalLink size={16} />
+                          {hasUpdate ? "打开下载页" : "打开 GitHub"}
+                        </button>
+                      </div>
+                    </div>
+                  </m.div>
+                </m.div>
+              ) : null}
+            </AnimatePresence>,
+            document.body
+          )
+        : null}
 
       <LanSyncModal open={lanSyncOpen} onClose={() => setLanSyncOpen(false)} appVersion={localVersion} />
     </nav>
