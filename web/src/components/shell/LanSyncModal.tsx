@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "framer-motion";
 import { Download, Upload, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
@@ -355,7 +356,10 @@ export function LanSyncModal({
 
   if (!open) return null;
 
-  return (
+  // open 为 true 只可能发生在客户端交互后，此时 document 必然可用。
+  // portal 到 body：.navbar 的 backdrop-filter 会劫持 fixed 后代的包含块，
+  // 留在 nav 内弹窗会相对 72px 高的导航栏定位而溢出窗口顶部。
+  return createPortal(
     <AnimatePresence>
       <m.div
         className={styles.overlayBackdrop}
@@ -545,6 +549,7 @@ export function LanSyncModal({
           </div>
         </m.div>
       </m.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
