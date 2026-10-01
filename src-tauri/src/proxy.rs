@@ -1,7 +1,9 @@
 use actix_web::{dev::ServerHandle, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use bytes::Bytes;
 use futures_util::TryStreamExt;
 use reqwest::Client;
 // awc removed for now due to API differences; using reqwest streaming
+use crate::flv_relay;
 use crate::StreamUrlStore;
 use serde::Deserialize;
 use std::io::ErrorKind;
@@ -9,6 +11,7 @@ use std::net::TcpStream;
 use std::sync::Mutex as StdMutex;
 use std::time::Duration;
 use tauri::{AppHandle, State};
+use tokio::sync::mpsc;
 
 // Define a struct to hold the server handle in a Tauri managed state
 #[derive(Default)]
@@ -117,6 +120,8 @@ async fn image_proxy_handler(
     }
 }
 
+const DEFAULT_STREAM_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
 // Your actual proxy logic - this is a simplified placeholder
 async fn flv_proxy_handler(
     _req: HttpRequest,
@@ -127,85 +132,68 @@ async fn flv_proxy_handler(
     if url.is_empty() {
         return HttpResponse::NotFound().body("Stream URL is not set or empty.");
     }
+    // 仅斗鱼会登记续流上下文；为空时 relay 退化为一次性直通，行为与改造前一致。
+    let renew_ctx = stream_url_store.renew.lock().unwrap().clone();
 
     println!(
-        "[Rust/proxy.rs handler] Incoming FLV proxy request -> {}",
-        url
+        "[Rust/proxy.rs handler] Incoming FLV proxy request -> {} (renew: {})",
+        url,
+        if renew_ctx.is_some() { "on" } else { "off" }
     );
 
-    let mut req = client
-        .get(&url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .header("Accept", "video/x-flv,application/octet-stream,*/*")
-        .header("Range", "bytes=0-")
-        .header("Connection", "keep-alive");
-
-    // 如果是虎牙域名，添加必要的 Referer/Origin 头
-    if url.contains("huya.com") || url.contains("hy-cdn.com") || url.contains("huyaimg.com") {
-        req = req
-            .header("User-Agent", HUYA_HYSDK_UA)
-            .header("Referer", "https://www.huya.com/")
-            .header("Origin", "https://www.huya.com");
-    }
-    // 如果是B站域名，添加必要的 Referer 头
-    if url.contains("bilivideo") || url.contains("bilibili.com") || url.contains("hdslb.com") {
-        req = req.header("Referer", "https://live.bilibili.com/");
-    }
-
-    match req.send().await {
-        Ok(upstream_response) => {
-            if upstream_response.status().is_success() {
-                let mut response_builder = HttpResponse::Ok();
-                response_builder
-                    .content_type("video/x-flv")
-                    .insert_header(("Connection", "keep-alive"))
-                    .insert_header(("Cache-Control", "no-store"))
-                    .insert_header(("Accept-Ranges", "bytes"));
-
-                let byte_stream = upstream_response.bytes_stream().map_err(|e| {
-                    eprintln!(
-                        "[Rust/proxy.rs handler] Error reading bytes from upstream: {}",
-                        e
-                    );
-                    actix_web::error::ErrorInternalServerError(format!(
-                        "Upstream stream error: {}",
-                        e
-                    ))
-                });
-
-                response_builder.streaming(byte_stream)
-            } else {
-                let status_from_reqwest = upstream_response.status(); // Renamed for clarity
-                let error_text = upstream_response
-                    .text()
-                    .await
-                    .unwrap_or_else(|e| format!("Failed to read error body from upstream: {}", e));
+    // 首次连接同步完成，便于把上游的错误状态原样透传给前端。
+    let first_body =
+        match flv_relay::open_stream(&client, &url, DEFAULT_STREAM_UA, HUYA_HYSDK_UA).await {
+            Ok(body) => body,
+            Err(flv_relay::OpenError::Status { status, body }) => {
                 eprintln!(
                     "[Rust/proxy.rs handler] Upstream request to {} failed with status: {}. Body: {}",
-                    url, status_from_reqwest, error_text
+                    url, status, body
                 );
-                // Convert reqwest::StatusCode to actix_web::http::StatusCode
-                let actix_status_code =
-                    actix_web::http::StatusCode::from_u16(status_from_reqwest.as_u16())
-                        .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
-
-                HttpResponse::build(actix_status_code).body(format!(
+                let actix_status_code = actix_web::http::StatusCode::from_u16(status.as_u16())
+                    .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
+                return HttpResponse::build(actix_status_code).body(format!(
                     "Error fetching FLV stream from upstream (reqwest): {}. Status: {}. Details: {}",
-                    url, status_from_reqwest, error_text
-                ))
+                    url, status, body
+                ));
             }
-        }
-        Err(e) => {
-            eprintln!(
-                "[Rust/proxy.rs handler] Failed to send request to upstream {} with reqwest: {}",
-                url, e
-            );
-            HttpResponse::InternalServerError().body(format!(
-                "Error connecting to upstream FLV stream {} with reqwest: {}",
-                url, e
-            ))
-        }
-    }
+            Err(flv_relay::OpenError::Connect(e)) => {
+                eprintln!(
+                    "[Rust/proxy.rs handler] Failed to send request to upstream {} with reqwest: {}",
+                    url, e
+                );
+                return HttpResponse::InternalServerError().body(format!(
+                    "Error connecting to upstream FLV stream {} with reqwest: {}",
+                    url, e
+                ));
+            }
+        };
+
+    // 每个 item 是一个上游字节块。容量不宜大，否则会在播放器之前多压一层缓冲、推高直播延迟。
+    let (tx, rx) = mpsc::channel::<Result<Bytes, std::io::Error>>(32);
+    tauri::async_runtime::spawn(flv_relay::run(
+        tx,
+        first_body,
+        renew_ctx,
+        client.get_ref().clone(),
+        DEFAULT_STREAM_UA.to_string(),
+        HUYA_HYSDK_UA.to_string(),
+    ));
+
+    let byte_stream = futures_util::stream::unfold(rx, |mut rx| async move {
+        rx.recv().await.map(|item| (item, rx))
+    })
+    .map_err(|e| {
+        eprintln!("[Rust/proxy.rs handler] Relay stream error: {}", e);
+        actix_web::error::ErrorInternalServerError(format!("Upstream stream error: {}", e))
+    });
+
+    HttpResponse::Ok()
+        .content_type("video/x-flv")
+        .insert_header(("Connection", "keep-alive"))
+        .insert_header(("Cache-Control", "no-store"))
+        .insert_header(("Accept-Ranges", "bytes"))
+        .streaming(byte_stream)
 }
 
 #[tauri::command]
