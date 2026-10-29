@@ -1,0 +1,161 @@
+/* =============================================================================
+ * 全局基础样式（reset + 元素默认值 + 通用工具）
+ * ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0.01em;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+:where(button, input, textarea, select) {
+  font: inherit;
+  color: inherit;
+}
+
+:where(a, button, [role="button"], input, textarea, select, summary) {
+  transition:
+    background-color var(--dur-3) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    border-color var(--dur-3) var(--ease-out),
+    transform var(--dur-2) var(--ease-out),
+    opacity var(--dur-2) var(--ease-out);
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 2px;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+img {
+  /* 避免图片撑破栅格；具体尺寸由各组件决定 */
+  max-width: 100%;
+  display: block;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(a, button, [role="button"], input, textarea, select, summary) {
+    transition-duration: 1ms !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ---------------------------------------------------------------- 通用工具 */
+
+/* 毛玻璃表面 */
+.mica {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(32px) saturate(220%);
+  -webkit-backdrop-filter: blur(32px) saturate(220%);
+  border: 1px solid var(--glass-border);
+}
+
+/* 卡片 */
+.fluent-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-low);
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+/* Wails 窗口拖拽区域：把 CSS 变量加在需要拖拽的元素上即可 */
+.drag-region {
+  --wails-draggable: drag;
+}
+
+.no-drag {
+  --wails-draggable: no-drag;
+}
+
+/* 仅供屏幕阅读器的文本 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

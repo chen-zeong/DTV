@@ -1,0 +1,248 @@
+.page {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  padding: 10px 0 0;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 0;
+}
+
+.stageCol {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.stageFull {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: #000;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.stageFull .stage {
+  border-radius: 0;
+  border: none;
+}
+
+.videoHost {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.videoHost > :global(.xgplayer) {
+  width: 100%;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------------ 顶栏 */
+
+.topbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.topbar > * {
+  pointer-events: auto;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(10, 10, 12, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  flex: 0 0 auto;
+}
+
+.backBtn:hover {
+  background: rgba(10, 10, 12, 0.82);
+}
+
+.streamerPill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(10, 10, 12, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px) saturate(1.25);
+  min-width: 0;
+  max-width: 70%;
+}
+
+.pillAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.pillMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pillTitle {
+  font-size: var(--text-sm);
+  font-weight: 900;
+  color: #fff;
+  max-width: 48vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pillSub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  flex: 0 0 auto;
+}
+
+.statusLive {
+  color: #fff;
+  background: rgba(255, 62, 62, 0.9);
+}
+
+.statusOff {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.followBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  color: #fff;
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
+  flex: 0 0 auto;
+}
+
+.followBtnOn {
+  background: rgba(255, 209, 102, 0.22);
+  color: #ffd166;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.8);
+  flex: 0 0 auto;
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ------------------------------------------------------------- 覆盖层/空态 */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.overlayText {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.82);
+  text-align: center;
+  max-width: 70%;
+  line-height: 1.6;
+}
+
+.primaryBtn {
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--accent-text);
+  background: var(--accent-gradient);
+}
+
+.primaryBtn:hover {
+  filter: brightness(1.08);
+}
+
+.emptyState {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.emptyHint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}

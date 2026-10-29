@@ -1,0 +1,32 @@
+{
+  "name": "dtv-frontend",
+  "private": true,
+  "version": "4.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build --mode production",
+    "build:dev": "tsc --noEmit && vite build --minify false --mode development",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wailsio/runtime": "3.0.0",
+    "lucide-react": "^0.546.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.4",
+    "xgplayer": "^3.0.23",
+    "xgplayer-flv": "^3.0.23",
+    "xgplayer-hls.js": "^3.0.23",
+    "xgplayer-transmuxer": "^3.0.23"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "typescript": "^5.8.3",
+    "vite": "^8.2.4"
+  }
+}

@@ -1,0 +1,15 @@
+.ring {
+  display: inline-block;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 26%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,64 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 2px 12px;
+  flex: 0 0 auto;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.groupLabel {
+  flex: 0 0 auto;
+  width: 68px;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--text-secondary);
+  background: var(--hover-bg);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.chipActive,
+.chipActive:hover {
+  color: var(--accent-text);
+  background: var(--accent-gradient);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}

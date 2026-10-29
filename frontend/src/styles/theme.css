@@ -1,0 +1,173 @@
+/* =============================================================================
+ * DTV 设计令牌（Design Tokens）
+ *
+ * 从旧版 legacy-global.css 重构而来：
+ *  1. 去掉 Tailwind / HeroUI 的桥接变量（新项目不再依赖这两个库）
+ *  2. 把旧组件里靠 `var(--x, fallback)` 临时兜底的变量（--sidebar-bg、--player-accent、
+ *     --skeleton-bg …）提升为一等令牌，避免同一个颜色散落在十几个文件里
+ *  3. 保留旧变量名作为「兼容别名」，飙色值只有一处定义
+ * ========================================================================== */
+
+@font-face {
+  font-family: "OPPO Sans";
+  src: url("/fonts/OPPOSans-Regular-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "OPPO Sans";
+  src: url("/fonts/OPPOSans-Bold-subset.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------------------------------------------------------- 亮色主题 */
+:root {
+  --font-sans: "OPPO Sans", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* 字号阶梯 */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --leading-tight: 1.15;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+  --weight-regular: 400;
+  --weight-medium: 600;
+  --weight-bold: 700;
+
+  /* 动效 */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 240ms;
+
+  /* 色板（vibestream-day） */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --sidebar-bg: var(--bg-primary);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --accent-glow: rgba(34, 197, 94, 0.35);
+  --accent-text: #ffffff;
+  --platform-active-bg: rgba(15, 23, 42, 0.04);
+
+  --border: #e2e8f0;
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: blur(32px);
+
+  --shadow-low: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.12);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+  --card-radius: var(--radius-lg);
+
+  /* 布局尺度 */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 72px;
+  --navbar-height: 72px;
+
+  /* 状态色 */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --status-live: #ff3e3e;
+  --status-offline: #86868b;
+  --status-active: var(--accent);
+  --status-warning: #f59e0b;
+
+  /* 组件级语义色 */
+  --hover-bg: rgba(0, 0, 0, 0.04);
+  --card-bg: var(--bg-secondary);
+  --color-card: rgba(255, 255, 255, 0.6);
+  --color-border: #ffffff;
+  --skeleton-bg: rgba(0, 0, 0, 0.06);
+  --danmu-font-family: "OPPO Sans", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial,
+    sans-serif;
+  --danmu-opacity: 1;
+  --danmu-stroke-color: rgba(0, 0, 0, 0.6);
+
+  /* 播放器强调色（与全局 accent 解耦，方便单独调） */
+  --player-accent: var(--accent);
+  --player-accent-strong: var(--accent-hover);
+  --player-accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-hover));
+
+  /* ---------------------------------------------------------- 旧变量兼容别名
+   * 旧组件的 CSS Module 仍在用这些名字。颜色值只在上面定义一次。
+   * 后续重构某个组件时，顺手把它换成语义化令牌，别名逐步删除即可。 */
+  --primary-bg: var(--bg-primary);
+  --secondary-bg: var(--bg-secondary);
+  --tertiary-bg: var(--bg-tertiary);
+  --accent-color: var(--accent);
+  --accent-gradient: var(--player-accent-gradient);
+  --primary-text: var(--text-primary);
+  --secondary-text: var(--text-secondary);
+  --dim-text: rgba(134, 134, 139, 0.8);
+  --border-color: var(--border);
+  --border-color-light: var(--border);
+  --glass-shadow: var(--shadow-md);
+  --content-panel-bg: var(--bg-secondary);
+  --card-shadow: var(--shadow-low);
+  --card-shadow-hover: var(--shadow-md);
+  --content-bg-light: #ffffff;
+  --content-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --primary-text-light: #333333;
+  --secondary-text-light: #555555;
+  --icon-color-light: #888888;
+  --success-color: var(--success);
+}
+
+/* ---------------------------------------------------------------- 暗色主题 */
+[data-theme="dark"] {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #242424;
+  --sidebar-bg: var(--bg-primary);
+  --text-primary: #e2e8f0;
+  --text-secondary: #64748b;
+  --accent: #22c55e;
+  --accent-hover: #34d399;
+  --accent-glow: rgba(34, 197, 94, 0.3);
+  --platform-active-bg: rgba(255, 255, 255, 0.06);
+
+  --border: #222222;
+  --glass-bg: rgba(20, 20, 22, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --shadow-low: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 48px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 32px 96px rgba(0, 0, 0, 0.6);
+  --glass-shadow: var(--shadow-lg);
+  --card-shadow: var(--shadow-md);
+  --card-shadow-hover: var(--shadow-lg);
+
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --card-bg: var(--bg-secondary);
+  --color-card: rgba(255, 255, 255, 0.15);
+  --color-border: rgba(255, 255, 255, 0.3);
+  --skeleton-bg: rgba(255, 255, 255, 0.06);
+  --danmu-stroke-color: rgba(0, 0, 0, 0.75);
+  --dim-text: rgba(161, 161, 166, 0.8);
+
+  --status-offline: #525c53;
+  --status-active: #e5e7eb;
+}

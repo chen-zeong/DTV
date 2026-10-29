@@ -1,0 +1,66 @@
+.tabs {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(64px, auto);
+  align-items: center;
+  padding: 4px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  flex: 0 0 auto;
+}
+
+:global([data-theme="light"]) .tabs {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.highlight {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  border-radius: 14px;
+  background: var(--accent-gradient);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  transition:
+    transform var(--dur-3) var(--ease-out),
+    width var(--dur-3) var(--ease-out);
+  pointer-events: none;
+}
+
+.tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 16px;
+  border-radius: 14px;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tabActive,
+.tabActive:hover {
+  color: #fff;
+  font-weight: 900;
+}
+
+.drag {
+  --wails-draggable: drag;
+}
+
+.noDrag {
+  --wails-draggable: no-drag;
+}

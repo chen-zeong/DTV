@@ -1,0 +1,186 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--card-radius);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.coverBtn {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coverShade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46%;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+
+.liveBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  color: #fff;
+  background: rgba(255, 62, 62, 0.92);
+  box-shadow: 0 2px 10px rgba(255, 62, 62, 0.35);
+}
+
+.liveDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.offlineBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.viewers {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.followBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition:
+    opacity var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-out);
+}
+
+.card:hover .followBtn,
+.followBtnOn {
+  opacity: 1;
+}
+
+.followBtn:hover {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.followBtnOn {
+  color: #ffd166;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px 12px;
+  text-align: left;
+  min-width: 0;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+}
+
+.metaText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.nickname {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.title {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--hover-bg);
+  color: var(--text-secondary);
+}
