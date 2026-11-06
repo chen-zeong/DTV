@@ -1,18 +1,27 @@
+/* 左侧栏：与 Tauri 老版一致 —— 实色侧栏 + 右侧 1px 描边 + 轻阴影 */
+
 .sidebar {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
   width: var(--sidebar-width);
   height: 100%;
   z-index: 100;
-  background: var(--bg-secondary);
+  /* 与二级分类 chip 使用同一档表面色（日夜模式自动跟随 token） */
+  background: var(--fill-quaternary);
   border-right: 1px solid var(--border);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
   transition: width var(--dur-3) var(--ease-out);
+  overflow: hidden;
 }
 
 :global([data-theme="light"]) .sidebar {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}
+
+.collapsed {
+  width: var(--sidebar-collapsed-width);
 }
 
 .body {
@@ -20,4 +29,6 @@
   min-height: 0;
   overflow: visible;
   padding: 0;
+  display: flex;
+  flex-direction: column;
 }

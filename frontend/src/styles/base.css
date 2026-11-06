@@ -1,5 +1,8 @@
 /* =============================================================================
  * 全局基础样式（reset + 元素默认值 + 通用工具）
+ *
+ * 这里只做四件事：盒模型 / 字体渲染、滚动条、焦点环、通用表面工具。
+ * 具体尺寸与颜色一律交给主题令牌和组件的 CSS Module。
  * ========================================================================== */
 
 *,
@@ -9,23 +12,42 @@
 }
 
 html {
-  font-family: var(--font-sans);
-  font-size: 14px;
+  font-family: var(--font-text);
+  font-size: 15px;
+  background: var(--bg-primary);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  /* 中文系统字体通常只有 400/700；关掉合成字重后，500/600 会落到最近的实有字重。
+   * 层级仍靠字号/颜色/字距区分（见 README 的排版说明）。 */
+  font-synthesis-weight: none;
+}
+
+/* 标题使用 Display 光学尺寸，正文使用 Text；可变字体下由浏览器自动微调 */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  line-height: var(--leading-tight-cjk);
+  letter-spacing: -0.01em;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-primary);
+  background-color: transparent;
   color: var(--text-primary);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   font-weight: var(--weight-regular);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.002em;
   overflow: hidden;
+  /* 桌面应用不需要文本选择光标，组件里按需开启 */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #root {
@@ -40,15 +62,15 @@ body {
 
 :where(a, button, [role="button"], input, textarea, select, summary) {
   transition:
-    background-color var(--dur-3) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
     color var(--dur-2) var(--ease-out),
-    border-color var(--dur-3) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
     transform var(--dur-2) var(--ease-out),
     opacity var(--dur-2) var(--ease-out);
 }
 
 :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 82%, transparent);
   outline-offset: 2px;
 }
 
@@ -59,6 +81,11 @@ button {
   font-family: inherit;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  color: inherit;
+}
+
+button:disabled {
+  cursor: default;
 }
 
 a {
@@ -67,7 +94,7 @@ a {
 }
 
 a:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 ul,
@@ -77,15 +104,30 @@ ol {
   padding: 0;
 }
 
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
 img {
-  /* 避免图片撑破栅格；具体尺寸由各组件决定 */
   max-width: 100%;
   display: block;
 }
 
+/* 输入类元素需要文本光标与选择能力 */
+:where(input, textarea) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* --------------------------------------------------------------- 滚动条 */
+
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -93,17 +135,28 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 10px;
+  /* 透明边框把滑块"挤窄"：视觉 3px，热区 10px */
+  background: color-mix(in srgb, var(--text-primary) 18%, transparent);
+  border: 3.5px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--radius-full);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: var(--accent);
+  color: var(--accent-text);
 }
+
+/* ------------------------------------------------------------- 降低动效 */
 
 @media (prefers-reduced-motion: reduce) {
   :where(a, button, [role="button"], input, textarea, select, summary) {
@@ -119,23 +172,50 @@ img {
 
 /* ---------------------------------------------------------------- 通用工具 */
 
-/* 毛玻璃表面 */
-.mica {
-  background-color: var(--glass-bg);
-  backdrop-filter: blur(32px) saturate(220%);
-  -webkit-backdrop-filter: blur(32px) saturate(220%);
-  border: 1px solid var(--glass-border);
+/* 表面：实色 + 极低对比描边，没有模糊与高光 */
+.glass {
+  background-color: var(--bg-secondary);
+  box-shadow: var(--glass-highlight);
 }
 
-/* 卡片 */
-.fluent-card {
+.surface {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--card-radius);
   box-shadow: var(--shadow-low);
-  transition:
-    transform var(--dur-2) var(--ease-out),
-    box-shadow var(--dur-2) var(--ease-out);
+}
+
+/* 1px 发丝分隔线（高分屏下不会被放大成 2px） */
+.hairline {
+  height: 1px;
+  background: var(--separator);
+  border: none;
+  margin: 0;
+}
+
+/* 主按钮：纯色青柠 + 深色字，没有渐变和光晕 */
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--control-h);
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.btn-accent:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-accent:active {
+  background: var(--accent-active);
+  transform: translateY(0);
 }
 
 /* Wails 窗口拖拽区域：把 CSS 变量加在需要拖拽的元素上即可 */
@@ -158,4 +238,10 @@ img {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* 数值对齐（人气、时长等） */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }

@@ -61,6 +61,21 @@ export interface Streamer {
   isLive: boolean;
 }
 
+/**
+ * 一页主播列表 + 分页信息。
+ *
+ * 列表是无限滚动，光有数组无法判断"还有没有下一页"，
+ * 所以后端把上游的总页数归一化成 hasMore 一起返回。
+ */
+export interface StreamerPage {
+  items: Streamer[];
+  /** 本页页码，从 1 开始 */
+  page: number;
+  hasMore: boolean;
+  /** 上游给的总页数；0 表示未提供 */
+  totalPages?: number;
+}
+
 /** 直播间详情（进入播放页后拿到的信息） */
 export interface StreamInfo {
   roomId: string;
@@ -76,12 +91,18 @@ export interface StreamInfo {
 }
 
 export interface StreamVariant {
-  /** 稳定 key，用于持久化用户选择（source/high/standard …） */
+  /** 稳定 key，用于持久化用户选择（斗鱼是 rate 数字，如 "0" / "4"） */
   id: string;
-  /** 显示名：原画 / 高清 / 标清 */
+  /** 显示名：原画 / 蓝光4M / 超清 / 高清（斗鱼下发的档位名） */
   label: string;
   url: string;
   format: "flv" | "hls";
+  /** 同一实际档位在多个 CDN 上的地址（斗鱼），第一个与 url 相同 */
+  urls?: string[];
+  /** 服务端确认的实际档位；null/undefined 表示未确认 */
+  appliedRate?: number | null;
+  /** 请求档位但服务端未给出可确认的实际档位 */
+  unconfirmed?: boolean;
 }
 
 export interface LineOption {
@@ -113,4 +134,43 @@ export interface SearchHit {
   title: string;
   avatar: string;
   isLive: boolean;
+}
+
+/* ---------------------------------------------------------------- B 站登录 */
+
+/** 扫码登录的二维码（对应 Go 侧 common.QRLoginCode） */
+export interface QRLoginCode {
+  /** 二维码里要编码的内容 */
+  url: string;
+  /** 轮询用的 key，不展示给用户 */
+  key: string;
+  /** 有效期（秒），0 表示上游未说明 */
+  expiresIn: number;
+}
+
+/** 扫码状态取值（与 Go 侧 common.QRStatus* 一致） */
+export type QRLoginStatus = "pending" | "scanned" | "expired" | "success" | "error";
+
+/** 一次扫码状态查询结果（对应 Go 侧 common.QRLoginResult） */
+export interface QRLoginResult {
+  status: QRLoginStatus;
+  message: string;
+  /** 仅 status=success 时有值 */
+  cookie?: string;
+  userName?: string;
+  avatar?: string;
+}
+
+/** 当前 B 站账号信息（对应 Go 侧 common.BilibiliProfile） */
+export interface BilibiliProfile {
+  loggedIn: boolean;
+  userName?: string;
+  avatar?: string;
+}
+
+/** 当前斗鱼账号信息（对应 Go 侧 common.DouyuProfile） */
+export interface DouyuProfile {
+  loggedIn: boolean;
+  userName?: string;
+  avatar?: string;
 }

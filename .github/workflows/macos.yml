@@ -1,0 +1,208 @@
+name: macOS DMG
+
+# macOS 专用发布流水线：Windows 仍由本地手动编译。
+#
+# 触发方式：
+#   - Actions 页面手动 Run workflow
+#   - push 形如 v4.0.0 的 tag（同时创建 GitHub Release）
+#
+# 产物：
+#   - DTV-<version>-arm64.dmg（Apple Silicon）
+#   - DTV-<version>-amd64.dmg（Intel）
+#
+# 代码签名 / 公证是可选的：
+#   配置下面这些 Secrets 后会自动用 Developer ID 签名并提交 Apple 公证；
+#   没有配置时退回 Wails 模板默认的 ad-hoc 签名，DMG 仍可构建，只是首次打开
+#   需要右键 -> 打开（或 xattr 去除隔离属性）。
+#
+#   MACOS_CERTIFICATE           Developer ID Application .p12 的 base64
+#   MACOS_CERTIFICATE_PASSWORD  .p12 密码
+#   MACOS_SIGN_IDENTITY         可选，证书有多个 identity 时指定完整名称
+#   MACOS_KEYCHAIN_PASSWORD     可选，临时 keychain 密码（不填则随机）
+#   MACOS_NOTARY_APPLE_ID       Apple ID
+#   MACOS_NOTARY_PASSWORD       App 专用密码（appleid.apple.com 生成）
+#   MACOS_NOTARY_TEAM_ID        Developer Team ID
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-dmg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macos-14 是 Apple Silicon；macos-15-intel 是 Intel。
+          - arch: arm64
+            runner: macos-14
+          - arch: amd64
+            runner: macos-15-intel
+
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+      MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+      MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
+      MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: go.sum
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install Wails3 CLI
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Info.plist version
+        run: |
+          set -euo pipefail
+          VERSION=$(sed -n 's/^[[:space:]]*version:[[:space:]]*"\([^"]*\)".*/\1/p' build/config.yml | head -n 1)
+          VERSION=${VERSION:-4.0.0}
+          for plist in build/darwin/Info.plist build/darwin/Info.dev.plist; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$plist"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$plist"
+          done
+
+      - name: Build .app
+        run: wails3 task darwin:package ARCH=${{ matrix.arch }}
+
+      - name: Sign / notarize and create DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP="bin/dtv.app"
+          test -d "$APP" || { echo "::error::$APP not found"; exit 1; }
+
+          IDENTITY=""
+          PROFILE=""
+          if [ -n "${MACOS_CERTIFICATE:-}" ]; then
+            echo "Configuring Developer ID signing..."
+
+            CERT_PATH="$RUNNER_TEMP/dtv-signing.p12"
+            printf '%s' "$MACOS_CERTIFICATE" | base64 -D > "$CERT_PATH"
+
+            KEYCHAIN="$RUNNER_TEMP/dtv-signing.keychain-db"
+            KEYCHAIN_PASSWORD="${MACOS_KEYCHAIN_PASSWORD:-$(openssl rand -hex 24)}"
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            security import "$CERT_PATH" \
+              -P "$MACOS_CERTIFICATE_PASSWORD" \
+              -A -t cert -f pkcs12 -k "$KEYCHAIN"
+            security set-key-partition-list \
+              -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            EXISTING_KEYCHAINS=$(security list-keychains -d user | tr -d '"')
+            # shellcheck disable=SC2086
+            security list-keychains -d user -s "$KEYCHAIN" $EXISTING_KEYCHAINS
+
+            IDENTITY="${MACOS_SIGN_IDENTITY:-}"
+            if [ -z "$IDENTITY" ]; then
+              IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" \
+                | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -n 1)
+            fi
+            if [ -z "$IDENTITY" ]; then
+              echo "::error::No 'Developer ID Application' identity found in the imported certificate"
+              exit 1
+            fi
+            echo "Signing identity: $IDENTITY"
+
+            NOTARIZE="false"
+            if [ -n "${MACOS_NOTARY_APPLE_ID:-}" ] && \
+               [ -n "${MACOS_NOTARY_PASSWORD:-}" ] && \
+               [ -n "${MACOS_NOTARY_TEAM_ID:-}" ]; then
+              NOTARIZE="true"
+              PROFILE="DTVNotary"
+              xcrun notarytool store-credentials "$PROFILE" \
+                --apple-id "$MACOS_NOTARY_APPLE_ID" \
+                --password "$MACOS_NOTARY_PASSWORD" \
+                --team-id "$MACOS_NOTARY_TEAM_ID"
+            else
+              echo "Notary credentials not configured; signing without notarization."
+            fi
+
+            SIGN_ARGS=(
+              --input "$APP"
+              --identity "$IDENTITY"
+              --hardened-runtime
+            )
+            if [ "$NOTARIZE" = "true" ]; then
+              SIGN_ARGS+=(--notarize --keychain-profile "$PROFILE")
+            fi
+            wails3 tool sign "${SIGN_ARGS[@]}"
+            if [ "$NOTARIZE" = "true" ]; then
+              xcrun stapler staple "$APP" || true
+            fi
+          else
+            echo "No MACOS_CERTIFICATE secret; keeping Wails' ad-hoc signature."
+          fi
+
+          # .app 已签名（或 ad-hoc）后再打 DMG。
+          wails3 task darwin:create:dmg
+
+          DMG=$(find bin -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$DMG" || { echo "::error::DMG was not created"; exit 1; }
+
+          if [ -n "$IDENTITY" ]; then
+            echo "Signing DMG..."
+            codesign --force --sign "$IDENTITY" --timestamp "$DMG"
+          fi
+          if [ -n "$PROFILE" ]; then
+            echo "Notarizing DMG..."
+            xcrun notarytool submit "$DMG" \
+              --keychain-profile "$PROFILE" --wait
+            xcrun stapler staple "$DMG"
+            xcrun stapler validate "$DMG"
+          fi
+
+          VERSION=$(sed -n 's/^[[:space:]]*version:[[:space:]]*"\([^"]*\)".*/\1/p' build/config.yml | head -n 1)
+          VERSION=${VERSION:-4.0.0}
+          mkdir -p artifacts
+          mv "$DMG" "artifacts/DTV-${VERSION}-${{ matrix.arch }}.dmg"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: DTV-${{ matrix.arch }}-dmg
+          path: artifacts/*.dmg
+          if-no-files-found: error
+
+      - name: Attach DMG to tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.dmg
+          generate_release_notes: true

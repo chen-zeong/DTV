@@ -8,8 +8,11 @@
 .categoriesLoading {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 2px;
+  gap: 9px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
@@ -18,35 +21,44 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-top: 4px;
+  padding-top: 2px;
+  /* 最后一行与滚动容器底部之间留出余量，避免卡片下沿被裁掉 */
+  padding-bottom: 10px;
 }
 
+/* U-19：错误是非阻塞提示条，保留旧数据，不清空列表 */
 .error {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-secondary));
+  margin-bottom: 12px;
+  flex: 0 0 auto;
 }
 
 .errorText {
-  margin: 0;
   font-size: var(--text-sm);
-  color: var(--danger);
+  color: var(--text-primary);
   flex: 1;
+  min-width: 0;
 }
 
 .retry {
-  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  color: #fff;
-  background: var(--danger);
+  font-weight: var(--weight-semibold);
+  color: var(--danger);
+  background: var(--fill-tertiary);
+  flex: 0 0 auto;
 }
 
 .retry:hover {
-  filter: brightness(1.08);
+  background: var(--fill-secondary);
 }

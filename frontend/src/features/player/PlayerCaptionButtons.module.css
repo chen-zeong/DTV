@@ -1,0 +1,71 @@
+/* =============================================================================
+ * 系统全屏下的窗口按钮（对齐 Win11 原生标题栏按钮）
+ *
+ * 尺寸 46×32、无背景、悬停一层浅色浮层；关闭键悬停转 #C42B1C。
+ * 图标是 10×10 的 1px 描边，和系统 caption 按钮同尺寸。
+ * ========================================================================== */
+
+.controls {
+  display: inline-flex;
+  align-items: stretch;
+  height: 32px;
+  flex: 0 0 auto;
+  /* 画面上叠加，属于应用 chrome，不是桌面拖拽区 */
+  --wails-draggable: no-drag;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  /* 半透明浮层足够让白图标在亮画面上也看得清，但不抢戏 */
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.btn:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.btn svg {
+  display: block;
+  /* 原生按钮没有底色，但画面可能很亮：给图标一点点投影保证可读性 */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.close:hover {
+  /* Win11 的关闭悬停红 */
+  background: #c42b1c;
+  color: #ffffff;
+}
+
+.close:active {
+  background: #b1271a;
+  color: #ffffff;
+}
+
+.btn:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+  outline-offset: -2px;
+}
+
+/* 高 DPI 下系统按钮会略窄一点，跟窗口缩放保持一致 */
+@media (max-width: 1100px) {
+  .btn {
+    width: 40px;
+  }
+}

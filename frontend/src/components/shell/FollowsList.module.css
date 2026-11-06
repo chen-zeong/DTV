@@ -1,38 +1,62 @@
+/* =============================================================================
+ * 关注列表（对齐 Tauri 老版 UI，保留侧栏折叠）
+ *
+ * 顶部：Users 图标 + FOLLOWING 标签 + 右侧玻璃操作组。
+ * 行：40px 头像、昵称/标题两行；悬浮右移 4px + 半透明渐变高亮。
+ * 文件夹：24px 圆角、半透明卡片、14px 圆角头部。
+ * ========================================================================== */
+
 .root {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 10px 8px 12px;
+  padding: 10px 0 0;
+  position: relative;
+}
+
+/* macOS 的隐藏式标题栏把红绿灯画在左上角，会盖住 FOLLOWING 标题；
+ * 侧栏内容整体下移 36px（28px 标题栏 + 8px 呼吸），折叠态同样生效。 */
+:global([data-os="darwin"]) .root {
+  padding-top: 36px;
 }
 
 .collapsed {
   align-items: center;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-left: 6px;
+  padding-right: 6px;
 }
+
+/* ------------------------------------------------------------ 侧栏标题 */
 
 .header {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 6px 10px;
+  gap: 10px;
+  /* 左内边距与列表头像/文件夹图标列对齐 */
+  padding: 0 8px 0 22px;
   flex: 0 0 auto;
+}
+
+.collapsedHeader {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 10px;
 }
 
 .drag {
   --wails-draggable: drag;
 }
 
-.collapsed .header {
-  flex-direction: column;
-  gap: 8px;
-  padding: 6px 0 10px;
+.noDrag {
+  --wails-draggable: no-drag;
 }
 
 .headerLeft {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -43,23 +67,27 @@
   flex: 0 0 auto;
 }
 
-.headerTitle {
-  margin: 0;
-  font-size: 11px;
-  font-weight: var(--weight-bold);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  white-space: nowrap;
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  margin-top: 2px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  flex: 0 0 auto;
 }
 
-.count {
-  font-size: 10px;
-  font-weight: var(--weight-bold);
-  padding: 1px 6px;
-  border-radius: var(--radius-full);
-  background: var(--hover-bg);
-  color: var(--text-secondary);
+:global([data-theme="light"]) .headerActions {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: none;
+}
+
+.dragHint {
+  display: none;
 }
 
 .actionBtn {
@@ -68,78 +96,265 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
   flex: 0 0 auto;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.actionBtn svg {
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.actionBtn .spinning {
+  animation: refresh-spin 0.9s linear infinite;
+  transition: none;
+}
+
+/* 刷新中：圆环进度叠在按钮上，图标照常转圈 */
+.refreshBusy {
+  position: relative;
+}
+
+.actionBtn .refreshRing {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  transition: none;
+  animation: none;
+}
+
+@keyframes refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.actionBtn:disabled {
+  cursor: default;
+  opacity: 0.72;
 }
 
 .actionBtn:hover {
-  background: var(--hover-bg);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
+:global([data-theme="light"]) .actionBtn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgba(15, 23, 42, 1);
+}
+
+/* ------------------------------------------------------------------ 列表 */
+
 .content {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 2px 2px 8px;
+  gap: 8px;
+  /* 顶部留出与操作按钮组之间的呼吸空间；左右比旧版收紧 */
+  padding: 10px 8px 12px;
+  /* 列表变化时不要用滚动锚定偷偷挪动滚动位置（新建文件夹会因此跑到视口外） */
+  overflow-anchor: none;
 }
+
+/* 列表比容器高时，column 方向的 flex 会把子项按比例压扁：
+ * 空文件夹的基准高度最小，会被压到只剩一条边（看起来"只有一根横线"）。
+ * 文件夹 / 空态 / 顶层列表都必须禁止收缩。 */
+.content > * {
+  flex: 0 0 auto;
+}
+
+.content::-webkit-scrollbar {
+  display: none;
+}
+
+/* 侧栏行的悬浮效果在 .row 上直接实现（大圆角 + 半透明玻璃底） */
 
 .collapsed .content {
   align-items: center;
-  gap: 8px;
-}
-
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.groupTitle {
-  margin: 0 0 2px;
-  padding: 0 8px;
-  font-size: 11px;
-  font-weight: var(--weight-bold);
-  color: var(--text-secondary);
-  opacity: 0.75;
+  gap: 6px;
 }
 
 .list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
+}
+
+/* 共享悬浮背景：在同一列表内随鼠标移动，丝滑地改变位置和高度 */
+.listHover {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  right: 6px;
+  z-index: 0;
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045));
+  pointer-events: none;
+  will-change: transform, height;
+  animation: list-hover-in 140ms var(--ease-out);
+  transition:
+    transform 240ms cubic-bezier(0.34, 1.12, 0.64, 1),
+    height 240ms cubic-bezier(0.34, 1.12, 0.64, 1);
+}
+
+@keyframes list-hover-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+:global([data-theme="light"]) .listHover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listHover,
+  .row {
+    transition: none;
+    animation: none;
+  }
+}
+
+.folder .list .listHover {
+  left: 8px;
+  right: 8px;
+  border-radius: 12px;
+}
+
+.rowWrap {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
 }
 
 .row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 7px 8px;
-  border-radius: 12px;
-  text-align: left;
+  padding: 8px;
+  border-radius: 14px;
+  cursor: pointer;
   min-width: 0;
+  color: inherit;
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease;
 }
 
+/* 悬浮背景由 .listHover 统一绘制，行本身不移动 */
 .row:hover {
-  background: var(--hover-bg);
+  background: transparent;
+  transform: none;
 }
 
-.rowCollapsed {
+:global([data-theme="light"]) .row:hover {
+  background: transparent;
+}
+
+.row:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.rowInFolder {
+  padding: 4px 6px;
+  border-radius: 10px;
+}
+
+.rowDragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+.rowDragOver {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+.collapsed .row {
+  padding: 5px;
   justify-content: center;
-  padding: 6px;
+  width: auto;
+}
+
+.rowCompact {
+  padding: 5px;
+  justify-content: center;
+  width: auto;
+}
+
+.avatarWrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   overflow: hidden;
-  flex: 0 0 auto;
+  background: rgba(0, 0, 0, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  box-sizing: border-box;
+  line-height: 0;
+}
+
+:global([data-theme="light"]) .avatar {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.liveDot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid var(--sidebar-bg);
+  pointer-events: none;
+}
+
+.liveDotOn {
+  background: #10b981;
+}
+
+.liveDotOff {
+  background: rgba(71, 85, 105, 1);
+}
+
+:global([data-theme="light"]) .liveDotOff {
+  background: rgba(148, 163, 184, 1);
 }
 
 .rowMain {
@@ -147,53 +362,892 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  line-height: 1.25;
 }
 
 .rowName {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(241, 245, 249, 0.96);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.18s ease;
+}
+
+:global([data-theme="light"]) .rowName {
+  color: rgba(15, 23, 42, 1);
+}
+
+.row:hover .rowName {
+  color: rgba(52, 211, 153, 1);
+}
+
+:global([data-theme="light"]) .row:hover .rowName {
+  color: rgba(16, 185, 129, 1);
 }
 
 .rowTitle {
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(148, 163, 184, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global([data-theme="light"]) .rowTitle {
+  color: rgba(100, 116, 139, 1);
+}
+
+.rowAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--text-tertiary);
+  opacity: 0;
+  flex: 0 0 auto;
+  transition:
+    opacity var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out);
+}
+
+.row:hover .rowAction,
+.folderHeader:hover .rowAction {
+  opacity: 1;
+}
+
+.rowAction:hover {
+  background: var(--fill-tertiary);
+  color: var(--text-primary);
+}
+
+.rowAction:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 26px;
+  color: var(--text-tertiary);
+  opacity: 0;
+  cursor: grab;
+  flex: 0 0 auto;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.row:hover .dragHandle,
+.row:focus-visible .dragHandle {
+  opacity: 0.7;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+/* ---------------------------------------------------------------- 文件夹 */
+
+.folder {
+  position: relative;
+  /* 文件夹之间只保留 .content 的 gap（8px）；这里再叠 margin 会变成 16px，太散 */
+  margin-bottom: 0;
+  border-radius: 24px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+:global([data-theme="light"]) .folder {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.folderDragOver {
+  background: var(--accent-softer);
+  border-color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.folderDragging {
+  opacity: 0.55;
+}
+
+.folderHeader {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 6px;
+  min-height: 44px;
+  border-radius: 14px;
+  cursor: grab;
+  user-select: none;
+  transition: background 0.25s ease;
+}
+
+.folderHeader:active {
+  cursor: grabbing;
+}
+
+.folderHeader:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme="light"]) .folderHeader:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.folderToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 10px;
+  border-radius: inherit;
   color: var(--text-secondary);
+  text-align: left;
+}
+
+.folderToggle:hover {
+  color: var(--text-primary);
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.folderIcon {
+  flex: 0 0 auto;
+  color: #9ca3af;
+  transition:
+    color var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+.folderIconOpen {
+  color: #e5e7eb;
+  transform: scale(1.2);
+}
+
+/* 日间模式：文件夹图标加深，保证在白色侧栏上有足够对比度 */
+:global([data-theme="light"]) .folderIcon {
+  color: #475569;
+}
+
+:global([data-theme="light"]) .folderIconOpen {
+  color: #0f172a;
+}
+
+.folderHeader:hover .folderName {
+  color: rgba(241, 245, 249, 0.94);
+}
+
+.folderHeader:hover .folderCount {
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:global([data-theme="light"]) .folderHeader:hover .folderName {
+  color: rgba(15, 23, 42, 0.92);
+}
+
+:global([data-theme="light"]) .folderHeader:hover .folderCount {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.folderName {
+  flex: 1;
+  min-width: 0;
+  /* 比主播名再小一档、更淡一点：文件夹只是分组标题，不该抢过主播本身 */
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(203, 213, 225, 0.68);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+  transition: color 0.18s ease;
+}
+
+/* 日间模式同步压暗：从 #0f172a 降到中性灰蓝，仍然可读 */
+:global([data-theme="light"]) .folderName {
+  color: rgba(71, 85, 105, 0.82);
+}
+
+.folderCount {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+/* 日间模式：在线/总数默认就使用 hover 态的高对比样式 */
+:global([data-theme="light"]) .folderCount {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.folderCollapsed {
+  background: var(--bg-secondary);
+}
+
+.folderContent {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 240ms var(--ease-out),
+    opacity 180ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+.folderContentCollapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 240ms var(--ease-out),
+    opacity 150ms var(--ease-out),
+    visibility 0s linear 240ms;
+}
+
+.folderContentInner {
+  min-height: 0;
+  overflow: hidden;
+  transform: translateY(0);
+  transition: transform 220ms var(--ease-out);
+}
+
+.folderContentCollapsed .folderContentInner {
+  transform: translateY(-4px);
+}
+
+.folder .list {
+  padding: 8px 6px 12px;
+}
+
+.folderEmpty {
+  margin: 2px 8px 8px 26px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-strong);
+  background: var(--fill-quaternary);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ------------------------------------------------ 折叠态：文件夹入口与悬浮弹窗 */
+
+.collapsedFolderBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.collapsedFolderBtn:hover,
+.collapsedFolderBtn:focus-visible {
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+  background: var(--accent-softer);
+  outline: none;
+}
+
+.collapsedFolderCount {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: var(--radius-full);
+  background: var(--fill-tertiary);
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.folderPopup {
+  position: fixed;
+  z-index: 1100;
+  width: 250px;
+  max-height: min(420px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: folder-popup-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes folder-popup-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.folderPopupHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--separator);
+  flex: 0 0 auto;
+}
+
+.folderPopupIcon {
+  color: var(--accent-ink);
+  flex: 0 0 auto;
+}
+
+.folderPopupName {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rowMeta {
-  font-size: 11px;
-  font-weight: var(--weight-bold);
-  color: var(--text-secondary);
+.folderPopupList {
+  overflow-y: auto;
+  padding: 5px;
+  min-height: 0;
+}
+
+.folderPopupList .rowInFolder {
+  padding-left: 6px;
+}
+
+.folderPopup .liveDot {
+  border-color: var(--bg-elevated);
+}
+
+.folderPopupEmpty {
+  padding: 22px 14px;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ 全部主播弹层 */
+
+.overlayBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(4, 5, 7, 0.68);
+  animation: overlay-fade-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlayPanel {
+  width: min(760px, calc(100vw - 56px));
+  max-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: overlay-panel-in var(--dur-3) var(--ease-spring);
+}
+
+@keyframes overlay-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.overlayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--separator);
   flex: 0 0 auto;
+}
+
+.overlayFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--separator);
+  flex: 0 0 auto;
+}
+
+.overlayFilter {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  background: var(--fill-quaternary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.overlayFilter:hover {
+  color: var(--text-primary);
+  background: var(--fill-tertiary);
+}
+
+.overlayFilterActive,
+.overlayFilterActive:hover {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: transparent;
+  font-weight: var(--weight-semibold);
+}
+
+.overlayHeading {
+  min-width: 0;
+}
+
+.overlayTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.overlaySubtitle {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
+
+.overlayClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  background: var(--fill-quaternary);
+  flex: 0 0 auto;
+}
+
+.overlayClose:hover {
+  color: var(--text-primary);
+  background: var(--fill-tertiary);
+}
+
+.overlayGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  padding: 12px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.overlayCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  min-width: 0;
+}
+
+.overlayCard:hover {
+  background: var(--fill-quaternary);
+}
+
+.overlayCard .liveDot {
+  border-color: var(--bg-elevated);
+}
+
+.overlayAvatarWrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+}
+
+.overlayAvatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--fill-tertiary);
+  border: 1px solid var(--border);
+}
+
+.overlayMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.overlayName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlayRoom {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlayEmpty {
+  padding: 48px 20px;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ------------------------------------------------------------------ 空�?*/
 
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 28px 12px;
+  padding: 18px;
   text-align: center;
 }
 
 .emptyTitle {
-  margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+  font-size: 14px;
+  font-weight: 800;
   color: var(--text-secondary);
 }
 
 .emptyHint {
-  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  color: var(--text-tertiary);
+}
+
+.emptyAction {
+  margin-top: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.emptyAction:hover {
+  background: var(--accent-softer);
+}
+
+/* ------------------------------------------------------------------ 菜单 */
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+}
+
+.menu {
+  position: fixed;
+  z-index: 901;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: menu-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.menuLabel {
+  padding: 6px 10px 4px;
   font-size: 11px;
-  line-height: 1.6;
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.menuItem:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.menuItem:disabled {
+  color: var(--text-tertiary);
+}
+
+.menuItemActive {
+  color: var(--accent-ink);
+}
+
+.menuText {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menuSep {
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--separator);
+}
+
+.menuDanger {
+  color: var(--danger);
+}
+
+.menuDanger:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+/* ------------------------------------------------------------------ 弹窗 */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: rgba(4, 5, 7, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog {
+  width: min(400px, 88vw);
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: dialog-in var(--dur-3) var(--ease-spring);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--separator);
+}
+
+.dialogTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.dialogBody {
+  padding: 20px 18px 6px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
   color: var(--text-secondary);
-  opacity: 0.7;
+}
+
+.input {
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--fill-quaternary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent-ink);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 3px var(--accent-softer);
+}
+
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px;
+}
+
+.btnGhost,
+.btnPrimary {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  border: 1px solid transparent;
+}
+
+.btnGhost {
+  background: var(--fill-tertiary);
+  color: var(--text-primary);
+}
+
+.btnGhost:hover {
+  background: var(--fill-secondary);
+}
+
+.btnPrimary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btnPrimary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.45;
+  transform: none;
+}
+
+.btnDanger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--danger) 86%, #000);
 }

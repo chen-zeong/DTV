@@ -4,12 +4,26 @@ includes:
   common: ../Taskfile.yml
 
 vars:
-  # Signing configuration - edit these values for your project
-  # SIGN_CERTIFICATE: "path/to/certificate.pfx"
-  # SIGN_THUMBPRINT: "certificate-thumbprint"  # Alternative to SIGN_CERTIFICATE
-  # TIMESTAMP_SERVER: "http://timestamp.digicert.com"
+  # ---------------------------------------------------------------
+  # Windows 代码签名
   #
-  # Password is stored securely in system keychain. Run: wails3 setup signing
+  # 默认用 build/windows/gen-selfsigned-cert.ps1 生成的自签名证书：
+  # 证书放在当前用户的 Cert:\CurrentUser\My，公钥同时装进
+  # 「受信任的根证书颁发机构」和「受信任的发布者」，sign.ps1 会自动找到它。
+  #
+  # 换成正规 CA 证书时二选一（密码走 WAILS_WINDOWS_CERT_PASSWORD 环境变量）：
+  #   wails3 task windows:sign PFX_PATH="C:\certs\company.pfx"
+  #   wails3 task windows:sign SIGN_THUMBPRINT="ABCDEF0123..."
+  #
+  # 关掉自动签名（例如临时排查问题）：
+  #   wails3 build SIGN_ENABLED=false
+  # ---------------------------------------------------------------
+  SIGN_ENABLED: '{{.SIGN_ENABLED | default "true"}}'
+  SIGN_THUMBPRINT: '{{.SIGN_THUMBPRINT | default ""}}'
+  PFX_PATH: '{{.PFX_PATH | default ""}}'
+  SIGN_FORCE: '{{.SIGN_FORCE | default "false"}}'
+  TIMESTAMP_SERVER: '{{.TIMESTAMP_SERVER | default "http://timestamp.digicert.com"}}'
+  SIGN_SCRIPT: 'build/windows/sign.ps1'
 
   # Docker image for cross-compilation with CGO (used when CGO_ENABLED=1 on non-Windows)
   CROSS_IMAGE: wails-cross
@@ -56,8 +70,41 @@ tasks:
         platforms: [windows]
       - cmd: rm -f *.syso
         platforms: [linux, darwin]
+      # 构建完成后自动签名（仅 Windows 主机 + 非 DEV 构建）。
+      # 没有证书时 -SkipIfMissing 会打印提示并跳过，不影响普通构建。
+      - cmd: powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{{.SIGN_SCRIPT}}" -Path "{{.BIN_DIR}}/{{.APP_NAME}}.exe" -TimestampServer "{{.TIMESTAMP_SERVER}}" -SkipIfMissing {{if .SIGN_THUMBPRINT}}-Thumbprint "{{.SIGN_THUMBPRINT}}" {{end}}{{if .PFX_PATH}}-PfxPath "{{.PFX_PATH}}" {{end}}{{.SIGN_SKIP}}
+        platforms: [windows]
     vars:
-      BUILD_FLAGS: '{{if eq .DEV "true"}}{{if or .EXTRA_TAGS (eq .OBFUSCATED "true")}}-tags {{if eq .OBFUSCATED "true"}}wails_obfuscated{{if .EXTRA_TAGS}},{{end}}{{end}}{{.EXTRA_TAGS}} {{end}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui"{{end}}'
+      # ---------------------------------------------------------------
+      # 构建参数（踩坑记录，别随手改回去）
+      #
+      # 下面这些编译参数会让本机的 Wails v3.0.0 应用**启动即崩**：
+      #   [WebView2] Environment created successfully
+      #   [WebView2 Error] error creating controller with 8000ffff: Catastrophic failure
+      #
+      # 实测（同一份源码，只改编译参数，每个组合跑两次结果都稳定）：
+      #   不带参数                                  → 正常
+      #   -ldflags="-w -s"                          → 正常
+      #   -ldflags="-H windowsgui"                  → 正常
+      #   -ldflags="-w -s -H windowsgui"            → 正常   ← 当前使用
+      #   -trimpath                                 → 崩溃
+      #   -buildvcs=false                           → 崩溃
+      #   -tags production                          → 崩溃
+      #
+      # 正常的三个只影响符号表 / PE 子系统标志；崩溃的三个都会改变二进制里
+      # 静态数据的布局。Wails v3.0.0 用的是纯 Go 的 WebView2 loader
+      # （Platform Info 里的 Go-WebView2Loader=true），看起来对布局敏感 ——
+      # 这是上游的坑，与本项目的移植代码无关（已用最小探针程序复现）。
+      #
+      # 想恢复官方默认（-trimpath + -buildvcs=false + production 运行时）时，
+      # 用 STRICT_FLAGS=true 或 PROD_TAG=production 构建；能正常启动就说明
+      # 上游已经修好了，可以删掉这段说明。
+      # ---------------------------------------------------------------
+      PROD_TAG: '{{.PROD_TAG | default ""}}'
+      STRICT_FLAGS: '{{.STRICT_FLAGS | default "false"}}'
+      SIGN_SKIP: '{{if or (eq .SIGN_ENABLED "false") (eq .DEV "true")}}-Skip{{end}}'
+      TAGS: '{{if .PROD_TAG}}{{.PROD_TAG}}{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}}{{else}}{{if eq .OBFUSCATED "true"}}wails_obfuscated{{if .EXTRA_TAGS}},{{end}}{{end}}{{.EXTRA_TAGS}}{{end}}'
+      BUILD_FLAGS: '{{if eq .DEV "true"}}{{if or .EXTRA_TAGS (eq .OBFUSCATED "true")}}-tags {{if eq .OBFUSCATED "true"}}wails_obfuscated{{if .EXTRA_TAGS}},{{end}}{{end}}{{.EXTRA_TAGS}} {{end}}-buildvcs=false -gcflags=all="-l"{{else}}{{if eq .STRICT_FLAGS "true"}}{{if .TAGS}}-tags {{.TAGS}} {{end}}-trimpath -buildvcs=false -ldflags="-w -s -H windowsgui"{{else}}{{if .TAGS}}-tags {{.TAGS}} {{end}}-ldflags="-w -s -H windowsgui"{{end}}{{end}}'
     env:
       GOOS: windows
       CGO_ENABLED: '{{.CGO_ENABLED | default "0"}}'
@@ -97,26 +144,51 @@ tasks:
   package:
     summary: Packages the application
     cmds:
-      - task: '{{if eq (.FORMAT | default "nsis") "msix"}}create:msix:package{{else}}create:nsis:installer{{end}}'
+      - task: '{{if eq (.FORMAT | default "nsis") "msix"}}create:msix:package{{else}}sign:installer{{end}}'
         vars:
-          INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
+          INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
     vars:
       FORMAT: '{{.FORMAT | default "nsis"}}'
-      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
+      # 默认按用户安装（%LOCALAPPDATA%\Programs\DTV）：安装和运行都不触发 UAC。
+      # 需要装到 Program Files 时传 INSTALL_SCOPE=machine。
+      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
 
   generate:syso:
     summary: Generates Windows `.syso` file
     dir: build
+    deps:
+      # PE 版本资源没有变量替换：构建前先把 config.yml 的 info.version 同步进来，
+      # 避免出现「exe 属性 4.0.0 / 应用里 4.1.0」的漂移。
+      - task: sync:version
     cmds:
       - wails3 generate syso -arch {{.ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../wails_windows_{{.ARCH}}.syso
     vars:
       ARCH: '{{.ARCH | default ARCH}}'
 
+  sync:version:
+    summary: Syncs windows/info.json version from build/config.yml
+    internal: true
+    cmds:
+      - node ./build/windows/sync-info-version.mjs
+
+  msi:
+    summary: 构建未签名 MSI 安装包（需要 WiX v3 的 candle/light）
+    desc: |
+      Wails 官方只提供 NSIS/MSIX；这里用 WiX v3 生成真正的 MSI。
+      先执行 wails3 build SIGN_ENABLED=false，再运行：
+        wails3 task windows:msi WIX_BIN="C:\path\to\wix314"
+      输出 bin/dtv-amd64.msi。
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File "build/windows/msi/build-msi.ps1" {{if .WIX_BIN}}-WixBin "{{.WIX_BIN}}"{{end}}
+    vars:
+      WIX_BIN: '{{.WIX_BIN | default ""}}'
+
   create:nsis:installer:
     summary: Creates an NSIS installer
     dir: build/windows/nsis
     deps:
-      - task: build
+      # 安装包里放的是已签名的 dtv.exe；SIGN_ENABLED=false 时退回普通构建。
+      - task: '{{if eq .SIGN_ENABLED "false"}}build{{else}}sign{{end}}'
     preconditions:
       - sh: '[ "{{.INSTALL_SCOPE}}" = "user" ] || [ "{{.INSTALL_SCOPE}}" = "machine" ]'
         msg: "INSTALL_SCOPE must be 'user' or 'machine', got '{{.INSTALL_SCOPE}}'"
@@ -132,7 +204,7 @@ tasks:
     vars:
       ARCH: '{{.ARCH | default ARCH}}'
       ARG_FLAG: '{{if eq .ARCH "amd64"}}AMD64{{else}}ARM64{{end}}'
-      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
+      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
 
   create:msix:package:
     summary: Creates an MSIX package
@@ -164,32 +236,41 @@ tasks:
     cmds:
       - '{{.BIN_DIR}}/{{.APP_NAME}}.exe'
 
-  sign:
-    summary: Signs the Windows executable
+  sign:setup:
+    summary: 生成并信任本项目的自签名代码签名证书
     desc: |
-      Signs the .exe with an Authenticode certificate.
-      Set SIGN_CERTIFICATE or SIGN_THUMBPRINT to override the certificate
-      configured globally via `wails3 setup` (~/.config/wails/defaults.yaml).
-      Password is retrieved from system keychain (run: wails3 setup signing)
+      在 Cert:\CurrentUser\My 生成 DTV 代码签名证书，把公钥装进
+      「受信任的根证书颁发机构」和「受信任的发布者」，并导出 .cer / .pfx 到
+      build/windows/certs/。只需运行一次；重装系统或换机后再跑一次。
+
+      重新生成（旧指纹作废）：wails3 task windows:sign:setup SIGN_FORCE=true
+    cmds:
+      - powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "build/windows/gen-selfsigned-cert.ps1" {{if eq .SIGN_FORCE "true"}}-Force{{end}}
+
+  sign:
+    summary: 签名 bin/dtv.exe（构建后自动执行，也可单独运行）
+    desc: |
+      用项目自签名证书（或 SIGN_THUMBPRINT / PFX_PATH 指定的证书）签名，
+      带 SHA256 + 时间戳。证书解析顺序：
+        SIGN_THUMBPRINT → PFX_PATH → DTV_SIGN_THUMBPRINT 环境变量 →
+        build/windows/certs/signing.json → 自动查找 CN=DTV Code Signing*。
+
+      PFX 密码从 WAILS_WINDOWS_CERT_PASSWORD 环境变量读取。
     deps:
       - task: build
     cmds:
-      # Certificate vars are optional: if unset, `wails3 tool sign` falls back to
-      # the certificate configured globally via `wails3 setup`.
-      - wails3 tool sign --input "{{.BIN_DIR}}/{{.APP_NAME}}.exe" {{if .SIGN_CERTIFICATE}}--certificate "{{.SIGN_CERTIFICATE}}"{{end}} {{if .SIGN_THUMBPRINT}}--thumbprint "{{.SIGN_THUMBPRINT}}"{{end}} {{if .TIMESTAMP_SERVER}}--timestamp "{{.TIMESTAMP_SERVER}}"{{end}}
+      - powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{{.SIGN_SCRIPT}}" -Path "{{.BIN_DIR}}/{{.APP_NAME}}.exe" -TimestampServer "{{.TIMESTAMP_SERVER}}" {{if .SIGN_THUMBPRINT}}-Thumbprint "{{.SIGN_THUMBPRINT}}" {{end}}{{if .PFX_PATH}}-PfxPath "{{.PFX_PATH}}" {{end}}
 
   sign:installer:
-    summary: Signs the NSIS installer
+    summary: 签名 NSIS 安装包
     desc: |
-      Creates and signs the NSIS installer.
-      Set SIGN_CERTIFICATE or SIGN_THUMBPRINT to override the certificate
-      configured globally via `wails3 setup` (~/.config/wails/defaults.yaml).
-      Password is retrieved from system keychain (run: wails3 setup signing)
+      先构建并签名 dtv.exe，再生成安装包，最后签名安装包本身。
     deps:
       - task: create:nsis:installer
         vars:
-          INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
+          INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
     vars:
-      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
+      ARCH: '{{.ARCH | default ARCH}}'
+      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
     cmds:
-      - wails3 tool sign --input "build/windows/nsis/{{.APP_NAME}}-installer.exe" {{if .SIGN_CERTIFICATE}}--certificate "{{.SIGN_CERTIFICATE}}"{{end}} {{if .SIGN_THUMBPRINT}}--thumbprint "{{.SIGN_THUMBPRINT}}"{{end}} {{if .TIMESTAMP_SERVER}}--timestamp "{{.TIMESTAMP_SERVER}}"{{end}}
+      - powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{{.SIGN_SCRIPT}}" -Path "{{.BIN_DIR}}/{{.APP_NAME}}-{{.ARCH}}-installer.exe" -TimestampServer "{{.TIMESTAMP_SERVER}}" {{if .SIGN_THUMBPRINT}}-Thumbprint "{{.SIGN_THUMBPRINT}}" {{end}}{{if .PFX_PATH}}-PfxPath "{{.PFX_PATH}}" {{end}}

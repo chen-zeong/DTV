@@ -1,0 +1,118 @@
+.loginBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-out);
+}
+
+.loginBtn:hover {
+  border-color: color-mix(in srgb, var(--accent) 52%, transparent);
+  color: var(--accent-ink);
+  background: var(--accent-softer);
+  transform: translateY(-1px);
+}
+
+/* 播放页顶栏是深色玻璃底，需要反色 */
+.loginBtn.compact {
+  height: 32px;
+  padding: 0 14px;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(8, 18, 14, 0.52);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.loginBtn.compact:hover {
+  border-color: color-mix(in srgb, var(--player-accent) 60%, transparent);
+  color: var(--player-accent);
+  background: rgba(8, 18, 14, 0.72);
+}
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 6px 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex: 0 0 auto;
+}
+
+.wrap.compact {
+  height: 32px;
+  padding: 0 5px 0 12px;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(8, 18, 14, 0.52);
+}
+
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 130px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+.userName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wrap.compact .userName {
+  color: #fff;
+}
+
+.logoutBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.logoutBtn:hover {
+  background: var(--hover-bg);
+  color: var(--danger);
+}
+
+.wrap.compact .logoutBtn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.wrap.compact .logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}

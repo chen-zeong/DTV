@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DTV 的 MSI 安装包（WiX Toolset v3）。
+
+  安装范围是 per-user：默认装到 %LOCALAPPDATA%\Programs\DTV，
+  不需要管理员权限，与 Wails 默认 NSIS 安装包的行为一致。
+  卸载入口在「设置 → 应用」里，快捷方式会被一并清理。
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="DTV"
+    Language="1033"
+    Version="$(var.ProductVersion)"
+    Manufacturer="DTV"
+    UpgradeCode="F88E64BE-F503-46D9-9B30-CA453CFD1AF5">
+
+    <Package
+      InstallerVersion="500"
+      Compressed="yes"
+      InstallScope="perUser"
+      Platform="x64"
+      SummaryCodepage="1252" />
+
+    <MajorUpgrade AllowDowngrades="yes" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.ProjectDir)\build\windows\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPCONTACT" Value="DTV" />
+    <Property Id="ARPCOMMENTS" Value="DTV live streaming client" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/c-zeong/DTV" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- 与 NSIS 版一致：%LOCALAPPDATA%\Programs\DTV -->
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="ProgramsFolder" Name="Programs">
+          <Directory Id="INSTALLFOLDER" Name="DTV" />
+        </Directory>
+      </Directory>
+
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="DTV" />
+      </Directory>
+
+      <Directory Id="DesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="16D85D71-F181-46D6-8E6D-B9FB2D9DA309" Win64="yes">
+        <File Id="DtvExe" Source="$(var.SourceDir)\dtv.exe" KeyPath="yes">
+          <Shortcut
+            Id="StartMenuShortcut"
+            Directory="ApplicationProgramsFolder"
+            Name="DTV"
+            Description="DTV live streaming client"
+            WorkingDirectory="INSTALLFOLDER"
+            Advertise="no"
+            Icon="AppIcon" />
+          <Shortcut
+            Id="DesktopShortcut"
+            Directory="DesktopFolder"
+            Name="DTV"
+            Description="DTV live streaming client"
+            WorkingDirectory="INSTALLFOLDER"
+            Advertise="no"
+            Icon="AppIcon" />
+        </File>
+
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainFeature" Title="DTV" Level="1">
+      <ComponentRef Id="MainExecutable" />
+    </Feature>
+
+    <UIRef Id="WixUI_Minimal" />
+  </Product>
+</Wix>

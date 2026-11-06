@@ -3,15 +3,36 @@
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 10px 0 0;
+  padding: 0;
 }
 
-.layout {
+.playerShell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.playerBody {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
   min-width: 0;
-  gap: 0;
+}
+
+.shellFull {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  border: none;
+  border-radius: 0;
+  background: #000;
 }
 
 .stageCol {
@@ -19,89 +40,186 @@
   min-width: 0;
   min-height: 0;
   display: flex;
-}
-
-.stageFull {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
   background: #000;
+  padding: 0;
 }
 
+/* 舞台铺满整块可用区域（不再是固定的 16:9 黑边盒子）：
+ * 画面本身由 xgplayer 用 object-fit: contain 自适应，
+ * 于是弹幕层可以覆盖到画面以外的黑边，全屏时尤其明显。 */
 .stage {
   position: relative;
   flex: 1;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   background: #000;
-  border-radius: var(--card-radius);
   overflow: hidden;
-  border: 1px solid var(--border);
 }
 
-.stageFull .stage {
+/* 原生全屏（浏览器 Fullscreen API）直接铺满屏幕：
+ * 显式 fixed + inset，避免 .stage 自身的 position/flex 影响全屏框尺寸。 */
+.stage:fullscreen {
+  position: fixed;
+  inset: 0;
+  flex: none;
+  width: 100vw;
+  height: 100vh;
   border-radius: 0;
-  border: none;
 }
 
+/* 注意：`.videoHost` 和 xgplayer 的根节点是**同一个元素**
+ * （class 里同时有 _videoHost_xxx 和 xgplayer），所以不能写
+ * `.videoHost > .xgplayer` —— 那是一条永远不匹配的死规则。 */
 .videoHost {
   position: absolute;
   inset: 0;
   z-index: 3;
 }
 
-.videoHost > :global(.xgplayer) {
-  width: 100%;
-  height: 100%;
+/* 舞台不再是 16:9，画面按 contain 等比缩放，宁可留黑边也不要被拉伸。
+ * xgplayer 的 videoFillMode="contain" 也会写 data-xgfill，这里用更高优先级的
+ * 选择器再兜一层，避免样式顺序变化导致退回 object-fit: fill（画面变形）。
+ *
+ * 这里只是「元数据到达前」的兜底：真正的画面矩形由 useXgPlayer 的
+ * updateVideoBox() 按 videoWidth/videoHeight 算出来写成内联样式。
+ *
+ * 为什么非要让 video 元素只占画面矩形、把黑边让给 .stage 的背景画：
+ * xgplayer 默认给 video 写死 width/height:100%，配 object-fit: contain 之后
+ * 黑边仍然属于 video 元素自己的绘制区域；WebView2 会把视频提升成硬件叠加平面
+ * （DirectComposition overlay），这块平面连同元素区域里的黑色一起盖在网页内容
+ * 之上，于是：
+ *   - 弹幕全落在黑边里（画面上没内容压在视频上）→ 浏览器放心用叠加平面
+ *     → 黑边里的弹幕被那层黑挡住 → 看起来「弹幕消失」；
+ *   - 有弹幕压在画面上 → 叠加平面用不了 → 正常合成 → 黑边里的弹幕也看得见；
+ *   - 鼠标唤出主播信息 → 玻璃胶囊的 backdrop-filter 必须把视频渲染成纹理
+ *     → 同样强制退出叠加平面 → 正常。
+ * 元素只占画面矩形后，黑边由 .stage 的黑背景来画，那一层永远不会盖住弹幕。 */
+.stage .videoHost video {
+  object-fit: contain;
 }
 
-/* ------------------------------------------------------------------ 顶栏 */
+/* --------------------------------------------- chrome 层（顶栏 + 控制条） */
+
+/* 覆盖在画面上的一整层：本身不吃鼠标，只有里面的按钮/胶囊可交互 */
+.chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+
+/* 只用 visibility 断开命中测试，opacity 负责淡出 */
+.chromeHidden {
+  opacity: 0;
+  visibility: hidden;
+}
 
 .topbar {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  z-index: 20;
+  top: 14px;
+  left: 14px;
+  right: 14px;
   display: flex;
   align-items: center;
   gap: 10px;
   pointer-events: none;
+  animation: topbar-in var(--dur-3) var(--ease-out);
+}
+
+@keyframes topbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .topbar > * {
   pointer-events: auto;
 }
 
+/* 系统全屏下右上角要让给窗口按钮，避免主播胶囊压到按钮 */
+.topbarWithCaption {
+  right: 152px;
+}
+
+/* 系统全屏下的三个窗口按钮：贴在画面右上角，位置与系统标题栏一致 */
+.captionDock {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* 样式全屏（窗口全屏）下的窗口拖拽区。
+ * 这时应用标题栏让位给了播放器，没有可拖的地方；铺一层透明层接收 mousedown，
+ * Wails 看到 `--wails-draggable: drag` 就会走原生窗口拖动。
+ * z-index 在视频(3)之上、chrome(20)之下，控制栏和按钮不受影响。 */
+.dragRegion {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  --wails-draggable: drag;
+}
+
+/* 底部控制条：悬浮在画面下沿，不占布局高度。
+ * 指针事件交给 PlayerControls 自己的 .dock/.bar 规则（那里只让胶囊可点），
+ * 否则整条底部会把视频的点击播放/暂停吞掉。 */
+.controlsDock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
 .backBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.92);
   background: rgba(10, 10, 12, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
   flex: 0 0 auto;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .backBtn:hover {
-  background: rgba(10, 10, 12, 0.82);
+  background: rgba(10, 10, 12, 0.72);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .streamerPill {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 12px 6px 6px;
-  border-radius: var(--radius-full);
+  padding: 8px 12px;
+  border-radius: 999px;
   background: rgba(10, 10, 12, 0.52);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
   min-width: 0;
-  max-width: 70%;
+  max-width: 64%;
 }
 
 .pillAvatar {
@@ -110,6 +228,8 @@
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .pillMeta {
@@ -117,13 +237,14 @@
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  line-height: 1.3;
 }
 
 .pillTitle {
   font-size: var(--text-sm);
-  font-weight: 900;
-  color: #fff;
-  max-width: 48vw;
+  font-weight: var(--weight-semibold);
+  color: var(--player-text);
+  max-width: 42vw;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -131,61 +252,161 @@
 
 .pillSub {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--player-text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .status {
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  height: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: var(--weight-bold);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   flex: 0 0 auto;
+  background: rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(34, 197, 94, 0.34);
+  color: rgba(219, 255, 235, 0.95);
 }
 
 .statusLive {
-  color: #fff;
-  background: rgba(255, 62, 62, 0.9);
+  color: rgba(219, 255, 235, 0.95);
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.34);
 }
 
 .statusOff {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.14);
+  color: rgba(226, 232, 240, 0.88);
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.28);
 }
 
 .followBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
+  gap: 5px;
+  height: auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: var(--weight-bold);
-  color: #fff;
-  background: color-mix(in srgb, var(--accent) 42%, transparent);
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(10, 10, 12, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   flex: 0 0 auto;
 }
 
+.followBtn:hover {
+  background: rgba(10, 10, 12, 0.56);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
 .followBtnOn {
-  background: rgba(255, 209, 102, 0.22);
-  color: #ffd166;
+  color: rgba(219, 255, 235, 0.95);
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.followBtnOn:hover {
+  background: rgba(34, 197, 94, 0.22);
+  transform: none;
+}
+
+/* 播放器顶栏：开关右侧弹幕列表 */
+.danmuToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  color: var(--player-text-dim);
+  background: var(--player-glass-bg);
+  border: 1px solid var(--player-glass-border);
+  flex: 0 0 auto;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
+}
+
+.danmuToggle:hover {
+  color: var(--player-text);
+  background: var(--player-glass-bg-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.danmuToggleOn {
+  color: var(--player-text);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.danmuToggleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.danmuToggleLabel {
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.danmuToggleDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: none;
+  flex: 0 0 auto;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+.danmuToggleOn .danmuToggleDot {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 980px) {
+  .danmuToggle {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .danmuToggleLabel,
+  .danmuToggleDot {
+    display: none;
+  }
 }
 
 .iconBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--player-text-dim);
   flex: 0 0 auto;
 }
 
 .iconBtn:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--player-text);
 }
 
 /* ------------------------------------------------------------- 覆盖层/空态 */
@@ -198,31 +419,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(6px);
+  gap: 14px;
+  background: rgba(6, 7, 9, 0.82);
+  /* 状态层只做展示：让样式全屏时的窗口拖拽能穿透，按钮自己重新开启命中 */
+  pointer-events: none;
+}
+
+.overlay > button {
+  pointer-events: auto;
 }
 
 .overlayText {
-  margin: 0;
   font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.86);
   text-align: center;
   max-width: 70%;
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .primaryBtn {
-  padding: 8px 20px;
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-h);
+  padding: 0 24px;
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  color: var(--accent-text);
-  background: var(--accent-gradient);
+  font-weight: var(--weight-semibold);
+  color: #0b0c08;
+  background: #ffffff;
 }
 
 .primaryBtn:hover {
-  filter: brightness(1.08);
+  background: #f1f1f1;
+  transform: translateY(-1px);
 }
 
 .emptyState {
@@ -236,13 +465,107 @@
 }
 
 .emptyTitle {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
 }
 
 .emptyHint {
-  margin: 0;
   font-size: var(--text-sm);
   color: var(--text-secondary);
+}
+
+/* M-05：chrome 隐藏时把鼠标也藏起来（桌面播放器的标准细节） */
+.stageIdle {
+  cursor: none;
+}
+
+/* ------------------------------------------------ 右侧弹幕面板（L-09） */
+
+.panelSlot {
+  display: flex;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------- 缓冲/静音提示 */
+
+.buffering {
+  position: absolute;
+  left: 16px;
+  bottom: 76px;
+  z-index: 16;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--player-text);
+  background: var(--player-glass-bg);
+  border: 1px solid var(--player-glass-border);
+}
+
+.overlayTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: rgba(255, 255, 255, 0.94);
+}
+
+/* 未开播空态：柔和的圆形图标 + 简短说明，替换掉一直转的加载态 */
+.offlineIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.overlayHint {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--separator);
+}
+
+.shortcutRow:last-child {
+  border-bottom: none;
+}
+
+.shortcutKey {
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--fill-quaternary);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.shortcutAction {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
 }

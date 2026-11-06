@@ -1,30 +1,74 @@
+/* 应用外壳：实色地面 + 细颗粒层 (z-index 0) + 侧栏 / 顶栏 / 内容区 (z-index 1) */
+
 .appShell {
+  position: relative;
   display: flex;
   height: 100vh;
   overflow: hidden;
   background: var(--bg-primary);
 }
 
+/* ------------------------------------------------------------- 背景层 */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--bg-primary);
+  contain: strict;
+}
+
+/* 胶片颗粒：SVG feTurbulence 平铺，不是渐变。极低透明度，只负责去掉"塑料感"。 */
+.grain {
+  position: absolute;
+  inset: -30%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.05;
+}
+
+[data-theme="light"] .grain {
+  opacity: 0.035;
+}
+
+/* ---------------------------------------------------------------- 内容层 */
+
 .appMain {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  position: relative;
-  background-color: var(--bg-primary);
 }
 
 .appBody {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 0 14px 14px;
+  /* 底部不留内边距：主播列表的滚动区域一直铺到窗口下沿 */
+  padding: 0 14px;
   display: flex;
   flex-direction: column;
 }
 
+@media (max-width: 1240px) {
+  .appBody {
+    padding: 0 10px;
+  }
+}
+
+/* 播放页：播放器自己铺满，不再额外留底部空隙 */
 .appBodyPlayer {
-  padding: 0;
+  padding: 0 14px;
   overflow: hidden;
+}
+
+@media (max-width: 1240px) {
+  .appBodyPlayer {
+    padding: 0 10px;
+  }
 }

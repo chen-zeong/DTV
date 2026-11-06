@@ -1,0 +1,34 @@
+/* =============================================================================
+ * Tailwind CSS v4 + HeroUI v3（按需引入）
+ *
+ * HeroUI 的组件样式依赖 Tailwind v4 编译（组件 CSS 内部使用 @apply）。
+ * 这里只引入当前用到的组件，避免把 75+ 组件的完整样式打进包里。
+ * 注意：HeroUI 的样式必须放进 base/components/theme 层，否则会盖住
+ * Signal 的 CSS Modules（组件里的尺寸/配色覆盖会失效）。
+ * ========================================================================== */
+
+@import "tailwindcss";
+
+/* HeroUI 的基础层 */
+@import "@heroui/styles/base" layer(base);
+@import "@heroui/styles/base/scrollbar.css" layer(base);
+
+/* 当前实际使用的组件 */
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/card.css" layer(components);
+@import "@heroui/styles/components/dropdown.css" layer(components);
+@import "@heroui/styles/components/label.css" layer(components);
+@import "@heroui/styles/components/list-box.css" layer(components);
+@import "@heroui/styles/components/list-box-item.css" layer(components);
+@import "@heroui/styles/components/menu.css" layer(components);
+@import "@heroui/styles/components/menu-item.css" layer(components);
+@import "@heroui/styles/components/popover.css" layer(components);
+@import "@heroui/styles/components/scroll-shadow.css" layer(components);
+@import "@heroui/styles/components/slider.css" layer(components);
+@import "@heroui/styles/components/switch.css" layer(components);
+@import "@heroui/styles/components/tabs.css" layer(components);
+
+/* 主题变量、工具类与自定义变体 */
+@import "@heroui/styles/themes/default" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";

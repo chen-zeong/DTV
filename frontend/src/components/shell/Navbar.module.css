@@ -1,19 +1,15 @@
+/* 顶栏：实色工具栏 + 底部发丝线；控件之间用色阶而不是阴影分�?*/
+
 .navbar {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   height: var(--navbar-height);
   padding: 0 14px;
   box-sizing: border-box;
   position: relative;
   z-index: 50;
-  background: var(--glass-bg);
-  backdrop-filter: blur(28px) saturate(220%);
-  -webkit-backdrop-filter: blur(28px) saturate(220%);
   flex: 0 0 auto;
-}
-
-:global([data-theme="light"]) .navbar {
   background: var(--bg-primary);
 }
 
@@ -25,11 +21,11 @@
   --wails-draggable: no-drag;
 }
 
-.tabsWrap {
+.leading {
   display: flex;
   align-items: center;
+  gap: 10px;
   flex: 0 0 auto;
-  --wails-draggable: drag;
 }
 
 .actions {
@@ -40,18 +36,30 @@
   flex: 0 0 auto;
 }
 
-/* ---------------------------------------------------------------- 主播岛 */
+/* ------------------------------------------------------------- 主播�?*/
 
 .island {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 5px 8px 5px 6px;
   border-radius: var(--radius-full);
-  background: var(--hover-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
   min-width: 0;
   max-width: 520px;
+  margin-inline: auto;
+  animation: island-in var(--dur-3) var(--ease-spring);
+}
+
+@keyframes island-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .islandAvatar {
@@ -60,6 +68,7 @@
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
+  border: 1px solid var(--border-strong);
 }
 
 .islandMeta {
@@ -67,20 +76,23 @@
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  line-height: 1.25;
 }
 
 .islandName {
   font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 150px;
 }
 
 .islandTitle {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
-  max-width: 320px;
+  color: var(--text-tertiary);
+  max-width: 280px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -91,108 +103,92 @@
   padding: 0 14px;
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-text);
+  background: var(--accent);
   flex: 0 0 auto;
 }
 
 .islandFollow:hover {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  background: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
 .islandFollowed {
-  background: rgba(255, 59, 59, 0.16);
-  border-color: rgba(255, 59, 59, 0.22);
-  color: #ff8f8f;
+  color: var(--text-secondary);
+  background: var(--fill-tertiary);
 }
 
-.islandExpand {
+.islandFollowed:hover {
+  color: var(--text-primary);
+  background: var(--fill-secondary);
+  transform: none;
+}
+
+.islandClose {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   flex: 0 0 auto;
 }
 
-.islandExpand:hover {
-  background: var(--hover-bg);
+.islandClose:hover {
+  background: var(--fill-tertiary);
   color: var(--text-primary);
 }
 
-/* ---------------------------------------------------------------- 操作按钮 */
+/* --------------------------------------------------------- 工具按钮�?*/
 
-.versionBtn {
-  display: inline-flex;
+.toolGroup {
+  display: flex;
   align-items: center;
-  height: 44px;
-  padding: 0 14px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--fill-quaternary);
 }
 
-.versionBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.versionText {
-  font-size: var(--text-xs);
-  font-weight: 900;
+.version {
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .iconBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--text-secondary);
 }
 
 .iconBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill-tertiary);
+  color: var(--text-primary);
   transform: translateY(-1px);
 }
 
-.themeToggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
+.iconBtn:active {
+  background: var(--fill-secondary);
+  transform: translateY(0);
 }
 
-.themeToggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.themeDark {
-  color: var(--accent);
-}
-
-.themeLight {
-  background: #fff;
-  border-color: rgba(148, 163, 184, 0.4);
-  color: rgba(71, 85, 105, 1);
-}
-
-:global([data-theme="light"]) .versionBtn,
-:global([data-theme="light"]) .iconBtn {
-  background: #fff;
-  border-color: rgba(148, 163, 184, 0.4);
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--separator);
+  margin: 0 2px;
+  flex: 0 0 auto;
 }
 
 /* ---------------------------------------------------------------- 弹层 */
@@ -204,66 +200,124 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
-  background: rgba(0, 0, 0, 0.45);
+  padding: 20px;
+  background: rgba(4, 5, 7, 0.66);
+  animation: fade-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .card {
-  width: min(520px, calc(100vw - 36px));
-  max-height: calc(100vh - 64px);
+  width: min(460px, calc(100vw - 40px));
+  max-height: calc(100vh - 72px);
   overflow: auto;
-  border-radius: 18px;
-  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
+  animation: pop-in var(--dur-3) var(--ease-spring);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .cardHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--separator);
 }
 
 .cardTitle {
-  margin: 0;
-  font-size: var(--text-md);
-  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 .cardClose {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  background: var(--fill-quaternary);
+  flex: 0 0 auto;
 }
 
 .cardClose:hover {
-  background: var(--hover-bg);
+  background: var(--fill-tertiary);
   color: var(--text-primary);
+  transform: rotate(90deg);
 }
 
 .cardBody {
-  padding: 14px;
+  padding: 22px 18px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .qrImage {
-  width: min(320px, 72vw);
-  border-radius: 16px;
+  width: min(300px, 70vw);
+  border-radius: var(--radius-lg);
 }
 
 .cardHint {
-  margin: 0;
   font-size: var(--text-sm);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
   color: var(--text-secondary);
   text-align: center;
+}
+
+/* 窄窗口（<1240px）收紧顶栏，保证窗口按钮不被挤出 */
+@media (max-width: 1240px) {
+  .navbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  .iconBtn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .version {
+    padding: 0 6px;
+  }
+
+  .islandTitle {
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 900px) {
+  .version {
+    display: none;
+  }
+
 }

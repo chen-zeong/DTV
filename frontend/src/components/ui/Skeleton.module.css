@@ -1,20 +1,22 @@
 .skeleton {
   display: block;
-  background: linear-gradient(
-    100deg,
-    var(--skeleton-bg) 30%,
-    color-mix(in srgb, var(--skeleton-bg) 45%, transparent) 50%,
-    var(--skeleton-bg) 70%
-  );
-  background-size: 220% 100%;
-  animation: shimmer 1.4s var(--ease-in-out) infinite;
+  background: var(--skeleton-bg);
+  animation: skeleton-pulse 1.6s var(--ease-in-out) infinite;
 }
 
-@keyframes shimmer {
-  from {
-    background-position: 130% 0;
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
   }
-  to {
-    background-position: -30% 0;
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.8;
   }
 }

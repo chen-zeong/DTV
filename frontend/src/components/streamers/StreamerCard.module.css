@@ -1,21 +1,26 @@
+/* 主播卡片：保留 HeroUI 官方 Card 的表面/圆角，但去掉内部 padding，让封面贴边。
+ * V-01/V-02：卡片不再自带 1px 描边，改用比地面亮一档的表面色 + 顶部受光边分层。 */
+
 .card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--card-radius);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  padding: 0;
+  gap: 0;
   overflow: hidden;
-  transition:
-    transform var(--dur-2) var(--ease-out),
-    box-shadow var(--dur-2) var(--ease-out),
-    border-color var(--dur-2) var(--ease-out);
+  border: none;
+  background: var(--bg-secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: background-color var(--dur-2) var(--ease-out);
+  container-type: inline-size;
 }
 
 .card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-tertiary));
+}
+
+.media {
+  position: relative;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--bg-tertiary);
 }
 
 .coverBtn {
@@ -32,144 +37,148 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* M-02：620ms → 320ms，缩放收敛到 1.02 */
+  transition: transform 320ms var(--ease-out);
 }
 
-.coverShade {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 46%;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.55));
-  pointer-events: none;
-}
-
-.liveBadge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: var(--weight-bold);
-  color: #fff;
-  background: rgba(255, 62, 62, 0.92);
-  box-shadow: 0 2px 10px rgba(255, 62, 62, 0.35);
-}
-
-.liveDot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #fff;
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
+@media (hover: hover) {
+  .media:hover .cover {
+    transform: scale(1.02);
   }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.offlineBadge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: var(--weight-bold);
-  color: rgba(255, 255, 255, 0.86);
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
 }
 
 .viewers {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  font-size: 11px;
-  font-weight: var(--weight-bold);
+  right: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   color: rgba(255, 255, 255, 0.94);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  background: rgba(8, 9, 11, 0.78);
   font-variant-numeric: tabular-nums;
 }
 
-.followBtn {
+/* 封面上浮现的播放按钮：只做 opacity，不再做弹簧缩放 */
+.playHint {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  left: 50%;
+  top: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  color: var(--accent-text);
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+  pointer-events: none;
+}
+
+.media:hover .playHint,
+.coverBtn:focus-visible .playHint {
+  opacity: 1;
+}
+
+.playHint svg {
+  margin-left: 2px;
+}
+
+/* 关注按钮：默认隐形，hover 媒体区时淡入；只做 opacity */
+.followBtn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   color: rgba(255, 255, 255, 0.9);
-  background: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 9, 11, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   opacity: 0;
   transition:
     opacity var(--dur-2) var(--ease-out),
-    background var(--dur-2) var(--ease-out);
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
 }
 
-.card:hover .followBtn,
-.followBtnOn {
+.media:hover .followBtn,
+.followBtn:focus-visible {
   opacity: 1;
 }
 
 .followBtn:hover {
-  background: rgba(0, 0, 0, 0.62);
+  background: rgba(8, 9, 11, 0.9);
 }
 
-.followBtnOn {
-  color: #ffd166;
+.followBtnOn,
+.followBtnOn:hover {
+  opacity: 1;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: transparent;
 }
+
+/* ------------------------------------------------------------- 卡片信息区 */
 
 .meta {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 12px 12px;
+  padding: 13px 12px 15px;
   text-align: left;
   min-width: 0;
 }
 
+.meta:hover .nickname {
+  color: var(--accent-ink);
+}
+
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
-  border: 1px solid var(--border);
+  background: var(--fill-tertiary);
 }
 
 .metaText {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
   flex: 1;
 }
 
 .nickname {
   font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.002em;
+  transition: color var(--dur-2) var(--ease-out);
 }
 
+/* 产品要求：标题只显示一行，超出部分省略 */
 .title {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -177,10 +186,21 @@
 
 .category {
   flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: var(--weight-bold);
-  padding: 2px 7px;
+  max-width: 34%;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  padding: 3px 8px;
   border-radius: var(--radius-full);
-  background: var(--hover-bg);
-  color: var(--text-secondary);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 卡片变窄时（<260px）隐藏分类胶囊，优先保证标题可读 */
+@container (max-width: 260px) {
+  .category {
+    display: none;
+  }
 }

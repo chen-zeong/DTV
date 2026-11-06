@@ -1,0 +1,64 @@
+/* =============================================================================
+ * 音量条（无拖动手柄，整条可按住拖动）
+ *
+ * 结构：.slider（18px 高的热区）> .rail（4px 轨道）> .fill（已填充部分）
+ * 没有 thumb：轨道本身就是滑块的替代物，hover / 拖动时轨道变粗、填充变亮。
+ * ========================================================================== */
+
+.slider {
+  display: flex;
+  align-items: center;
+  height: 18px;
+  /* 宽度由调用方用 --volume-slider-width 覆盖（窄窗口会收一档） */
+  width: var(--volume-slider-width, 96px);
+  flex: 0 0 auto;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+.rail {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  transition:
+    height 0.16s ease,
+    background 0.16s ease;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--player-accent-gradient);
+  transition: width 0.08s linear;
+}
+
+.slider.active .rail {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.slider.active .fill {
+  filter: brightness(1.12);
+}
+
+.slider:focus-visible .rail {
+  height: 6px;
+  box-shadow: 0 0 0 2px var(--player-accent-strong);
+}
+
+/* 拖动过程中不要给填充加过渡，否则跟不上指针 */
+.slider.dragging .fill {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .fill {
+    transition: none;
+  }
+}

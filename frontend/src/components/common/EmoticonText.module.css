@@ -1,0 +1,12 @@
+.emote {
+  /* Tailwind 的 preflight 把 img 设成了 display:block，这里必须显式改回
+   * inline-block，否则表情会独占一行（弹幕里尤其明显） */
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0 1px;
+  vertical-align: -0.22em;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}

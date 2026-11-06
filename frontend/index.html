@@ -4,9 +4,193 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0a0b0d" />
+    <!--
+      内容安全策略：默认只允许本地资源；图片、媒体、连接额外放行 https 与本地代理。
+      Wails 运行时和 HeroUI 会注入内联样式，弹幕库也会往 head 里插一段 keyframes 样式表，
+      因此保留 style-src 'unsafe-inline'；xgplayer 的 flv/hls 解封装需要 unsafe-eval。
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
     <title>DTV</title>
+    <style>
+      /* 首帧底色：避免 React 挂载前闪白；深色/浅色都与主题 token 对齐。 */
+      html,
+      body {
+        margin: 0;
+        background: #0a0b0d;
+      }
+      html[data-theme="light"],
+      html[data-theme="light"] body {
+        background: #f1f2f4;
+      }
+
+      /* ------------------------------------------------ 内联启动层（P-03）
+       * 纯 CSS，不引字体、不引图片；React 首次 commit 后由 main.tsx 淡出移除。
+       * 结构：四根信号条 + DTV + 一条流光 + 一行小字，尽量克制。 */
+      #dtv-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background:
+          radial-gradient(900px 520px at 50% 42%, rgba(216, 255, 79, 0.055), transparent 70%),
+          #0a0b0d;
+        transition: opacity 240ms ease-out;
+      }
+      html[data-theme="light"] #dtv-splash {
+        background:
+          radial-gradient(900px 520px at 50% 42%, rgba(120, 160, 10, 0.08), transparent 70%),
+          #f1f2f4;
+      }
+      #dtv-splash[data-leaving="true"] {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .dtv-splash-mark {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 4px;
+        height: 30px;
+      }
+      .dtv-splash-mark i {
+        display: block;
+        width: 5px;
+        border-radius: 3px;
+        background: #d8ff4f;
+        transform-origin: center bottom;
+        animation: dtv-splash-bar 1.15s ease-in-out infinite;
+      }
+      .dtv-splash-mark i:nth-child(1) {
+        height: 12px;
+        animation-delay: -0.45s;
+      }
+      .dtv-splash-mark i:nth-child(2) {
+        height: 22px;
+        animation-delay: -0.3s;
+      }
+      .dtv-splash-mark i:nth-child(3) {
+        height: 30px;
+        animation-delay: -0.15s;
+      }
+      .dtv-splash-mark i:nth-child(4) {
+        height: 18px;
+        animation-delay: 0s;
+      }
+      html[data-theme="light"] .dtv-splash-mark i {
+        background: #3f6212;
+      }
+
+      .dtv-splash-word {
+        font-family:
+          "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.3em;
+        padding-left: 0.3em;
+        color: #f4f4ef;
+      }
+      html[data-theme="light"] .dtv-splash-word {
+        color: #18181b;
+      }
+
+      .dtv-splash-line {
+        position: relative;
+        width: 76px;
+        height: 2px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(244, 244, 239, 0.12);
+      }
+      html[data-theme="light"] .dtv-splash-line {
+        background: rgba(24, 24, 27, 0.12);
+      }
+      .dtv-splash-line::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(90deg, transparent, #d8ff4f 45%, #d8ff4f 55%, transparent);
+        animation: dtv-splash-run 1.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+
+      .dtv-splash-caption {
+        font-family:
+          "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        color: #8b909a;
+      }
+      html[data-theme="light"] .dtv-splash-caption {
+        color: #63636d;
+      }
+
+      @keyframes dtv-splash-bar {
+        0%,
+        100% {
+          transform: scaleY(0.55);
+          opacity: 0.55;
+        }
+        45% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+      }
+      @keyframes dtv-splash-run {
+        to {
+          transform: translateX(100%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dtv-splash-mark i,
+        .dtv-splash-line::after {
+          animation: none;
+        }
+        .dtv-splash-mark i {
+          opacity: 0.85;
+        }
+        #dtv-splash {
+          transition-duration: 100ms;
+        }
+      }
+    </style>
+    <script>
+      // 首帧之前贴主题：读 ThemeProvider 真正使用的键（theme_preference），
+      // 兼容 4.0 早期 dtv_theme_v1，并处理 "system"。
+      try {
+        var raw = localStorage.getItem("theme_preference");
+        if (raw == null) raw = localStorage.getItem("dtv_theme_v1");
+        var saved = String(raw || "dark").replace(/^"|"$/g, "");
+        if (saved === "system") {
+          saved =
+            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        }
+        document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
+      } catch (e) {
+        /* localStorage 不可用时保持默认深色 */
+      }
+    </script>
   </head>
   <body>
+    <div id="dtv-splash" aria-hidden="true">
+      <span class="dtv-splash-mark"><i></i><i></i><i></i><i></i></span>
+      <span class="dtv-splash-word">DTV</span>
+      <span class="dtv-splash-line"></span>
+      <span class="dtv-splash-caption">正在载入</span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

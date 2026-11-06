@@ -1,33 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
     <dict>
         <key>CFBundlePackageType</key>
             <string>APPL</string>
         <key>CFBundleName</key>
-            <string>My Product</string>
+            <string>DTV</string>
+        <key>CFBundleDisplayName</key>
+            <string>DTV</string>
         <key>CFBundleExecutable</key>
-            <string>dtv.exe</string>
+            <string>dtv</string>
         <key>CFBundleIdentifier</key>
-            <string>com.example.dtv</string>
+            <string>com.dtv.app</string>
         <key>CFBundleVersion</key>
-            <string>0.1.0</string>
-        <key>CFBundleGetInfoString</key>
-            <string>This is a comment</string>
+            <string>4.0.0</string>
         <key>CFBundleShortVersionString</key>
-            <string>0.1.0</string>
+            <string>4.0.0</string>
+        <key>CFBundleGetInfoString</key>
+            <string>DTV — 直播聚合客户端（开发版）</string>
         <key>CFBundleIconFile</key>
             <string>icons</string>
         <key>CFBundleIconName</key>
             <string>appicon</string>
         <key>LSMinimumSystemVersion</key>
             <string>12.0.0</string>
+        <key>LSApplicationCategoryType</key>
+            <string>public.app-category.entertainment</string>
         <key>NSHighResolutionCapable</key>
-            <string>true</string>
+            <true/>
         <key>NSHumanReadableCopyright</key>
-            <string>© 2026, My Company</string>
+            <string>© 2026 DTV</string>
+        <key>NSLocalNetworkUsageDescription</key>
+            <string>DTV 需要访问本地网络，用于图片代理和局域网数据同步。</string>
         <key>NSAppTransportSecurity</key>
         <dict>
             <key>NSAllowsLocalNetworking</key>
+            <true/>
+            <key>NSAllowsArbitraryLoadsInWebContent</key>
             <true/>
         </dict>
     </dict>

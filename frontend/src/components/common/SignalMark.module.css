@@ -1,0 +1,38 @@
+.mark {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.bar {
+  display: block;
+  width: 3px;
+  min-height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: bottom;
+}
+
+.barPulse {
+  animation: signal-pulse 1.1s var(--ease-in-out) infinite;
+}
+
+@keyframes signal-pulse {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barPulse {
+    animation: none;
+  }
+}

@@ -1,0 +1,231 @@
+/* 弹幕屏蔽（对齐 Tauri 老版 xgplayer-danmu-block-panel 的结构与观感） */
+
+.wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: color 0.2s ease;
+}
+
+.trigger:hover {
+  color: #ffffff;
+}
+
+/* 有屏蔽词时图标染色，提醒用户"当前有过滤生效" */
+.triggerOn {
+  color: var(--player-accent);
+}
+
+.triggerOn:hover {
+  color: var(--player-accent-hover);
+}
+
+/* ------------------------------------------------------------------ 弹层 */
+
+.panel {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 12px 14px 14px;
+  border-radius: 16px;
+  background: rgba(17, 20, 28, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: rgba(255, 255, 255, 0.9);
+  animation: block-in 0.18s ease;
+}
+
+@keyframes block-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.textBtn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+}
+
+.textBtn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.textBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.closeBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ------------------------------------------------------------ 输入行 */
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 12px;
+  outline: none;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.input:focus {
+  border-color: var(--player-accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.input:disabled {
+  opacity: 0.55;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: none;
+  background: var(--player-accent);
+  color: #14180a;
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  flex: 0 0 auto;
+}
+
+.addBtn:hover:not(:disabled) {
+  background: var(--player-accent-hover);
+}
+
+.addBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------ 关键词 */
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 26px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 11px;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.pill:hover {
+  background: color-mix(in srgb, #ff6b6b 22%, transparent);
+  border-color: color-mix(in srgb, #ff6b6b 55%, transparent);
+  color: #ffe3e3;
+}
+
+.pillText {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyHint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.hint {
+  margin: 0;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.36);
+}

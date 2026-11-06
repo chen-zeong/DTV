@@ -1,4 +1,5 @@
 import type {
+  Category,
   CategoryGroup,
   DanmakuMessage,
   LivePlatform,
@@ -155,6 +156,24 @@ export const CATEGORY_TREE: Record<LivePlatform, CategoryGroup[]> = {
   ],
 };
 
+/* ------------------------------------------------------------ 三级分区（斗鱼） */
+
+/** 假的三级分区：斗鱼真实接口里"英雄联盟"下会有"赛事直播"之类的子分类 */
+export const SUB_CATEGORY_TREE: Partial<Record<LivePlatform, Record<string, Category[]>>> = {
+  douyu: {
+    "hot-0": [
+      { id: "sub-0-0", name: "全部赛事" },
+      { id: "sub-0-1", name: "LPL 春季赛" },
+      { id: "sub-0-2", name: "主播排位" },
+      { id: "sub-0-3", name: "教学复盘" },
+    ],
+    "hot-1": [
+      { id: "sub-1-0", name: "KPL 职业赛" },
+      { id: "sub-1-1", name: "巅峰对决" },
+    ],
+  },
+};
+
 /* ---------------------------------------------------------------- 主播数据 */
 
 const PREFIX = ["小", "大", "阿", "老", "萌", "神", "国民", "深夜", "暴躁", "温柔"];
@@ -194,6 +213,7 @@ export function makeStreamers(
   platform: LivePlatform,
   categoryId: string,
   count: number,
+  offset = 0,
 ): Streamer[] {
   const out: Streamer[] = [];
   const groups = CATEGORY_TREE[platform];
@@ -201,7 +221,9 @@ export function makeStreamers(
   const matched = allCats.find((c) => c.id === categoryId);
 
   for (let i = 0; i < count; i++) {
-    const seed = `${platform}:${categoryId}:${i}`;
+    // offset 参与种子，保证第 2/3 页和第一页内容不同（演练无限滚动）
+    const index = offset + i;
+    const seed = `${platform}:${categoryId}:${index}`;
     const r = rng(seed);
     const nickname = makeNickname(r);
     const viewers = Math.floor(r() * 240000) + 120;
@@ -296,6 +318,12 @@ const DANMAKU_TEXT = [
   "经典失误",
   "这枪法绝了",
   "优化一下画质吧",
+  // 带文字表情的几条：脱离 Go 侧调试 UI 时用来检查表情还原
+  // （`[看]` / `[捂脸]` 走抖音官方表情图，`[花痴]` 走 Unicode 兜底）
+  "主播牛啊[赞][赞]",
+  "这波我给[看]了",
+  "哈哈哈[捂脸][呲牙]",
+  "别骂了别骂了[花痴]",
 ];
 
 const DANMAKU_GIFT = ["送出一个火箭", "送出一个飞机", "打赏了 10 个荧光棒", "加入粉丝团"];

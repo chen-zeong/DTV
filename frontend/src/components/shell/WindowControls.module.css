@@ -1,9 +1,13 @@
+/* 窗口按钮：实色胶囊组内的大号图标按钮，关闭键 hover 变红 */
+
 .controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 44px;
-  margin-left: 6px;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--fill-quaternary);
+  border: 1px solid var(--border);
   flex: 0 0 auto;
   --wails-draggable: no-drag;
 }
@@ -12,42 +16,55 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
+  width: 40px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * Windows 原生窗口按钮行为
+ *
+ * Wails v3 官方提供的是“WebView2 合成器托管 + 非客户区命中测试”，
+ * 即 `WebView2CompositionHosting: true` 配合下面的 `--wails-non-client-region`。
+ * 该组合在本机曾因 WebView2 800700aa 崩溃，因此 main.go 里保持关闭；
+ * 当前仍由 JS 处理点击，视觉使用项目自己的胶囊按钮。
+ * ------------------------------------------------------------------------ */
+.minimize {
+  --wails-non-client-region: minimize;
+}
+
+.maximize {
+  --wails-non-client-region: maximize;
+}
+
+.closeBtn {
+  --wails-non-client-region: close;
 }
 
 .btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
+  background: var(--fill-tertiary);
+  color: var(--text-primary);
 }
 
 .btn:active {
-  transform: translateY(0);
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--fill-secondary);
 }
 
 .close:hover {
-  background: #e81123;
-  border-color: #e81123;
+  background: #e5344a;
   color: #fff;
 }
 
 .close:active {
-  background: #f1707a;
-  border-color: #f1707a;
+  background: #c92439;
   color: #fff;
 }
 
-:global([data-theme="light"]) .btn {
-  background: #fff;
-  border-color: rgba(148, 163, 184, 0.4);
-}
-
-:global([data-theme="light"]) .btn:hover {
-  transform: none;
-  background: rgba(15, 23, 42, 0.06);
+@media (max-width: 1240px) {
+  .btn {
+    width: 34px;
+    height: 32px;
+  }
 }

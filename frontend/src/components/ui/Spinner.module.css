@@ -1,10 +1,11 @@
 .ring {
   display: inline-block;
   border-style: solid;
-  border-color: color-mix(in srgb, var(--accent) 26%, transparent);
-  border-top-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-top-color: var(--accent-ink);
+  border-right-color: color-mix(in srgb, var(--accent) 60%, transparent);
   border-radius: 50%;
-  animation: spin 0.9s linear infinite;
+  animation: spin 0.8s linear infinite;
   flex: 0 0 auto;
 }
 

@@ -1,0 +1,23 @@
+.root {
+  display: block;
+  /* 让 0% 从 12 点方向开始顺着走 */
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  flex: 0 0 auto;
+}
+
+.track {
+  stroke: color-mix(in srgb, var(--text-secondary) 26%, transparent);
+}
+
+.indicator {
+  stroke: var(--accent-ink);
+  transition: stroke-dashoffset 220ms var(--ease-out, ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator {
+    transition: none;
+  }
+}

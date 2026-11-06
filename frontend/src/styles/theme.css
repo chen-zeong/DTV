@@ -1,127 +1,225 @@
 /* =============================================================================
- * DTV 设计令牌（Design Tokens）
+ * DTV 设计令牌 · "Signal"
  *
- * 从旧版 legacy-global.css 重构而来：
- *  1. 去掉 Tailwind / HeroUI 的桥接变量（新项目不再依赖这两个库）
- *  2. 把旧组件里靠 `var(--x, fallback)` 临时兜底的变量（--sidebar-bg、--player-accent、
- *     --skeleton-bg …）提升为一等令牌，避免同一个颜色散落在十几个文件里
- *  3. 保留旧变量名作为「兼容别名」，飙色值只有一处定义
+ * 视觉语言：
+ *   1. 平涂优先 —— 界面由实色表面 + 色阶分层，不再给每个盒子都加 1px 描边。
+ *      描边只保留给输入框、分隔线和真正需要边界的浮层。
+ *   2. 配色 —— 石墨黑底 + 暖白字，唯一强调色是"信号青柠"（chartreuse）。
+ *      青柠只出现在主操作、激活态和 LIVE 指示上。
+ *   3. 尺度 —— 圆角收敛到 8 / 12 / 16 / 999 四档，与 4px 间距基线配套。
+ *   4. 字重 —— 中文只有 400 / 700 两档可用（系统字体限制），层级靠字号/颜色。
+ *   5. 动效 —— 起步快、收尾缓的 ease-out；只动 transform/opacity。
+ *
+ * 变量名保持与旧版一致（组件不需要改），颜色/尺寸只在这里定义一次。
  * ========================================================================== */
 
-@font-face {
-  font-family: "OPPO Sans";
-  src: url("/fonts/OPPOSans-Regular-subset.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* ------------------------------------------------------------ 深色（默认） */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
 
-@font-face {
-  font-family: "OPPO Sans";
-  src: url("/fonts/OPPOSans-Bold-subset.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+  /* 字体：系统字体优先（Windows 11 Segoe UI Variable / macOS SF / 苹方）。
+   * Display 光学尺寸给标题，Text 给正文；可变字体下由 font-optical-sizing 自动微调。 */
+  --font-display:
+    "Segoe UI Variable Display", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC",
+    system-ui, sans-serif;
+  --font-text:
+    "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC",
+    "Helvetica Neue", system-ui, sans-serif;
+  /* 兼容旧引用 */
+  --font-sans: var(--font-text);
 
-/* ---------------------------------------------------------------- 亮色主题 */
-:root {
-  --font-sans: "OPPO Sans", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
-
-  /* 字号阶梯 */
+  /* 字号阶梯：11px 只给纯数字/拉丁文，中文辅助信息下限 12px */
+  --text-2xs: 11px;
   --text-xs: 12px;
   --text-sm: 13px;
-  --text-base: 14px;
+  --text-base: 15px;
   --text-md: 15px;
-  --text-lg: 16px;
-  --text-xl: 18px;
-  --leading-tight: 1.15;
-  --leading-snug: 1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.65;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --leading-tight: 1.2;
+  --leading-tight-cjk: 1.22;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.7;
+
   --weight-regular: 400;
-  --weight-medium: 600;
+  --weight-medium: 500;
+  --weight-semibold: 600;
   --weight-bold: 700;
 
   /* 动效 */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --dur-1: 120ms;
-  --dur-2: 180ms;
-  --dur-3: 240ms;
+  --ease-spring: cubic-bezier(0.34, 1.42, 0.64, 1);
+  --dur-1: 110ms;
+  --dur-2: 190ms;
+  --dur-3: 280ms;
+  --dur-4: 420ms;
+  --dur-5: 620ms;
 
-  /* 色板（vibestream-day） */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --sidebar-bg: var(--bg-primary);
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --accent: #22c55e;
-  --accent-hover: #16a34a;
-  --accent-glow: rgba(34, 197, 94, 0.35);
-  --accent-text: #ffffff;
-  --platform-active-bg: rgba(15, 23, 42, 0.04);
+  /* ------------------------------------------------------------ 表面与背景 */
+  /* 卡片抬到 #14161b：即使去掉描边，也能和 #0a0b0d 的地面区分开 */
+  --bg-primary: #0a0b0d;
+  --bg-secondary: #14161b;
+  --bg-tertiary: #1c1f25;
+  --bg-elevated: #191c22;
+  --sidebar-bg: #0c0e11;
 
-  --border: #e2e8f0;
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --glass-blur: blur(32px);
+  /* 半透明填充：hover / 选中 / 输入框 */
+  --fill-quaternary: #16181d;
+  --fill-tertiary: #1e2128;
+  --fill-secondary: #272b33;
+  --hover-bg: #1e2128;
 
-  --shadow-low: 0 4px 16px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.12);
+  /* ---------------------------------------------------------------- 文字 */
+  --text-primary: #f4f4ef;
+  --text-secondary: #a7aab2;
+  --text-tertiary: #8b909a;
+  --text-meta: #737884;
 
+  /* -------------------------------------------------------------- 强调色 */
+  /* accent 是"填充色"，两种主题都用亮青柠；accent-ink 是浅色主题下的小字/图标色 */
+  --accent: #d8ff4f;
+  --accent-hover: #e6ff7c;
+  --accent-active: #c2ed2f;
+  --accent-text: #0b0c08;
+  --accent-ink: #d8ff4f;
+  --accent-soft: rgba(216, 255, 79, 0.12);
+  --accent-softer: rgba(216, 255, 79, 0.07);
+  --accent-glow: rgba(216, 255, 79, 0.2);
+  /* 兼容旧变量：不再有渐变，统一回落到实色 */
+  --accent-gradient: var(--accent);
+  --accent-gradient-soft: var(--accent-soft);
+
+  /* ------------------------------------------------------------ 描边与分隔 */
+  --border: #24272e;
+  --border-strong: #343842;
+  --separator: #1f2229;
+
+  /* ---------------------------------------------------------------- 材质 */
+  /* 旧版玻璃令牌全部拍平：组件即使仍引用，也只会得到实色表面 */
+  --glass-bg: #14161b;
+  --glass-bg-strong: #191c22;
+  --glass-border: #24272e;
+  --glass-highlight: 0 0 0 0 transparent;
+  --glass-blur: none;
+  --glass-blur-strong: none;
+  --glass-sheen: none;
+  --glass-sheen-soft: none;
+
+  /* 播放器控制台：视频之上永远是深色实底 */
+  --player-glass-bg: rgba(10, 11, 13, 0.92);
+  --player-glass-bg-hover: #17191e;
+  --player-glass-border: rgba(244, 244, 239, 0.09);
+  --player-glass-inset: 0 0 0 0 transparent;
+  --player-text: rgba(244, 244, 239, 0.96);
+  --player-text-dim: rgba(244, 244, 239, 0.58);
+
+  /* ---------------------------------------------------------------- 阴影 */
+  /* 静止表面不用阴影；只有真正浮起的菜单 / 弹窗需要 */
+  --shadow-low: 0 1px 0 rgba(255, 255, 255, 0.03);
+  --shadow-md: 0 14px 34px -24px rgba(0, 0, 0, 0.75);
+  --shadow-lg: 0 38px 72px -30px rgba(0, 0, 0, 0.85);
+  --shadow-popover: 0 22px 56px -22px rgba(0, 0, 0, 0.8);
+
+  /* ---------------------------------------------------------------- 圆角 */
+  /* 四档：控件 8 / 面板与卡片 12 / 大容器 16 / 胶囊 999 */
+  --radius-xs: 8px;
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 32px;
-  --radius-full: 9999px;
-  --card-radius: var(--radius-lg);
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-full: 999px;
+  --card-radius: 12px;
 
-  /* 布局尺度 */
-  --sidebar-width: 240px;
-  --sidebar-collapsed-width: 72px;
-  --navbar-height: 72px;
+  /* ------------------------------------------------------------ 布局尺度 */
+  /* 4px 基线：8 / 12 / 16 / 24 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --sidebar-width: 224px;
+  --sidebar-collapsed-width: 78px;
+  --navbar-height: 64px;
+  --control-h: 40px;
 
-  /* 状态色 */
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --status-live: #ff3e3e;
-  --status-offline: #86868b;
+  /* ---------------------------------------------------------------- 状态 */
+  --success: #7bdc8a;
+  --warning: #f5b544;
+  --danger: #ff5c6c;
+  --status-live: #ff4757;
+  --status-offline: #5c6169;
   --status-active: var(--accent);
-  --status-warning: #f59e0b;
+  --status-warning: var(--warning);
 
-  /* 组件级语义色 */
-  --hover-bg: rgba(0, 0, 0, 0.04);
+  /* ------------------------------------------------- 组件级语义色（新代码用） */
   --card-bg: var(--bg-secondary);
-  --color-card: rgba(255, 255, 255, 0.6);
-  --color-border: #ffffff;
-  --skeleton-bg: rgba(0, 0, 0, 0.06);
-  --danmu-font-family: "OPPO Sans", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial,
-    sans-serif;
+  --card-border: transparent;
+  --skeleton-bg: #1e2128;
+  --skeleton-shine: #272b33;
+  --color-card: var(--bg-secondary);
+  --color-border: var(--border);
+
+  /* ------------------------------------------------- HeroUI v3 令牌映射
+   * HeroUI 的组件只读它自己的语义变量；这里把它们映射到 Signal，
+   * 让 Select / Switch / Slider / Tabs / Card 与现有配色一致。 */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --surface: var(--bg-secondary);
+  --surface-foreground: var(--text-primary);
+  --surface-secondary: var(--bg-tertiary);
+  --surface-tertiary: var(--fill-secondary);
+  --overlay: var(--bg-elevated);
+  --overlay-foreground: var(--text-primary);
+  --muted: var(--text-tertiary);
+  --default: var(--fill-tertiary);
+  --default-foreground: var(--text-primary);
+  --field-background: var(--fill-quaternary);
+  --field-foreground: var(--text-primary);
+  --field-placeholder: var(--text-tertiary);
+  --segment: var(--accent);
+  --segment-foreground: var(--accent-text);
+  --accent-foreground: var(--accent-text);
+  --success-foreground: #0b0c08;
+  --warning-foreground: #14150f;
+  --danger-foreground: #ffffff;
+  --focus: var(--accent);
+  --radius: 12px;
+  --field-radius: 8px;
+  --overlay-shadow: var(--shadow-popover);
+  --field-shadow: none;
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 背景图层（AppShell 的细噪点，非渐变） */
+  --aura-dot: rgba(244, 244, 239, 0.035);
+
+  /* 弹幕样式 */
+  --danmu-font-family: inherit;
   --danmu-opacity: 1;
-  --danmu-stroke-color: rgba(0, 0, 0, 0.6);
+  --danmu-stroke-color: rgba(0, 0, 0, 0.72);
 
-  /* 播放器强调色（与全局 accent 解耦，方便单独调） */
-  --player-accent: var(--accent);
-  --player-accent-strong: var(--accent-hover);
-  --player-accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  /* 播放器强调色 */
+  --player-accent: #d8ff4f;
+  --player-accent-hover: #e6ff7c;
+  --player-accent-active: #c2ed2f;
+  --player-accent-strong: rgba(216, 255, 79, 0.24);
+  --player-accent-gradient: var(--player-accent);
 
-  /* ---------------------------------------------------------- 旧变量兼容别名
-   * 旧组件的 CSS Module 仍在用这些名字。颜色值只在上面定义一次。
-   * 后续重构某个组件时，顺手把它换成语义化令牌，别名逐步删除即可。 */
+  /* ---------------------------------------------------------- 旧变量兼容别名 */
   --primary-bg: var(--bg-primary);
   --secondary-bg: var(--bg-secondary);
   --tertiary-bg: var(--bg-tertiary);
-  --accent-color: var(--accent);
-  --accent-gradient: var(--player-accent-gradient);
+  --accent-color: var(--accent-ink);
   --primary-text: var(--text-primary);
   --secondary-text: var(--text-secondary);
-  --dim-text: rgba(134, 134, 139, 0.8);
+  --dim-text: var(--text-tertiary);
   --border-color: var(--border);
   --border-color-light: var(--border);
   --glass-shadow: var(--shadow-md);
@@ -129,45 +227,121 @@
   --card-shadow: var(--shadow-low);
   --card-shadow-hover: var(--shadow-md);
   --content-bg-light: #ffffff;
-  --content-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --primary-text-light: #333333;
-  --secondary-text-light: #555555;
-  --icon-color-light: #888888;
+  --content-shadow-light: 0 2px 10px rgba(20, 20, 15, 0.07);
+  --primary-text-light: #15160f;
+  --secondary-text-light: #565a4f;
+  --icon-color-light: #828678;
   --success-color: var(--success);
+  --platform-active-bg: var(--fill-tertiary);
 }
 
-/* ---------------------------------------------------------------- 暗色主题 */
-[data-theme="dark"] {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #0a0a0a;
-  --bg-tertiary: #242424;
-  --sidebar-bg: var(--bg-primary);
-  --text-primary: #e2e8f0;
-  --text-secondary: #64748b;
-  --accent: #22c55e;
-  --accent-hover: #34d399;
-  --accent-glow: rgba(34, 197, 94, 0.3);
-  --platform-active-bg: rgba(255, 255, 255, 0.06);
+/* ---------------------------------------------------------------- 浅色主题 */
+[data-theme="light"] {
+  color-scheme: light;
 
-  --border: #222222;
-  --glass-bg: rgba(20, 20, 22, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* 背景参考 HeroUI 默认浅色主题：中性灰底 + 纯白表面，不带暖黄倾向 */
+  --bg-primary: #f1f2f4;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eaecf0;
+  --bg-elevated: #ffffff;
+  --sidebar-bg: #eef0f3;
 
-  --shadow-low: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 12px 48px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 32px 96px rgba(0, 0, 0, 0.6);
-  --glass-shadow: var(--shadow-lg);
-  --card-shadow: var(--shadow-md);
-  --card-shadow-hover: var(--shadow-lg);
+  --fill-quaternary: #f0f1f3;
+  --fill-tertiary: #e6e8ec;
+  --fill-secondary: #d9dce2;
+  --hover-bg: #e6e8ec;
 
-  --hover-bg: rgba(255, 255, 255, 0.06);
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #63636d;
+  --text-meta: #71717a;
+
+  /* 填充仍是亮青柠，文字用深色；小字/图标改用 accent-ink（对比 > 6:1） */
+  --accent: #d8ff4f;
+  --accent-hover: #e4ff85;
+  --accent-active: #c8ef3a;
+  --accent-text: #0b0c08;
+  --accent-ink: #3f6212;
+  --accent-soft: rgba(120, 160, 10, 0.14);
+  --accent-softer: rgba(120, 160, 10, 0.07);
+  --accent-glow: rgba(120, 160, 10, 0.18);
+  --accent-gradient: var(--accent);
+  --accent-gradient-soft: var(--accent-soft);
+
+  --border: #dde1e6;
+  --border-strong: #c9ced6;
+  --separator: #e7e9ed;
+
+  --glass-bg: #fafafa;
+  --glass-bg-strong: #ffffff;
+  --glass-border: #dde1e6;
+  --glass-highlight: 0 0 0 0 transparent;
+  --glass-blur: none;
+  --glass-blur-strong: none;
+  --glass-sheen: none;
+  --glass-sheen-soft: none;
+
+  --shadow-low: 0 1px 0 rgba(24, 24, 27, 0.02);
+  --shadow-md: 0 14px 34px -26px rgba(24, 24, 27, 0.26);
+  --shadow-lg: 0 38px 72px -32px rgba(24, 24, 27, 0.28);
+  --shadow-popover: 0 22px 56px -24px rgba(24, 24, 27, 0.26);
+
+  --skeleton-bg: #ededee;
+  --skeleton-shine: #f7f7f8;
+
+  --status-live: #e8344a;
+  --status-offline: #a1a1aa;
+  --status-active: var(--accent);
+
+  --aura-dot: rgba(24, 24, 27, 0.05);
+
   --card-bg: var(--bg-secondary);
-  --color-card: rgba(255, 255, 255, 0.15);
-  --color-border: rgba(255, 255, 255, 0.3);
-  --skeleton-bg: rgba(255, 255, 255, 0.06);
-  --danmu-stroke-color: rgba(0, 0, 0, 0.75);
-  --dim-text: rgba(161, 161, 166, 0.8);
+  --card-border: transparent;
+  --glass-shadow: var(--shadow-md);
+  --card-shadow: var(--shadow-low);
+  --card-shadow-hover: var(--shadow-md);
+  --dim-text: var(--text-tertiary);
 
-  --status-offline: #525c53;
-  --status-active: #e5e7eb;
+  /* HeroUI 令牌映射（浅色） */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --surface: var(--bg-secondary);
+  --surface-foreground: var(--text-primary);
+  --surface-secondary: var(--bg-tertiary);
+  --surface-tertiary: var(--fill-secondary);
+  --overlay: var(--bg-elevated);
+  --overlay-foreground: var(--text-primary);
+  --muted: var(--text-tertiary);
+  --default: var(--fill-tertiary);
+  --default-foreground: var(--text-primary);
+  --field-background: var(--fill-quaternary);
+  --field-foreground: var(--text-primary);
+  --field-placeholder: var(--text-tertiary);
+  --segment: var(--accent);
+  --segment-foreground: var(--accent-text);
+  --accent-foreground: var(--accent-text);
+  --success: #15803d;
+  --success-foreground: #ffffff;
+  --warning-foreground: #18181b;
+  --danger-foreground: #ffffff;
+  --focus: var(--accent-ink);
+  --radius: 12px;
+  --field-radius: 8px;
+  --overlay-shadow: var(--shadow-popover);
+  --field-shadow: none;
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 播放器在浅色主题下仍是深色视频底 */
+  --player-glass-bg: rgba(10, 11, 13, 0.92);
+  --player-glass-bg-hover: #17191e;
+  --player-glass-border: rgba(244, 244, 239, 0.09);
+  --player-glass-inset: 0 0 0 0 transparent;
+  --player-text: rgba(244, 244, 239, 0.96);
+  --player-text-dim: rgba(244, 244, 239, 0.58);
+  --player-accent: #d8ff4f;
+  --player-accent-hover: #e6ff7c;
+  --player-accent-active: #c2ed2f;
+  --player-accent-strong: rgba(216, 255, 79, 0.24);
+  --player-accent-gradient: var(--player-accent);
 }
