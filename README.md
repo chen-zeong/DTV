@@ -1,7 +1,7 @@
 <div align="center">
   <img src="images/icon.png" alt="DTV" width="128">
   <h1>DTV</h1>
-  <p>基于 Tauri 2.0 的跨平台斗鱼、虎牙、抖音、bilibili直播桌面客户端</p>
+  <p>基于 Wails v3 的跨平台斗鱼、虎牙、抖音、bilibili直播桌面客户端</p>
 </div>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 > 安卓版本：[`dtv_mobile`](https://github.com/chen-zeong/dtv_mobile)
 
-1. 本项目基于 Tauri 2.0 开发，体积小，占用率低，实测可以在双核、4GB内存的电脑上流畅运行
+1. 本项目基于 Wails v3 开发，体积小，占用率低，实测可以在双核、4GB内存的电脑上流畅运行
 2. 平台接口可能有访问频率限制，过于频繁的请求会触发验证码校验，建议合理使用搜索功能
 3. 本项目仅供学习编程目的使用，未进行任何逆向工程
 4. 本项目所有的直播版权都归属各个平台
@@ -64,28 +64,37 @@
 
 ## 安装方式
 
-可以在 [release](https://github.com/chen-zeong/dtv/releases) 目录下载对应系统的安装包, 也可以通过源码编译安装
+可以在 [release](https://github.com/chen-zeong/DTV/releases) 目录下载对应系统的安装包, 也可以通过源码编译安装
 
 ## 编译
 
 ```bash
-安装protobuf
+# 前置：Go 1.26+、Node 20+、pnpm，以及 Wails v3 CLI
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 
 # 克隆项目
-git clone https://github.com/c-zeong/dtv.git
-cd dtv
+git clone -b wails3 https://github.com/chen-zeong/DTV.git
+cd DTV
 
 # 安装依赖
-pnpm install
+cd frontend && pnpm install && cd ..
 
 # 开发调试
-pnpm tauri dev
+wails3 dev
 
 # 打包构建
-pnpm tauri build      # 构建当前系统的安装包
+wails3 build
+wails3 package
 
-# 打包 ARM64 版本（Intel Mac 上交叉编译）
-pnpm tauri build --target aarch64-apple-darwin
+# macOS：arm64 / Intel 两个版本
+wails3 task darwin:package ARCH=arm64
+wails3 task darwin:create:dmg
+wails3 task darwin:package ARCH=amd64
+wails3 task darwin:create:dmg
+
+# Windows：先构建 exe，再用 WiX v3 打包 MSI
+wails3 build SIGN_ENABLED=false
+wails3 task windows:msi WIX_BIN="C:\path\to\wix314"
 ```
 
 ## 参考

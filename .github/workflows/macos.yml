@@ -44,9 +44,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macos-14 是 Apple Silicon；macos-15-intel 是 Intel。
+          # macOS 15 标准 runner 是 arm64；macOS 15 Intel runner 是 x64。
           - arch: arm64
-            runner: macos-14
+            runner: macos-15
           - arch: amd64
             runner: macos-15-intel
 

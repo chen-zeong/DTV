@@ -1,4 +1,8 @@
 allowBuilds:
   esbuild: true
+  core-js: true
+  es5-ext: true
 onlyBuiltDependencies:
   - esbuild
+  - core-js
+  - es5-ext
