@@ -73,7 +73,7 @@
 go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 
 # 克隆项目
-git clone -b wails3 https://github.com/chen-zeong/DTV.git
+git clone https://github.com/chen-zeong/DTV.git
 cd DTV
 
 # 安装依赖
