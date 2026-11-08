@@ -46,6 +46,15 @@ func windowStatePath() string {
 	return filepath.Join(appdirs.Ensure(appdirs.ConfigDir()), "window.json")
 }
 
+// validWindowBounds 过滤最小化窗口的哨兵坐标（Windows 常见 -18285/-32000）
+// 以及明显异常的尺寸，避免把无效 bounds 写进 window.json。
+func validWindowBounds(x, y, width, height int) bool {
+	if x <= -10000 || y <= -10000 || x > 100000 || y > 100000 {
+		return false
+	}
+	return width >= minWindowWidth && height >= minWindowHeight
+}
+
 func loadWindowState() (windowState, bool) {
 	raw, err := os.ReadFile(windowStatePath())
 	if err != nil {
@@ -125,6 +134,9 @@ func main() {
 		width, height = state.Width, state.Height
 		maximised = state.Maximised
 	}
+	// 旧版本可能把最小化时的 -18285 坐标写进文件；这种坐标只用于居中，
+	// 不要拿去摆放窗口。尺寸仍然沿用。
+	hasValidPosition := hasState && validWindowBounds(state.X, state.Y, width, height)
 	if screen := app.Screen.GetPrimary(); screen != nil {
 		if screen.WorkArea.Width > 0 && width > screen.WorkArea.Width {
 			width = screen.WorkArea.Width
@@ -132,7 +144,7 @@ func main() {
 		if screen.WorkArea.Height > 0 && height > screen.WorkArea.Height {
 			height = screen.WorkArea.Height
 		}
-		if hasState {
+		if hasValidPosition {
 			// 只要窗口和任意屏幕有交集就沿用上次坐标，否则回到居中。
 			visible := false
 			for _, candidate := range app.Screen.GetAll() {
@@ -229,24 +241,56 @@ func main() {
 	})
 
 	// --- 窗口状态持久化 -----------------------------------------------------
+	// resize/move 时先抓一份普通窗口 bounds，再防抖写盘。这样用户“拖完立刻
+	// 最小化/关闭”也不会丢掉刚调整的尺寸。
+	captureNormalBounds := func() {
+		if mainWindow == nil || mainWindow.IsMinimised() || mainWindow.IsMaximised() {
+			return
+		}
+		x, y := mainWindow.Position()
+		width, height := mainWindow.Size()
+		if !validWindowBounds(x, y, width, height) {
+			return
+		}
+		saveMu.Lock()
+		state = windowState{X: x, Y: y, Width: width, Height: height}
+		saveMu.Unlock()
+	}
+
 	persist := func() {
 		saveMu.Lock()
 		defer saveMu.Unlock()
 		if mainWindow == nil {
 			return
 		}
+
+		// 最小化时 Windows 会给出 -18285/-32000 之类的哨兵坐标，不能读。
+		// 直接保存最后一次捕获到的普通窗口 bounds。
+		if mainWindow.IsMinimised() {
+			if validWindowBounds(state.X, state.Y, state.Width, state.Height) {
+				saveWindowState(state)
+			}
+			return
+		}
+
 		isMax := mainWindow.IsMaximised()
 		next := windowState{Maximised: isMax}
 		if isMax {
 			// 最大化时 Size/Position 是屏幕尺寸；保留上一次的普通窗口 bounds。
 			next.X, next.Y = state.X, state.Y
 			next.Width, next.Height = state.Width, state.Height
-			if next.Width < minWindowWidth || next.Height < minWindowHeight {
+			if !validWindowBounds(next.X, next.Y, next.Width, next.Height) {
+				next.X, next.Y = 0, 0
 				next.Width, next.Height = defaultWindowWidth, defaultWindowHeight
 			}
 		} else {
-			next.X, next.Y = mainWindow.Position()
-			next.Width, next.Height = mainWindow.Size()
+			x, y := mainWindow.Position()
+			width, height := mainWindow.Size()
+			if !validWindowBounds(x, y, width, height) {
+				return
+			}
+			next.X, next.Y = x, y
+			next.Width, next.Height = width, height
 			state = next
 		}
 		saveWindowState(next)
@@ -263,9 +307,11 @@ func main() {
 	}
 
 	mainWindow.OnWindowEvent(events.Common.WindowDidMove, func(*application.WindowEvent) {
+		captureNormalBounds()
 		schedulePersist()
 	})
 	mainWindow.OnWindowEvent(events.Common.WindowDidResize, func(*application.WindowEvent) {
+		captureNormalBounds()
 		schedulePersist()
 	})
 	mainWindow.OnWindowEvent(events.Common.WindowClosing, func(*application.WindowEvent) {

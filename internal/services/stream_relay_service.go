@@ -320,7 +320,8 @@ func (s *StreamRelayService) handleStream(w http.ResponseWriter, r *http.Request
 	}
 
 	renew := snapshot.platform == "douyu"
-	relayFlv(ctx, flvSink{w: w, flush: flush}, body, open, renew,
+	// 不再做音视频时间戳改写：只保留 300 秒续流，避免任何猜测性的偏移。
+	relayFlv(ctx, flvSink{w: w, flush: flush}, body, open, renew, false,
 		func(elapsed time.Duration, switchErr error) {
 			if switchErr != nil {
 				slog.Warn("直播流续流失败，准备重试",

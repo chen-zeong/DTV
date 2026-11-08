@@ -8,6 +8,8 @@ frontend/node_modules
 # 探针/临时工具二进制
 /dtvprobe.exe
 /cmd/*/*.exe
+# 本地构建的 MSI 安装包
+/dtv-amd64.msi
 build/linux/appimage/build
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 # 代码签名：证书 / 私钥 / 密码都由 gen-selfsigned-cert.ps1 在本机生成，不提交

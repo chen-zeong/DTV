@@ -39,7 +39,12 @@ info.fixed ??= {};
 info.fixed.file_version = version;
 info.fixed.product_version = version;
 for (const table of Object.values(info.info ?? {})) {
-  if (table && typeof table === "object") table.ProductVersion = version;
+  if (table && typeof table === "object") {
+    // FileVersion 是 Explorer「文件版本」读的字符串键；只写 fixed 会出现
+    // 属性页里文件版本空白、只有 Product version 的情况。
+    table.FileVersion = version;
+    table.ProductVersion = version;
+  }
 }
 
 const next = `${JSON.stringify(info, null, "\t")}\n`;

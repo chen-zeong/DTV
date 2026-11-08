@@ -82,6 +82,12 @@
   color: var(--player-accent);
 }
 
+/* 日间主题的控制栏仍浮在深色视频上：用专门调亮的 player-accent，
+ * 再补一层轻微辉光，保证黑白灰的纯白、书页的琥珀都看得出来。 */
+:global([data-theme="light"]) .iconControlActive {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--player-accent) 60%, transparent));
+}
+
 .panelToggle {
   width: 24px;
   height: 24px;
@@ -282,12 +288,9 @@
   }
 }
 
-/* 窄窗口：优先保留播放/音量/弹幕/清晰度/线路/全屏 */
+/* 窄窗口：优先保留播放/音量/弹幕/清晰度/线路/窗口全屏/全屏。
+ * 窗口全屏按钮不再随宽度隐藏——它必须有固定入口。 */
 @media (max-width: 1100px) {
-  .windowFullscreenBtn {
-    display: none;
-  }
-
   .leftCluster,
   .danmuGroup {
     gap: 8px;

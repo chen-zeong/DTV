@@ -219,6 +219,7 @@ func (s *danmakuSession) run(ctx context.Context) {
 
 	backoff := time.Second
 	for {
+		started := time.Now()
 		err := s.connectAndRead(ctx)
 		if ctx.Err() != nil {
 			log.Printf("[Douyu Danmaku %s] 已停止监听", s.roomID)
@@ -226,6 +227,11 @@ func (s *danmakuSession) run(ctx context.Context) {
 		}
 		if err != nil {
 			log.Printf("[Douyu Danmaku %s] 连接断开: %v，%s 后重连", s.roomID, err, backoff)
+		}
+
+		// 稳定跑过 10s 再断，说明只是偶发抖动，下一次从 1s 重新退避。
+		if time.Since(started) >= 10*time.Second {
+			backoff = time.Second
 		}
 
 		select {

@@ -419,7 +419,8 @@ func douyuAvatarURL(raw string) string {
 //   - show_status == 1 时，video_loop/isLoop == 1 表示轮播（回放），同样不算直播中；
 //     video_loop 缺失（0）按直播中处理。
 //
-// 搜索接口的 isLive(2=直播中) 由 normalizeSearchLive 先归一成 show_status 语义再传进来。
+// 搜索接口的 isLive(1=直播中，2=未开播) 由 normalizeSearchLive 先归一成
+// show_status 语义再传进来。
 func isLiveFromFlags(showStatus, isLoop, videoLoop int64) bool {
 	if showStatus != 1 {
 		return false

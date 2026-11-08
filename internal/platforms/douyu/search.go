@@ -107,7 +107,8 @@ func (c *Client) SearchAnchor(keyword string, page, pageSize int) ([]common.Sear
 			Title:    title,
 			Avatar:   douyuAvatarURL(jsonString(info["avatar"])),
 			IsLive: isLiveFromFlags(
-				// 搜索结果里 isLive 语义是 2=直播中（不是 1），保持旧前端规则。
+				// 搜索接口的 isLive 语义：1=直播中，2=未开播（实测 2026-11，
+				// YYF 的 9999 房间 isLive=1，其它离线主播 isLive=2）。
 				normalizeSearchLive(jsonInt64(info["isLive"])),
 				jsonInt64(info["isLoop"]),
 				jsonInt64(info["videoLoop"]),
@@ -118,14 +119,13 @@ func (c *Client) SearchAnchor(keyword string, page, pageSize int) ([]common.Sear
 	return out, nil
 }
 
-// normalizeSearchLive 把搜索接口的 isLive(2=直播中) 归一成 show_status 语义(1=直播中)。
+// normalizeSearchLive 把搜索接口的 isLive(1=直播中) 归一成 show_status 语义(1=直播中)。
+//
+// ⚠️ 这里曾经写反过：实测斗鱼搜索接口对在线房间返回 isLive=1、离线房间返回 2，
+// 旧代码把 2 当成直播中，于是搜索结果的在线圆点全挂在离线主播上。
 func normalizeSearchLive(raw int64) int64 {
-	if raw == 2 {
-		return 1
-	}
 	if raw == 1 {
-		// 旧规则要求 2 才算直播；1 视为非直播。
-		return 0
+		return 1
 	}
 	return 0
 }

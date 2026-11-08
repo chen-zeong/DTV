@@ -38,6 +38,15 @@ const (
 	flvMaxPending = 8 << 20
 	// flvReadBuffer 是一次读取上游的块大小。
 	flvReadBuffer = 32 * 1024
+
+	// 音画同步补偿：直播伴侣 / 手机开播的 NVENC 流，视频 tag 的 DTS 没有
+	// 为 B 帧重排提前，PTS=DTS+CTS 会比音频晚 60~100ms（OBS 一般会补偿）。
+	// 首段同时拿到首个音频与首个视频 tag 后，若两者相差在这个区间内，
+	// 就把所有音频 tag 的时间戳平移相同差值，让 PTS 与音频对齐。
+	flvAVSyncThresholdMS = 40
+	flvAVSyncMaxShiftMS  = 500
+	// 首段还没凑齐音视频 tag 时的缓冲上限；超过就放弃补偿并原样转发。
+	flvAVSyncPendingMax = 1 << 20
 )
 
 const (
@@ -48,9 +57,11 @@ const (
 
 // flvTag 是一个完整 tag：11 字节 tag 头 + data + 4 字节 PreviousTagSize。
 type flvTag struct {
-	raw            []byte
-	typ            byte
-	timestamp      uint32
+	raw       []byte
+	typ       byte
+	timestamp uint32
+	// pts 只对视频有意义：timestamp 是 DTS，pts = DTS + composition time offset。
+	pts            int64
 	keyframe       bool
 	sequenceHeader bool
 }
@@ -59,6 +70,8 @@ type flvTag struct {
 type flvDemuxer struct {
 	buf        []byte
 	headerDone bool
+	// header 保留原始 FLV 文件头，供“需要重写 tag”的路径先写出文件头。
+	header []byte
 }
 
 func (d *flvDemuxer) push(chunk []byte) {
@@ -69,6 +82,7 @@ func (d *flvDemuxer) pending() int { return len(d.buf) }
 
 func (d *flvDemuxer) reset() {
 	d.buf = nil
+	d.header = nil
 	d.headerDone = false
 }
 
@@ -94,6 +108,7 @@ func (d *flvDemuxer) skipHeader() bool {
 			return false
 		}
 	}
+	d.header = append([]byte(nil), d.buf[:total]...)
 	d.buf = d.buf[total:]
 	d.headerDone = true
 	return true
@@ -121,6 +136,7 @@ func (d *flvDemuxer) nextTag() (flvTag, bool) {
 		uint32(d.buf[6])
 
 	var keyframe, seq bool
+	var cts int32
 	if size >= 2 {
 		first, second := d.buf[11], d.buf[12]
 		switch typ {
@@ -128,13 +144,28 @@ func (d *flvDemuxer) nextTag() (flvTag, bool) {
 			// 视频：高 4 位是帧类型（1 = 关键帧），后一字节为 0 表示 sequence header。
 			keyframe = first>>4 == 1
 			seq = second == 0
+			// AVCPacketType=1 时，紧跟的 3 字节是有符号的 composition time offset。
+			if second == 1 && size >= 5 {
+				raw := int32(d.buf[13])<<16 | int32(d.buf[14])<<8 | int32(d.buf[15])
+				if raw&0x800000 != 0 {
+					raw |= ^int32(0xFFFFFF)
+				}
+				cts = raw
+			}
 		case flvTagAudio:
 			// 音频：后一字节为 0 表示 sequence header。
 			seq = second == 0
 		}
 	}
 
-	tag := flvTag{raw: d.buf[:total], typ: typ, timestamp: ts, keyframe: keyframe, sequenceHeader: seq}
+	tag := flvTag{
+		raw:            d.buf[:total],
+		typ:            typ,
+		timestamp:      ts,
+		pts:            int64(ts) + int64(cts),
+		keyframe:       keyframe,
+		sequenceHeader: seq,
+	}
 	d.buf = d.buf[total:]
 	if len(d.buf) == 0 {
 		// 让已消费的前缀及时被回收，长时间播放时内存只跟单次读取量有关。
@@ -179,6 +210,89 @@ func (t *flvTimeline) isAhead(tag flvTag) bool {
 	}
 }
 
+// flvAVNormalizer 负责给“视频 PTS 被 B 帧重排推迟、音频没补偿”的流做一次
+// 固定偏移补偿。
+//
+// 为什么只补音频：FLV 视频 tag 的 timestamp 是 DTS，播放器用 DTS+CTS 得到 PTS；
+// 直播伴侣 / 手机开播的编码器常常把 DTS 当采集时间、CTS 只表示重排延迟，
+// 于是视频 PTS 天然比音频晚 ~60–100ms。把音频时间戳整体后移同样的差值，
+// 就能让“首帧音频”和“首帧视频 PTS”落在同一时刻。OBS 的流通常已经补偿过，
+// 首帧差值很小，不会触发。
+type flvAVNormalizer struct {
+	decided       bool
+	shiftMS       int64
+	hasAudio      bool
+	firstAudioTS  int64
+	hasVideo      bool
+	firstVideoPTS int64
+	pending       []flvTag
+	pendingBytes  int
+}
+
+// observe 记录首帧；返回 true 表示“刚好在这个 tag 上完成决策”。
+func (n *flvAVNormalizer) observe(tag flvTag) bool {
+	if tag.sequenceHeader || tag.typ == flvTagScript {
+		return false
+	}
+	switch tag.typ {
+	case flvTagAudio:
+		if !n.hasAudio {
+			n.firstAudioTS = int64(tag.timestamp)
+			n.hasAudio = true
+		}
+	case flvTagVideo:
+		if !n.hasVideo {
+			n.firstVideoPTS = tag.pts
+			n.hasVideo = true
+		}
+	}
+	if n.decided || !n.hasAudio || !n.hasVideo {
+		return false
+	}
+	n.decided = true
+	delta := n.firstVideoPTS - n.firstAudioTS
+	if delta >= flvAVSyncThresholdMS && delta <= flvAVSyncMaxShiftMS {
+		n.shiftMS = delta
+	} else if delta <= -flvAVSyncThresholdMS && delta >= -flvAVSyncMaxShiftMS {
+		n.shiftMS = delta
+	}
+	return true
+}
+
+// forceDecide 在迟迟凑不齐音视频（或缓冲过大）时放弃补偿并原样输出。
+func (n *flvAVNormalizer) forceDecide() {
+	if !n.decided {
+		n.decided = true
+		n.shiftMS = 0
+	}
+}
+
+// apply 把补偿值写到音频 tag 的时间戳上（原地改 raw 的 4 个 timestamp 字节）。
+func (n *flvAVNormalizer) apply(tag *flvTag) {
+	if !n.decided || n.shiftMS == 0 || tag.typ != flvTagAudio || tag.sequenceHeader {
+		return
+	}
+	n.writeTimestamp(tag, int64(tag.timestamp)+n.shiftMS, 0)
+}
+
+func (n *flvAVNormalizer) writeTimestamp(tag *flvTag, ts, cts int64) {
+	if ts < 0 {
+		ts = 0
+	}
+	if ts > int64(^uint32(0)) {
+		ts = int64(^uint32(0))
+	}
+	tag.timestamp = uint32(ts)
+	tag.pts = ts + cts
+	if len(tag.raw) >= 8 {
+		// FLV 低 24 位时间戳在 tag 头 4..6 字节里是大端；第 7 字节是高 8 位。
+		tag.raw[4] = byte(ts >> 16)
+		tag.raw[5] = byte(ts >> 8)
+		tag.raw[6] = byte(ts)
+		tag.raw[7] = byte(ts >> 24)
+	}
+}
+
 // flvSegment 是一条上游流的读取状态。
 type flvSegment struct {
 	body    io.ReadCloser
@@ -189,6 +303,8 @@ type flvSegment struct {
 	continuation bool
 	// waitingKeyframe 表示接续段在遇到第一个可用关键帧之前不转发任何内容。
 	waitingKeyframe bool
+	// headerWritten 表示首段文件头已经写出（音画补偿路径需要自己写文件头）。
+	headerWritten bool
 }
 
 func newFlvSegment(body io.ReadCloser, continuation bool) *flvSegment {
@@ -240,12 +356,18 @@ func relayFlv(
 	first io.ReadCloser,
 	open upstreamOpener,
 	renew bool,
+	syncAV bool,
 	onSwitch func(elapsed time.Duration, err error),
 ) {
 	segment := newFlvSegment(first, false)
 	timeline := &flvTimeline{}
 	// 不需要续流的平台连解析都省掉。
 	trackTimeline := renew
+	var normalizer *flvAVNormalizer
+	if syncAV {
+		normalizer = &flvAVNormalizer{}
+		trackTimeline = true
+	}
 
 	var prefetch chan prefetchResult
 	var failures int
@@ -276,7 +398,7 @@ func relayFlv(
 
 		n, readErr := segment.body.Read(buf)
 		if n > 0 {
-			if err := forwardSegment(sink, segment, buf[:n], timeline, &trackTimeline); err != nil {
+			if err := forwardSegment(sink, segment, buf[:n], timeline, &trackTimeline, normalizer); err != nil {
 				_ = segment.body.Close()
 				return
 			}
@@ -331,36 +453,43 @@ func relayFlv(
 //
 // 首段：原样转发（写入粒度与上游一致），只在需要续流时旁路解析维护时间轴。
 // 接续段：按 tag 裁剪、去重、聚合后一次写出。
+//
+// normalizer 非空时首段改为“解析 tag → 音画补偿 → 重新写出”，
+// 接续段也复用同一个补偿值，保证 300 秒续流前后时间轴一致。
 func forwardSegment(
 	sink flvSink,
 	segment *flvSegment,
 	chunk []byte,
 	timeline *flvTimeline,
 	trackTimeline *bool,
+	normalizer *flvAVNormalizer,
 ) error {
 	if !segment.continuation {
-		if err := sink.write(chunk); err != nil {
-			return err
-		}
-		if !*trackTimeline {
+		if normalizer == nil {
+			if err := sink.write(chunk); err != nil {
+				return err
+			}
+			if !*trackTimeline {
+				return nil
+			}
+			segment.demux.push(chunk)
+			// 文件头已经随原始字节发出去了，这里只是消费掉。
+			segment.demux.skipHeader()
+			for {
+				tag, ok := segment.demux.nextTag()
+				if !ok {
+					break
+				}
+				timeline.observe(tag)
+			}
+			if segment.demux.pending() > flvMaxPending {
+				// 不是可解析的 FLV：放弃维护时间轴，退化为纯直通。
+				*trackTimeline = false
+				segment.demux.reset()
+			}
 			return nil
 		}
-		segment.demux.push(chunk)
-		// 文件头已经随原始字节发出去了，这里只是消费掉。
-		segment.demux.skipHeader()
-		for {
-			tag, ok := segment.demux.nextTag()
-			if !ok {
-				break
-			}
-			timeline.observe(tag)
-		}
-		if segment.demux.pending() > flvMaxPending {
-			// 不是可解析的 FLV：放弃维护时间轴，退化为纯直通。
-			*trackTimeline = false
-			segment.demux.reset()
-		}
-		return nil
+		return forwardFirstSegmentNormalized(sink, segment, chunk, timeline, normalizer)
 	}
 
 	segment.demux.push(chunk)
@@ -372,6 +501,10 @@ func forwardSegment(
 		tag, ok := segment.demux.nextTag()
 		if !ok {
 			break
+		}
+		if normalizer != nil {
+			// 接续段的音频也要用首段算出的同一个偏移，否则 300 秒一过又错开。
+			normalizer.apply(&tag)
 		}
 		if segment.waitingKeyframe {
 			// 丢掉元数据与初始化 tag，播放器已经初始化过了。
@@ -394,4 +527,77 @@ func forwardSegment(
 		segment.demux.reset()
 	}
 	return sink.write(out)
+}
+
+// forwardFirstSegmentNormalized 处理首段的音画补偿路径。
+//
+// 首段不能再“原样转发”：必须先把 tag 解析出来，等首个音频和首个视频都出现，
+// 才能算出音频需要平移多少。在此之前先把 tag 缓存在 pending 里。
+func forwardFirstSegmentNormalized(
+	sink flvSink,
+	segment *flvSegment,
+	chunk []byte,
+	timeline *flvTimeline,
+	normalizer *flvAVNormalizer,
+) error {
+	segment.demux.push(chunk)
+
+	if !segment.demux.headerDone {
+		if !segment.demux.skipHeader() {
+			// 文件头还没收全，等下一次读取。
+			return nil
+		}
+	}
+	if !segment.headerWritten {
+		segment.headerWritten = true
+		if len(segment.demux.header) > 0 {
+			if err := sink.write(segment.demux.header); err != nil {
+				return err
+			}
+		}
+	}
+
+	var out []byte
+	for {
+		tag, ok := segment.demux.nextTag()
+		if !ok {
+			break
+		}
+
+		if !normalizer.decided {
+			normalizer.pending = append(normalizer.pending, tag)
+			normalizer.pendingBytes += len(tag.raw)
+			if normalizer.observe(tag) {
+				flushAVPending(normalizer, timeline, &out)
+				continue
+			}
+			if normalizer.pendingBytes > flvAVSyncPendingMax {
+				// 音视频一直凑不齐（例如纯音频流）：放弃补偿，先转发已有 tag。
+				normalizer.forceDecide()
+				flushAVPending(normalizer, timeline, &out)
+			}
+			continue
+		}
+
+		normalizer.apply(&tag)
+		timeline.observe(tag)
+		out = append(out, tag.raw...)
+	}
+
+	if segment.demux.pending() > flvMaxPending {
+		// 无法继续按 FLV 解析：保留已解析的输出，丢掉解析缓冲。
+		segment.demux.reset()
+	}
+	return sink.write(out)
+}
+
+// flushAVPending 把缓存中的首段 tag 应用补偿后写出。
+func flushAVPending(normalizer *flvAVNormalizer, timeline *flvTimeline, out *[]byte) {
+	for _, tag := range normalizer.pending {
+		normalizer.apply(&tag)
+		timeline.observe(tag)
+		*out = append(*out, tag.raw...)
+	}
+	normalizer.pending = nil
+	normalizer.pendingBytes = 0
 }

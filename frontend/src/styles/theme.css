@@ -4,20 +4,20 @@
  * 视觉语言：
  *   1. 平涂优先 —— 界面由实色表面 + 色阶分层，不再给每个盒子都加 1px 描边。
  *      描边只保留给输入框、分隔线和真正需要边界的浮层。
- *   2. 配色 —— 石墨黑底 + 暖白字，唯一强调色是"信号青柠"（chartreuse）。
+ *   2. 配色 —— 默认是石墨黑底 + 暖白字 + "信号青柠"（chartreuse）。
  *      青柠只出现在主操作、激活态和 LIVE 指示上。
  *   3. 尺度 —— 圆角收敛到 8 / 12 / 16 / 999 四档，与 4px 间距基线配套。
  *   4. 字重 —— 中文只有 400 / 700 两档可用（系统字体限制），层级靠字号/颜色。
  *   5. 动效 —— 起步快、收尾缓的 ease-out；只动 transform/opacity。
  *
- * 变量名保持与旧版一致（组件不需要改），颜色/尺寸只在这里定义一次。
+ * 4.1 起支持六套配色（同色系日夜成对）：`[data-palette="..."]` 只覆盖颜色原语，
+ * 字体、尺度、动效等结构令牌放在 `:root`，避免每套主题复制一遍。
+ * `data-theme` 仍然只表示 dark / light（旧样式里的
+ * `[data-theme="light"]` 选择器因此继续有效）。
  * ========================================================================== */
 
-/* ------------------------------------------------------------ 深色（默认） */
-:root,
-[data-theme="dark"] {
-  color-scheme: dark;
-
+/* ------------------------------------------------------- 结构令牌（全主题共用） */
+:root {
   /* 字体：系统字体优先（Windows 11 Segoe UI Variable / macOS SF / 苹方）。
    * Display 光学尺寸给标题，Text 给正文；可变字体下由 font-optical-sizing 自动微调。 */
   --font-display:
@@ -61,73 +61,7 @@
   --dur-4: 420ms;
   --dur-5: 620ms;
 
-  /* ------------------------------------------------------------ 表面与背景 */
-  /* 卡片抬到 #14161b：即使去掉描边，也能和 #0a0b0d 的地面区分开 */
-  --bg-primary: #0a0b0d;
-  --bg-secondary: #14161b;
-  --bg-tertiary: #1c1f25;
-  --bg-elevated: #191c22;
-  --sidebar-bg: #0c0e11;
-
-  /* 半透明填充：hover / 选中 / 输入框 */
-  --fill-quaternary: #16181d;
-  --fill-tertiary: #1e2128;
-  --fill-secondary: #272b33;
-  --hover-bg: #1e2128;
-
-  /* ---------------------------------------------------------------- 文字 */
-  --text-primary: #f4f4ef;
-  --text-secondary: #a7aab2;
-  --text-tertiary: #8b909a;
-  --text-meta: #737884;
-
-  /* -------------------------------------------------------------- 强调色 */
-  /* accent 是"填充色"，两种主题都用亮青柠；accent-ink 是浅色主题下的小字/图标色 */
-  --accent: #d8ff4f;
-  --accent-hover: #e6ff7c;
-  --accent-active: #c2ed2f;
-  --accent-text: #0b0c08;
-  --accent-ink: #d8ff4f;
-  --accent-soft: rgba(216, 255, 79, 0.12);
-  --accent-softer: rgba(216, 255, 79, 0.07);
-  --accent-glow: rgba(216, 255, 79, 0.2);
-  /* 兼容旧变量：不再有渐变，统一回落到实色 */
-  --accent-gradient: var(--accent);
-  --accent-gradient-soft: var(--accent-soft);
-
-  /* ------------------------------------------------------------ 描边与分隔 */
-  --border: #24272e;
-  --border-strong: #343842;
-  --separator: #1f2229;
-
-  /* ---------------------------------------------------------------- 材质 */
-  /* 旧版玻璃令牌全部拍平：组件即使仍引用，也只会得到实色表面 */
-  --glass-bg: #14161b;
-  --glass-bg-strong: #191c22;
-  --glass-border: #24272e;
-  --glass-highlight: 0 0 0 0 transparent;
-  --glass-blur: none;
-  --glass-blur-strong: none;
-  --glass-sheen: none;
-  --glass-sheen-soft: none;
-
-  /* 播放器控制台：视频之上永远是深色实底 */
-  --player-glass-bg: rgba(10, 11, 13, 0.92);
-  --player-glass-bg-hover: #17191e;
-  --player-glass-border: rgba(244, 244, 239, 0.09);
-  --player-glass-inset: 0 0 0 0 transparent;
-  --player-text: rgba(244, 244, 239, 0.96);
-  --player-text-dim: rgba(244, 244, 239, 0.58);
-
-  /* ---------------------------------------------------------------- 阴影 */
-  /* 静止表面不用阴影；只有真正浮起的菜单 / 弹窗需要 */
-  --shadow-low: 0 1px 0 rgba(255, 255, 255, 0.03);
-  --shadow-md: 0 14px 34px -24px rgba(0, 0, 0, 0.75);
-  --shadow-lg: 0 38px 72px -30px rgba(0, 0, 0, 0.85);
-  --shadow-popover: 0 22px 56px -22px rgba(0, 0, 0, 0.8);
-
-  /* ---------------------------------------------------------------- 圆角 */
-  /* 四档：控件 8 / 面板与卡片 12 / 大容器 16 / 胶囊 999 */
+  /* 四档圆角：控件 8 / 面板与卡片 12 / 大容器 16 / 胶囊 999 */
   --radius-xs: 8px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -137,7 +71,6 @@
   --radius-full: 999px;
   --card-radius: 12px;
 
-  /* ------------------------------------------------------------ 布局尺度 */
   /* 4px 基线：8 / 12 / 16 / 24 */
   --space-1: 4px;
   --space-2: 8px;
@@ -149,26 +82,42 @@
   --navbar-height: 64px;
   --control-h: 40px;
 
-  /* ---------------------------------------------------------------- 状态 */
-  --success: #7bdc8a;
-  --warning: #f5b544;
-  --danger: #ff5c6c;
-  --status-live: #ff4757;
-  --status-offline: #5c6169;
-  --status-active: var(--accent);
-  --status-warning: var(--warning);
+  /* ---------------------------- 材质：旧版玻璃令牌全部拍平，统一回落到实色表面 */
+  --glass-bg: var(--bg-secondary);
+  --glass-bg-strong: var(--bg-elevated);
+  --glass-border: var(--border);
+  --glass-highlight: 0 0 0 0 transparent;
+  --glass-blur: none;
+  --glass-blur-strong: none;
+  --glass-sheen: none;
+  --glass-sheen-soft: none;
+
+  /* 播放器控制台：视频之上永远是深色实底，所有主题共用 */
+  --player-glass-bg: rgba(10, 11, 13, 0.92);
+  --player-glass-bg-hover: #17191e;
+  --player-glass-border: rgba(244, 244, 239, 0.09);
+  --player-glass-inset: 0 0 0 0 transparent;
+  --player-text: rgba(244, 244, 239, 0.96);
+  --player-text-dim: rgba(244, 244, 239, 0.58);
+  --player-accent: var(--accent);
+  --player-accent-hover: var(--accent-hover);
+  --player-accent-active: var(--accent-active);
+  --player-accent-strong: color-mix(in srgb, var(--accent) 24%, transparent);
+  --player-accent-gradient: var(--player-accent);
 
   /* ------------------------------------------------- 组件级语义色（新代码用） */
+  --accent-gradient: var(--accent);
+  --accent-gradient-soft: var(--accent-soft);
+  --status-active: var(--accent);
+  --status-warning: var(--warning);
   --card-bg: var(--bg-secondary);
   --card-border: transparent;
-  --skeleton-bg: #1e2128;
-  --skeleton-shine: #272b33;
   --color-card: var(--bg-secondary);
   --color-border: var(--border);
 
   /* ------------------------------------------------- HeroUI v3 令牌映射
    * HeroUI 的组件只读它自己的语义变量；这里把它们映射到 Signal，
-   * 让 Select / Switch / Slider / Tabs / Card 与现有配色一致。 */
+   * 让 Select / Switch / Slider / Tabs / Card 与当前配色一致。 */
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
   --surface: var(--bg-secondary);
@@ -186,9 +135,6 @@
   --segment: var(--accent);
   --segment-foreground: var(--accent-text);
   --accent-foreground: var(--accent-text);
-  --success-foreground: #0b0c08;
-  --warning-foreground: #14150f;
-  --danger-foreground: #ffffff;
   --focus: var(--accent);
   --radius: 12px;
   --field-radius: 8px;
@@ -196,21 +142,6 @@
   --field-shadow: none;
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-fluid: cubic-bezier(0.22, 1, 0.36, 1);
-
-  /* 背景图层（AppShell 的细噪点，非渐变） */
-  --aura-dot: rgba(244, 244, 239, 0.035);
-
-  /* 弹幕样式 */
-  --danmu-font-family: inherit;
-  --danmu-opacity: 1;
-  --danmu-stroke-color: rgba(0, 0, 0, 0.72);
-
-  /* 播放器强调色 */
-  --player-accent: #d8ff4f;
-  --player-accent-hover: #e6ff7c;
-  --player-accent-active: #c2ed2f;
-  --player-accent-strong: rgba(216, 255, 79, 0.24);
-  --player-accent-gradient: var(--player-accent);
 
   /* ---------------------------------------------------------- 旧变量兼容别名 */
   --primary-bg: var(--bg-primary);
@@ -233,13 +164,241 @@
   --icon-color-light: #828678;
   --success-color: var(--success);
   --platform-active-bg: var(--fill-tertiary);
+
+  /* 弹幕样式 */
+  --danmu-font-family: inherit;
+  --danmu-opacity: 1;
+  --danmu-stroke-color: rgba(0, 0, 0, 0.72);
 }
 
-/* ---------------------------------------------------------------- 浅色主题 */
-[data-theme="light"] {
+/* ------------------------------------------------------------ 1. 青柠·夜（默认） */
+:root,
+[data-palette="signal"] {
+  color-scheme: dark;
+
+  --bg-primary: #0a0b0d;
+  --bg-secondary: #14161b;
+  --bg-tertiary: #1c1f25;
+  --bg-elevated: #191c22;
+  --sidebar-bg: #0c0e11;
+
+  --fill-quaternary: #16181d;
+  --fill-tertiary: #1e2128;
+  --fill-secondary: #272b33;
+  --hover-bg: #1e2128;
+
+  --text-primary: #f4f4ef;
+  --text-secondary: #a7aab2;
+  --text-tertiary: #8b909a;
+  --text-meta: #737884;
+
+  --accent: #d8ff4f;
+  --accent-hover: #e6ff7c;
+  --accent-active: #c2ed2f;
+  --accent-text: #0b0c08;
+  --accent-ink: #d8ff4f;
+  --accent-soft: rgba(216, 255, 79, 0.12);
+  --accent-softer: rgba(216, 255, 79, 0.07);
+  --accent-glow: rgba(216, 255, 79, 0.2);
+
+  --border: #24272e;
+  --border-strong: #343842;
+  --separator: #1f2229;
+
+  --shadow-low: 0 1px 0 rgba(255, 255, 255, 0.03);
+  --shadow-md: 0 14px 34px -24px rgba(0, 0, 0, 0.75);
+  --shadow-lg: 0 38px 72px -30px rgba(0, 0, 0, 0.85);
+  --shadow-popover: 0 22px 56px -22px rgba(0, 0, 0, 0.8);
+
+  --skeleton-bg: #1e2128;
+  --skeleton-shine: #272b33;
+
+  --success: #7bdc8a;
+  --warning: #f5b544;
+  --danger: #ff5c6c;
+  --success-foreground: #0b0c08;
+  --warning-foreground: #14150f;
+  --danger-foreground: #ffffff;
+  --status-live: #ff4757;
+  --status-offline: #5c6169;
+  --status-online: #22c55e;
+
+  --aura-dot: rgba(244, 244, 239, 0.035);
+}
+
+/* ------------------------------------------------------------ 2. 黑白灰·夜 */
+[data-palette="mono"] {
+  color-scheme: dark;
+
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #14161b;
+  --bg-tertiary: #1e1e1e;
+  --bg-elevated: #181818;
+  --sidebar-bg: #0d0d0d;
+
+  --fill-quaternary: #161616;
+  --fill-tertiary: #202020;
+  --fill-secondary: #2a2a2a;
+  --hover-bg: #202020;
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #8a8a8a;
+  --text-meta: #737373;
+
+  --accent: #e5e5e5;
+  --accent-hover: #ffffff;
+  --accent-active: #d4d4d4;
+  --accent-text: #0a0a0a;
+  --accent-ink: #e5e5e5;
+  --accent-soft: rgba(229, 229, 229, 0.12);
+  --accent-softer: rgba(229, 229, 229, 0.07);
+  --accent-glow: rgba(229, 229, 229, 0.18);
+
+  --border: #262626;
+  --border-strong: #3a3a3a;
+  --separator: #202020;
+
+  --shadow-low: 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-md: 0 14px 34px -24px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 38px 72px -30px rgba(0, 0, 0, 0.9);
+  --shadow-popover: 0 22px 56px -22px rgba(0, 0, 0, 0.85);
+
+  --skeleton-bg: #1e1e1e;
+  --skeleton-shine: #2a2a2a;
+
+  --success: #7bdc8a;
+  --warning: #f5b544;
+  --danger: #ff5c6c;
+  --success-foreground: #0b0c08;
+  --warning-foreground: #14150f;
+  --danger-foreground: #ffffff;
+  --status-live: #ff4757;
+  --status-offline: #5c6169;
+  --status-online: #22c55e;
+
+  --aura-dot: rgba(255, 255, 255, 0.04);
+}
+
+/* ------------------------------------------------------------ 4. 琥珀·夜 */
+[data-palette="ember"] {
+  color-scheme: dark;
+
+  --bg-primary: #100c08;
+  --bg-secondary: #14161b;
+  --bg-tertiary: #2a2118;
+  --bg-elevated: #191c22;
+  --sidebar-bg: #0d0a06;
+
+  --fill-quaternary: #171109;
+  --fill-tertiary: #221a12;
+  --fill-secondary: #30241a;
+  --hover-bg: #221a12;
+
+  --text-primary: #fff4e6;
+  --text-secondary: #d6bda2;
+  --text-tertiary: #b89c80;
+  --text-meta: #967d64;
+
+  --accent: #ffab5c;
+  --accent-hover: #ffc287;
+  --accent-active: #f0923b;
+  --accent-text: #1d0f02;
+  --accent-ink: #ffab5c;
+  --accent-soft: rgba(255, 171, 92, 0.13);
+  --accent-softer: rgba(255, 171, 92, 0.07);
+  --accent-glow: rgba(255, 171, 92, 0.22);
+
+  --border: #33271b;
+  --border-strong: #4a3927;
+  --separator: #271f16;
+
+  --shadow-low: 0 1px 0 rgba(255, 255, 255, 0.03);
+  --shadow-md: 0 14px 34px -24px rgba(16, 6, 0, 0.78);
+  --shadow-lg: 0 38px 72px -30px rgba(16, 6, 0, 0.88);
+  --shadow-popover: 0 22px 56px -22px rgba(16, 6, 0, 0.82);
+
+  --skeleton-bg: #2a2118;
+  --skeleton-shine: #30241a;
+
+  --success: #6ee7b7;
+  --warning: #fbbf24;
+  --danger: #ff6b6b;
+  --success-foreground: #04160a;
+  --warning-foreground: #14150f;
+  --danger-foreground: #ffffff;
+  --status-live: #ff5a5f;
+  --status-offline: #6b5b4a;
+  --status-online: #34d399;
+
+  --aura-dot: rgba(255, 244, 230, 0.04);
+}
+
+/* ------------------------------------------------------------ 3. 书页·日 */
+[data-palette="parchment"] {
   color-scheme: light;
 
-  /* 背景参考 HeroUI 默认浅色主题：中性灰底 + 纯白表面，不带暖黄倾向 */
+  /* 米纸、象牙白与深棕墨色：模拟旧书页/牛皮纸，而不是单纯的米黄背景 */
+  --bg-primary: #f3ead8;
+  --bg-secondary: #fffaf0;
+  --bg-tertiary: #e9dcc4;
+  --bg-elevated: #fffdf7;
+  --sidebar-bg: #efe4d0;
+
+  --fill-quaternary: #f7f0e1;
+  --fill-tertiary: #eee3cf;
+  --fill-secondary: #dfd1b7;
+  --hover-bg: #eee3cf;
+
+  --text-primary: #2b2117;
+  --text-secondary: #5c4b38;
+  --text-tertiary: #6d5a45;
+  --text-meta: #806c55;
+
+  --accent: #b45309;
+  --accent-hover: #d97706;
+  --accent-active: #92400e;
+  --accent-text: #fffaf0;
+  --accent-ink: #8a4b0f;
+  --accent-soft: rgba(180, 83, 9, 0.12);
+  --accent-softer: rgba(180, 83, 9, 0.06);
+  --accent-glow: rgba(180, 83, 9, 0.16);
+
+  --border: #ded0b8;
+  --border-strong: #c9b89a;
+  --separator: #e9ddc9;
+
+  --shadow-low: 0 1px 0 rgba(74, 52, 24, 0.03);
+  --shadow-md: 0 14px 34px -26px rgba(74, 52, 24, 0.22);
+  --shadow-lg: 0 38px 72px -32px rgba(74, 52, 24, 0.24);
+  --shadow-popover: 0 22px 56px -24px rgba(74, 52, 24, 0.22);
+
+  --skeleton-bg: #e9dcc4;
+  --skeleton-shine: #f9f2e4;
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --success-foreground: #ffffff;
+  --warning-foreground: #ffffff;
+  --danger-foreground: #ffffff;
+  --status-live: #c2410c;
+  --status-offline: #a89880;
+  --status-online: #15803d;
+
+  --focus: var(--accent-ink);
+  /* 控制栏浮在深色视频上：日间主题必须用亮的播放器强调色 */
+  --player-accent: #ffb45c;
+  --player-accent-hover: #ffc98a;
+  --player-accent-active: #f59e0b;
+  --player-accent-strong: rgba(255, 180, 92, 0.24);
+  --aura-dot: rgba(74, 52, 24, 0.04);
+}
+
+/* ------------------------------------------------------------ 5. 青柠·日 */
+[data-palette="daylight"] {
+  color-scheme: light;
+
   --bg-primary: #f1f2f4;
   --bg-secondary: #ffffff;
   --bg-tertiary: #eaecf0;
@@ -256,7 +415,6 @@
   --text-tertiary: #63636d;
   --text-meta: #71717a;
 
-  /* 填充仍是亮青柠，文字用深色；小字/图标改用 accent-ink（对比 > 6:1） */
   --accent: #d8ff4f;
   --accent-hover: #e4ff85;
   --accent-active: #c8ef3a;
@@ -265,21 +423,10 @@
   --accent-soft: rgba(120, 160, 10, 0.14);
   --accent-softer: rgba(120, 160, 10, 0.07);
   --accent-glow: rgba(120, 160, 10, 0.18);
-  --accent-gradient: var(--accent);
-  --accent-gradient-soft: var(--accent-soft);
 
   --border: #dde1e6;
   --border-strong: #c9ced6;
   --separator: #e7e9ed;
-
-  --glass-bg: #fafafa;
-  --glass-bg-strong: #ffffff;
-  --glass-border: #dde1e6;
-  --glass-highlight: 0 0 0 0 transparent;
-  --glass-blur: none;
-  --glass-blur-strong: none;
-  --glass-sheen: none;
-  --glass-sheen-soft: none;
 
   --shadow-low: 0 1px 0 rgba(24, 24, 27, 0.02);
   --shadow-md: 0 14px 34px -26px rgba(24, 24, 27, 0.26);
@@ -289,59 +436,81 @@
   --skeleton-bg: #ededee;
   --skeleton-shine: #f7f7f8;
 
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #be123c;
+  --success-foreground: #ffffff;
+  --warning-foreground: #ffffff;
+  --danger-foreground: #ffffff;
   --status-live: #e8344a;
   --status-offline: #a1a1aa;
-  --status-active: var(--accent);
+  --status-online: #16a34a;
 
-  --aura-dot: rgba(24, 24, 27, 0.05);
-
-  --card-bg: var(--bg-secondary);
-  --card-border: transparent;
-  --glass-shadow: var(--shadow-md);
-  --card-shadow: var(--shadow-low);
-  --card-shadow-hover: var(--shadow-md);
-  --dim-text: var(--text-tertiary);
-
-  /* HeroUI 令牌映射（浅色） */
-  --background: var(--bg-primary);
-  --foreground: var(--text-primary);
-  --surface: var(--bg-secondary);
-  --surface-foreground: var(--text-primary);
-  --surface-secondary: var(--bg-tertiary);
-  --surface-tertiary: var(--fill-secondary);
-  --overlay: var(--bg-elevated);
-  --overlay-foreground: var(--text-primary);
-  --muted: var(--text-tertiary);
-  --default: var(--fill-tertiary);
-  --default-foreground: var(--text-primary);
-  --field-background: var(--fill-quaternary);
-  --field-foreground: var(--text-primary);
-  --field-placeholder: var(--text-tertiary);
-  --segment: var(--accent);
-  --segment-foreground: var(--accent-text);
-  --accent-foreground: var(--accent-text);
-  --success: #15803d;
-  --success-foreground: #ffffff;
-  --warning-foreground: #18181b;
-  --danger-foreground: #ffffff;
   --focus: var(--accent-ink);
-  --radius: 12px;
-  --field-radius: 8px;
-  --overlay-shadow: var(--shadow-popover);
-  --field-shadow: none;
-  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out-fluid: cubic-bezier(0.22, 1, 0.36, 1);
-
-  /* 播放器在浅色主题下仍是深色视频底 */
-  --player-glass-bg: rgba(10, 11, 13, 0.92);
-  --player-glass-bg-hover: #17191e;
-  --player-glass-border: rgba(244, 244, 239, 0.09);
-  --player-glass-inset: 0 0 0 0 transparent;
-  --player-text: rgba(244, 244, 239, 0.96);
-  --player-text-dim: rgba(244, 244, 239, 0.58);
+  /* 控制栏浮在深色视频上：日间青柠用原来的亮青柠，而不是深绿 ink */
   --player-accent: #d8ff4f;
-  --player-accent-hover: #e6ff7c;
-  --player-accent-active: #c2ed2f;
+  --player-accent-hover: #e4ff85;
+  --player-accent-active: #c8ef3a;
   --player-accent-strong: rgba(216, 255, 79, 0.24);
-  --player-accent-gradient: var(--player-accent);
+  --aura-dot: rgba(24, 24, 27, 0.05);
+}
+
+/* ------------------------------------------------------------ 6. 黑白灰·日 */
+[data-palette="paper"] {
+  color-scheme: light;
+
+  --bg-primary: #f4f4f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e9e9eb;
+  --bg-elevated: #ffffff;
+  --sidebar-bg: #efeff1;
+
+  --fill-quaternary: #f7f7f8;
+  --fill-tertiary: #e8e8ea;
+  --fill-secondary: #d9d9dc;
+  --hover-bg: #e8e8ea;
+
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #5f5f68;
+  --text-meta: #71717a;
+
+  --accent: #18181b;
+  --accent-hover: #3f3f46;
+  --accent-active: #09090b;
+  --accent-text: #ffffff;
+  --accent-ink: #18181b;
+  --accent-soft: rgba(24, 24, 27, 0.1);
+  --accent-softer: rgba(24, 24, 27, 0.05);
+  --accent-glow: rgba(24, 24, 27, 0.15);
+
+  --border: #dedee2;
+  --border-strong: #c9c9cf;
+  --separator: #e8e8ea;
+
+  --shadow-low: 0 1px 0 rgba(24, 24, 27, 0.02);
+  --shadow-md: 0 14px 34px -26px rgba(24, 24, 27, 0.24);
+  --shadow-lg: 0 38px 72px -32px rgba(24, 24, 27, 0.26);
+  --shadow-popover: 0 22px 56px -24px rgba(24, 24, 27, 0.24);
+
+  --skeleton-bg: #ededee;
+  --skeleton-shine: #f7f7f8;
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #be123c;
+  --success-foreground: #ffffff;
+  --warning-foreground: #ffffff;
+  --danger-foreground: #ffffff;
+  --status-live: #e11d48;
+  --status-offline: #a1a1aa;
+  --status-online: #16a34a;
+
+  --focus: var(--accent-ink);
+  /* 黑白灰没有彩色强调：控制栏用纯白，靠辉光区分激活态 */
+  --player-accent: #ffffff;
+  --player-accent-hover: #ffffff;
+  --player-accent-active: #e5e5e5;
+  --player-accent-strong: rgba(255, 255, 255, 0.22);
+  --aura-dot: rgba(24, 24, 27, 0.05);
 }

@@ -33,6 +33,21 @@
   opacity: 0.035;
 }
 
+/* 书页·日：暖米纸底 + 轻微暖色暗角，再把颗粒调成偏纸纤维的棕色。
+ * 只作用于背景层，不会盖到列表卡片和播放器上。 */
+[data-palette="parchment"] .backdrop {
+  background:
+    radial-gradient(ellipse at 18% 0%, rgba(255, 255, 255, 0.5), transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(122, 86, 45, 0.07), transparent 60%),
+    var(--bg-primary);
+}
+
+[data-palette="parchment"] .grain {
+  opacity: 0.085;
+  mix-blend-mode: multiply;
+  filter: sepia(0.45);
+}
+
 /* ---------------------------------------------------------------- 内容层 */
 
 .appMain {

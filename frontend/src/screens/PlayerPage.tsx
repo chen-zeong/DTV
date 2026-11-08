@@ -11,6 +11,7 @@ import {
   PLATFORM_LABEL,
   type DanmakuMessage,
   type LivePlatform,
+  type Streamer,
   type StreamInfo,
 } from "@/api";
 import { SmoothImage } from "@/components/common/SmoothImage";
@@ -30,7 +31,7 @@ import { PlayerControls } from "@/features/player/PlayerControls";
 import { isDanmuBlocked } from "@/features/player/danmuSettings";
 import { useDanmuBlock } from "@/features/player/useDanmuBlock";
 import { useDanmuPreferences } from "@/features/player/useDanmuPreferences";
-import { useXgPlayer } from "@/features/player/useXgPlayer";
+import { useXgPlayer, type PlayerSource } from "@/features/player/useXgPlayer";
 import { cn } from "@/lib/cn";
 import { platformHomePath } from "@/lib/navigation";
 import { loadJSON, loadRaw, saveJSON, saveRaw, STORAGE_KEYS } from "@/lib/storage";
@@ -116,6 +117,9 @@ export function PlayerPage() {
   const roomOfflineRef = useRef(false);
   /** 最近一次退出全屏的时间（Esc 可能先被浏览器/原生窗口消费，避免同一次按键又触发返回） */
   const lastFullscreenExitRef = useRef(0);
+  /** 断流自动重连：定时器 / 连续失败次数 */
+  const reconnectTimerRef = useRef<number | null>(null);
+  const reconnectAttemptRef = useRef(0);
 
   const {
     nativeFullscreen,
@@ -130,6 +134,8 @@ export function PlayerPage() {
   const [info, setInfo] = useState<StreamInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [infoError, setInfoError] = useState<string | null>(null);
+  /** 重新拉取房间信息 / 取流地址；自动重连也靠它触发 */
+  const [reloadKey, setReloadKey] = useState(0);
   const [danmuPanelOpen, setDanmuPanelOpen] = useState<boolean>(
     () => !loadJSON<boolean>(STORAGE_KEYS.danmuPanelCollapsed, false),
   );
@@ -140,6 +146,85 @@ export function PlayerPage() {
       : DEFAULT_PANEL_WIDTH;
   });
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  /* ---------------------------------------------------- 直播流断流自动重连 */
+  /** 每次成功取流 +1：强制播放器重建（断流后即使 URL 没变也要换实例） */
+  const [streamRevision, setStreamRevision] = useState(0);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [reconnecting, setReconnecting] = useState(false);
+  /** 当前是否已确认“主播未开播”；重连期间不再误判 */
+  const offline = Boolean(info && !info.isLive);
+
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current != null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  /** 停掉自动重连并恢复普通状态（成功播放 / 确认下播 / 离开房间时调用） */
+  const stopReconnect = useCallback(() => {
+    clearReconnectTimer();
+    reconnectAttemptRef.current = 0;
+    setRetryAttempt(0);
+    setReconnecting(false);
+  }, [clearReconnectTimer]);
+
+  /** 上游已确认未开播：落空态并停止重连 */
+  const enterOffline = useCallback(
+    (room?: Streamer) => {
+      roomOfflineRef.current = true;
+      stopReconnect();
+      setInfo((prev) => {
+        if (prev && !prev.isLive && !room) return prev;
+        return {
+          roomId: room?.id || prev?.roomId || roomId,
+          platform,
+          title: room?.title ?? prev?.title ?? "",
+          nickname: room?.nickname ?? prev?.nickname ?? "",
+          avatar: room?.avatar ?? prev?.avatar ?? "",
+          isLive: false,
+          variants: [],
+          lines: [],
+        };
+      });
+      setLoadingInfo(false);
+    },
+    [platform, roomId, stopReconnect],
+  );
+
+  /**
+   * 安排一次重连。
+   *
+   * 指数退避 2s → 4s → 8s → 16s → 30s；重连动作只是重新拉房间信息 + 取流，
+   * 新地址回来后 `streamRevision` 变化会强制重建播放器实例。
+   */
+  const scheduleReconnect = useCallback(
+    (immediate = false) => {
+      if (!roomId || roomOfflineRef.current) return;
+      const attempt = reconnectAttemptRef.current + 1;
+      reconnectAttemptRef.current = attempt;
+      setRetryAttempt(attempt);
+      setReconnecting(true);
+
+      const delay = immediate
+        ? 0
+        : Math.min(30_000, 2_000 * 2 ** Math.min(attempt - 1, 4));
+      clearReconnectTimer();
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        setReloadKey((key) => key + 1);
+      }, delay);
+    },
+    [clearReconnectTimer, roomId],
+  );
+
+  /** 覆盖层里的「立即重连」：不等退避，马上重试 */
+  const manualReconnect = useCallback(() => {
+    reconnectAttemptRef.current = 0;
+    setRetryAttempt(0);
+    scheduleReconnect(true);
+  }, [scheduleReconnect]);
 
   /* ------------------------------------------- 悬浮 chrome 的自动隐藏（全屏） */
   const [chromeHidden, setChromeHidden] = useState(false);
@@ -220,7 +305,6 @@ export function PlayerPage() {
   /* 弹幕：订阅回调先写缓冲区，定时批量 flush 到 state（P-04） */
   const [messages, setMessages] = useState<DanmakuMessage[]>([]);
   const bufferRef = useRef<DanmakuMessage[]>([]);
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -252,21 +336,7 @@ export function PlayerPage() {
       .getRoomInfo(platform, roomId)
       .then((room) => {
         if (cancelled || room.isLive) return;
-        roomOfflineRef.current = true;
-        setInfo((prev) => {
-          if (prev?.isLive) return prev;
-          return {
-            roomId: room.id || roomId,
-            platform,
-            title: room.title,
-            nickname: room.nickname,
-            avatar: room.avatar,
-            isLive: false,
-            variants: [],
-            lines: [],
-          };
-        });
-        setLoadingInfo(false);
+        enterOffline(room);
       })
       .catch(() => {
         // 轻量检查失败不阻塞取流接口，由它给出最终结果或错误
@@ -278,11 +348,40 @@ export function PlayerPage() {
       .getStreamInfo(platform, roomId, lineId)
       .then((next) => {
         if (cancelled) return;
+
+        // 断流后的“未开播”可能是上游瞬断：重连期间再问一次房间状态，
+        // 只有两次都确认未开播才落到下播空态，避免网络抖动就误报“主播下线”。
+        if (!next.isLive && !roomOfflineRef.current && reconnectAttemptRef.current > 0) {
+          void api
+            .getRoomInfo(platform, roomId)
+            .then((room) => {
+              if (cancelled) return;
+              if (room.isLive) {
+                scheduleReconnect();
+                return;
+              }
+              enterOffline(room);
+            })
+            .catch(() => {
+              if (!cancelled) scheduleReconnect();
+            });
+          return;
+        }
+
+        if (!next.isLive) {
+          roomOfflineRef.current = true;
+          stopReconnect();
+        }
         setInfo(next);
+        // 即使 URL 字符串完全没变，也换掉播放器实例：旧实例的 FLV 读取器
+        // 已经结束，单靠 xgplayer.retry() 拉不回来。
+        setStreamRevision((revision) => revision + 1);
       })
       .catch((err: unknown) => {
         if (cancelled || roomOfflineRef.current) return;
         setInfoError(err instanceof Error ? err.message : "房间信息加载失败");
+        // 网络恢复前一直按退避重试；确认下播会由轻量检查 / 复核分支停掉。
+        scheduleReconnect();
       })
       .finally(() => {
         if (!cancelled) setLoadingInfo(false);
@@ -290,7 +389,7 @@ export function PlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, [platform, roomId, reloadKey, lineId]);
+  }, [platform, roomId, reloadKey, lineId, enterOffline, scheduleReconnect, stopReconnect]);
 
   /* ------------------------------------------------- 不再向 Navbar 推送主播信息 */
   // 产品要求：主播信息只出现在播放器自己的顶栏，应用导航栏保持干净。
@@ -379,22 +478,15 @@ export function PlayerPage() {
   // 中继地址还没就绪时先不建播放器，避免"先直连再重建"导致闪一下
   const relayReady = !relayKey || relay?.key === relayKey;
   const relayURL = relay?.key === relayKey ? relay?.url ?? null : null;
-  const playerSource =
+  const playerSource: PlayerSource | null =
     info?.isLive && relayReady
       ? relayURL
-        ? { url: relayURL, format: "flv" as const }
+        ? { url: relayURL, format: "flv", nonce: streamRevision }
         : variant
+          ? { url: variant.url, format: variant.format, nonce: streamRevision }
+          : null
       : null;
   const player = useXgPlayer(playerHostRef, playerSource, true);
-
-  /* 中继播放失败（端口被占、WebView 拒绝 http 本地地址等）时回退直连 */
-  useEffect(() => {
-    if (!player.error || !relayURL) return;
-    if (!info) return;
-    relayDisabledRef.current = info.roomId;
-    setRelay({ key: relayKey, url: null });
-    console.warn("[stream-relay] 中继播放失败，本房间回退直连");
-  }, [info, player.error, relayKey, relayURL]);
 
   /* 未开播：每 30 秒自动刷新一次房间信息 */
   useEffect(() => {
@@ -423,7 +515,11 @@ export function PlayerPage() {
     [platform],
   );
 
-  const reloadStream = useCallback(() => setReloadKey((k) => k + 1), []);
+  const reloadStream = useCallback(() => {
+    stopReconnect();
+    attemptedLinesRef.current = new Set();
+    setReloadKey((k) => k + 1);
+  }, [stopReconnect, setReloadKey]);
 
   /* B 站 / 斗鱼登录、退出后重新取流：登录态会改变服务端下发的清晰度档位。 */
   useEffect(() => {
@@ -436,21 +532,85 @@ export function PlayerPage() {
     };
   }, []);
 
-  /* ---------------------------------------------------- 播放失败自动换线 */
-  useEffect(() => {
-    attemptedLinesRef.current = new Set();
-  }, [platform, roomId]);
+  /* ---------------------------------------------------- 直播流自愈（第二层）
+   * 第一层是 xgplayer-flv / hls.js 自己的 chunk 重试；这里负责“地址失效”：
+   * 重新拉房间信息 → 重新取流 → 用新的 streamRevision 重建播放器。 */
 
+  /** 换房间 / 离开页面时清掉重连定时器与换线记录 */
   useEffect(() => {
-    if (!player.error || !info || info.lines.length <= 1) return;
-    const attempted = attemptedLinesRef.current;
-    if (activeLineId) attempted.add(activeLineId);
-    const next = info.lines.find((line) => !attempted.has(line.id));
-    if (!next) return;
-    toast(`线路不可用，已切换到「${next.label}」`, "info");
-    setLineId(next.id);
-    saveRaw(STORAGE_KEYS.playerLine(platform), next.id);
-    // 只在真正的 error 事件（nonce 变化）时触发一次；info/线路变化本身不重跑。
+    stopReconnect();
+    attemptedLinesRef.current = new Set();
+  }, [platform, roomId, stopReconnect]);
+
+  useEffect(() => () => clearReconnectTimer(), [clearReconnectTimer]);
+
+  /** 播放恢复：清掉退避；如果刚才在自动重连，给一次轻提示 */
+  useEffect(() => {
+    if (player.state !== "playing") return;
+    const wasReconnecting = reconnectAttemptRef.current > 0;
+    stopReconnect();
+    attemptedLinesRef.current = new Set();
+    if (wasReconnecting) toast("直播已重新连接", "success");
+  }, [player.state, stopReconnect, toast]);
+
+  /**
+   * 加载 / 缓冲卡住太久时视作断流。
+   *
+   * 有些 CDN 断流不会触发 error，只是永远停在 loading / buffering；
+   * 首次加载保留 20 秒，给握手、取流、首个关键帧和 8 秒预缓冲留余量；
+   * 已经播放过再卡住则 10 秒就重建，避免用户盯着冻结画面等太久。
+   */
+  useEffect(() => {
+    if (offline || reconnecting || !info?.isLive) return;
+    if (player.state !== "buffering" && player.state !== "loading") return;
+    const delay = player.state === "buffering" ? 10_000 : 20_000;
+    const timer = window.setTimeout(() => scheduleReconnect(), delay);
+    return () => window.clearTimeout(timer);
+  }, [player.state, offline, reconnecting, info?.isLive, scheduleReconnect]);
+
+  /** 网络恢复（系统从离线变在线）时不用等退避，立刻重试 */
+  useEffect(() => {
+    const onOnline = () => {
+      if (reconnectTimerRef.current != null || reconnectAttemptRef.current > 0) {
+        scheduleReconnect(true);
+      }
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [scheduleReconnect]);
+
+  /**
+   * 播放错误的统一处理：中继回退 → 换线路 → 自动重连。
+   *
+   * 只依赖 errorNonce，保证每一次真实的 error 事件只处理一次；
+   * info / 线路 / 中继地址的变化不会让这段逻辑重跑。
+   */
+  useEffect(() => {
+    if (!player.errorNonce || roomOfflineRef.current) return;
+
+    // 中继播放失败（端口被占、WebView 拒绝 http 本地地址等）时先回退直连。
+    if (relayURL && info) {
+      relayDisabledRef.current = info.roomId;
+      setRelay({ key: relayKey, url: null });
+      console.warn("[stream-relay] 中继播放失败，本房间回退直连");
+      return;
+    }
+
+    // 还有没试过的线路：先换线。
+    if (info && info.lines.length > 1) {
+      const attempted = attemptedLinesRef.current;
+      if (activeLineId) attempted.add(activeLineId);
+      const next = info.lines.find((line) => !attempted.has(line.id));
+      if (next) {
+        toast(`线路不可用，已切换到「${next.label}」`, "info");
+        setLineId(next.id);
+        saveRaw(STORAGE_KEYS.playerLine(platform), next.id);
+        return;
+      }
+    }
+
+    // 所有线路都失败：进入自动重连（重新取流 + 重建播放器）。
+    scheduleReconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player.errorNonce]);
 
@@ -654,8 +814,6 @@ export function PlayerPage() {
     );
   }
 
-  const offline = Boolean(info && !info.isLive);
-
   return (
     <div className={styles.page}>
       <h1 className="visually-hidden">{info ? `${info.nickname} 的直播间` : "直播间"}</h1>
@@ -688,7 +846,12 @@ export function PlayerPage() {
                 onMouseEnter={() => setChromeHover(true)}
                 onMouseLeave={() => setChromeHover(false)}
               >
-                <div className={cn(styles.topbar, nativeFullscreen && styles.topbarWithCaption)}>
+                <div
+                  className={cn(
+                    styles.topbar,
+                    (nativeFullscreen || cssFullscreen) && styles.topbarWithCaption,
+                  )}
+                >
                   <button
                     type="button"
                     className={styles.backBtn}
@@ -752,9 +915,9 @@ export function PlayerPage() {
                   )}
                 </div>
 
-                {/* 系统全屏下应用标题栏被隐藏：把三个窗口按钮搬到画面右上角，
-                    跟控制栏/主播信息一起淡出。 */}
-                {nativeFullscreen && (
+                {/* 系统全屏 / 窗口全屏下应用标题栏都被播放器盖住：把三个窗口按钮
+                    搬到画面右上角，跟控制栏/主播信息一起淡出。两者视觉与行为完全一致。 */}
+                {(nativeFullscreen || cssFullscreen) && (
                   <PlayerCaptionButtons className={styles.captionDock} />
                 )}
 
@@ -800,14 +963,28 @@ export function PlayerPage() {
               </div>
 
               {/* 状态覆盖层 */}
-              {!offline && (loadingInfo || player.state === "loading") && (
+              {!offline && !reconnecting && (loadingInfo || player.state === "loading") && (
                 <div className={styles.overlay}>
                   <SignalMark size={30} animated />
                   <p className={styles.overlayText}>正在拉取直播流…</p>
                 </div>
               )}
 
-              {!offline && player.state === "buffering" && (
+              {!offline && reconnecting && (
+                <div className={styles.overlay}>
+                  <SignalMark size={30} animated />
+                  <p className={styles.overlayTitle}>直播流连接中断</p>
+                  <p className={styles.overlayText}>
+                    正在进行第 {retryAttempt} 次自动重连，网络恢复后会继续播放
+                  </p>
+                  <button type="button" className={styles.primaryBtn} onClick={manualReconnect}>
+                    <RotateCw size={13} strokeWidth={2.4} />
+                    立即重连
+                  </button>
+                </div>
+              )}
+
+              {!offline && !reconnecting && player.state === "buffering" && (
                 <div className={styles.buffering}>
                   <SignalMark size={14} animated />
                   缓冲中…
@@ -828,7 +1005,7 @@ export function PlayerPage() {
                 </div>
               )}
 
-              {(infoError || (player.error && !offline)) && (
+              {!offline && !reconnecting && (infoError || player.error) && (
                 <div className={styles.overlay}>
                   <p className={styles.overlayText}>{infoError ?? player.error}</p>
                   {info && info.lines.length > 1 && (

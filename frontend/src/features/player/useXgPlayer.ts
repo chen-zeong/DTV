@@ -6,6 +6,13 @@ import { loadRaw, saveRaw, STORAGE_KEYS } from "@/lib/storage";
 export interface PlayerSource {
   url: string;
   format: "flv" | "hls";
+  /**
+   * 每次重新取流 +1。
+   *
+   * 直播断流后即使地址字符串完全没变，也必须重建实例：旧实例里的
+   * FLV 读取器 / MSE buffer 已经进入结束状态，单纯 retry 拉不回来。
+   */
+  nonce?: number;
 }
 
 /**
@@ -80,10 +87,8 @@ function readVolume(): number {
 /**
  * xgplayer 实例封装。
  *
- * 旧项目把"播放器实例 + 四平台拉流 + 7 个自定义插件 + 窗口拖拽 + chrome 自动隐藏"
- * 全塞在 1459 行的 MainPlayer 里，插件之间靠 ref 镜像互相读状态。
  * 这里只做一件事：按 source 创建/销毁实例，并把状态回调出去。
- * UI 控制条用自己的 React 组件（见 PlayerControls），不再往 xgplayer 里注册插件。
+ * UI 控制条是自己的 React 组件（见 PlayerControls），不往 xgplayer 里注册插件。
  */
 export function useXgPlayer(
   containerRef: React.RefObject<HTMLDivElement | null>,
@@ -96,12 +101,12 @@ export function useXgPlayer(
   const [errorNonce, setErrorNonce] = useState(0);
   const [volume, setVolumeState] = useState(readVolume);
   const lastVolumeRef = useRef(volume > 0 ? volume : DEFAULT_VOLUME);
-  /** 画中画（小窗）：能力检测 + 状态同步 */
   const [pipSupported, setPipSupported] = useState(false);
   const [pipActive, setPipActive] = useState(false);
 
   const url = source?.url ?? "";
   const format = source?.format ?? "hls";
+  const sourceNonce = source?.nonce ?? 0;
 
   /** 真正写实例音量 + 持久化 */
   const applyVolume = useCallback((next: number) => {
@@ -126,16 +131,13 @@ export function useXgPlayer(
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !url) {
-      // 没有可播地址（未开播）：回到 idle，避免"加载中"状态一直挂着
       if (!url) setState("idle");
       return;
     }
 
     let disposed = false;
     let resizeObserver: ResizeObserver | null = null;
-    /** 画中画事件的清理函数（player 创建后才能确定 media 元素） */
     let detachPip: (() => void) | null = null;
-    /** 画面矩形同步的清理函数 */
     let detachVideoBox: (() => void) | null = null;
     setState("loading");
     setError(null);
@@ -159,22 +161,42 @@ export function useXgPlayer(
         el,
         url,
         isLive,
-        // 关键：xgplayer 的默认尺寸是 600×337.5（不是 100%）。
-        // 不显式给百分比时，播放器只会占容器左上角约 1/4 的面积。
         width: "100%",
         height: "100%",
-        // 舞台不再是固定 16:9：画面用 contain 自适应，宁可留黑边也不要拉伸变形
         videoFillMode: "contain",
         autoplay: true,
         controls: false,
         lang: "zh",
         volume,
-        // 直播间默认有声音；不做"自动静音再试"的兜底。
         autoplayMuted: false,
         closeVideoClick: true,
         closeVideoDblclick: false,
         screenShot: false,
         download: false,
+        // ---------------------------------------------------------- 弱网参数
+        // 目标缓冲 8s、最多容忍 24s；断流/卡住时每 1.2s 重试一次，连续 10 次
+        // 才放弃。maxReaderInterval / loadTimeout 也放宽，避免慢网被误判断流。
+        flv: {
+          retryCount: 8,
+          retryDelay: 1200,
+          disconnectRetryCount: 10,
+          preloadTime: 8,
+          maxLatency: 24,
+          targetLatency: 8,
+          disconnectTime: 30,
+          maxJumpDistance: 5,
+          maxReaderInterval: 8000,
+          loadTimeout: 20_000,
+          longtimeNoReceived: 5000,
+        },
+        hlsOpts: {
+          manifestLoadingMaxRetry: 8,
+          manifestLoadingRetryDelay: 1500,
+          levelLoadingMaxRetry: 8,
+          levelLoadingRetryDelay: 1500,
+          fragLoadingMaxRetry: 10,
+          fragLoadingRetryDelay: 1500,
+        },
       };
       if (plugin) options.plugins = [plugin];
 
@@ -189,20 +211,19 @@ export function useXgPlayer(
         setState((prev) => (prev === "loading" || prev === "buffering" ? "playing" : prev));
       });
       player.on("pause", () => setState((prev) => (prev === "error" ? prev : "paused")));
-      // U-06：缓冲/卡顿时给出真实状态，不一直停在 playing
-      player.on("waiting", () => setState((prev) => (prev === "error" ? prev : "buffering")));
-      player.on("stalled", () => setState((prev) => (prev === "error" ? prev : "buffering")));
+      player.on("waiting", () =>
+        setState((prev) => (prev === "error" ? prev : "buffering")),
+      );
+      player.on("stalled", () =>
+        setState((prev) => (prev === "error" ? prev : "buffering")),
+      );
       player.on("error", () => {
         if (disposed) return;
-        setError("流加载失败，可能已下播、线路不可用或平台风控。");
+        setError("直播流连接中断，正在尝试自动重连。");
         setState("error");
         setErrorNonce((n) => n + 1);
       });
 
-      // ------------------------------------------------ 画面矩形（去掉元素内黑边）
-      // 让 <video> 元素正好等于"按比例缩放到容器里的那块画面"，黑边交给舞台背景。
-      // 原因见 updateVideoBox 的注释：元素自己留黑边时，WebView2 的视频叠加平面
-      // 会连黑边一起盖住网页内容，落在黑边里的弹幕就看不见了。
       const media = player.media as HTMLVideoElement | null;
       const syncVideoBox = () => {
         if (disposed || !media) return;
@@ -221,8 +242,6 @@ export function useXgPlayer(
         };
       }
 
-      // 容器尺寸变化（侧栏折叠、进出全屏、窗口缩放）后重新贴合画面。
-      // 没有这一步时，resize 之后 video 仍按旧尺寸渲染，画面会留黑边。
       if (typeof ResizeObserver !== "undefined") {
         resizeObserver = new ResizeObserver(() => {
           if (disposed) return;
@@ -236,9 +255,6 @@ export function useXgPlayer(
         resizeObserver.observe(el);
       }
 
-      // ------------------------------------------------ 画中画（小窗）
-      // 用原生 Picture-in-Picture API：xgplayer 自带的 pip 插件底层也是它，
-      // 但我们的控制栏是 React 自绘的，直接操作 media 更省事。
       const canPip =
         !!media &&
         typeof media.requestPictureInPicture === "function" &&
@@ -267,9 +283,6 @@ export function useXgPlayer(
       setPipActive(false);
       setPipSupported(false);
 
-      // 彻底停掉旧房间的播放器：pause + destroy + 摘掉 src。
-      // 只靠 destroy 时，个别 WebView 会晚一帧才停掉音频/连接；
-      // 切房间时就会出现"旧直播间还在响"的残留。
       const active = playerRef.current;
       const media = active?.media as HTMLVideoElement | null;
       try {
@@ -299,7 +312,7 @@ export function useXgPlayer(
     };
     // volume 只在创建时用一次，后续由 applyVolume 直接改实例
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, format, isLive]);
+  }, [url, format, isLive, sourceNonce]);
 
   // 实例重建后重新套用当前音量（避免每个新房间都回到 0.7）
   useEffect(() => {

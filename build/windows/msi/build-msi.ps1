@@ -25,7 +25,7 @@ if (-not $Version) {
     $Version = $info.fixed.file_version
 }
 if (-not $Version) {
-    $Version = "4.0.0"
+    $Version = "4.1.0"
 }
 
 if (-not $WixBin) {

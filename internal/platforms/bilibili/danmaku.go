@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -38,6 +39,11 @@ const (
 	maxFrameSize = 8 << 20
 	// dialTimeout 建档连接超时。
 	dialTimeout = 12 * time.Second
+	// 断线重连退避：1s 起，最多 30s。
+	maxBackoff = 30 * time.Second
+	// 连接稳定运行超过这个时长后，下一次断线从 1s 重新退避，
+	// 不能因为一次长时间挂机断了就永久按 30s 重连。
+	stableConnection = 10 * time.Second
 )
 
 // B 站 WS 协议的操作码（op）。
@@ -225,16 +231,56 @@ func (s *danmakuSession) clearConn(conn *websocket.Conn) {
 	s.connMu.Unlock()
 }
 
-// run 是会话主循环：短号→真实房间号 → 取 token/host → 连接 → 读帧。
+// run 是会话主循环：断线后按退避重连，直到会话被 Stop。
+//
+// 之前这里是“一次性”的：roomInit / danmuInfo / readLoop 任一环节失败，
+// run 就直接返回，房间还开着但弹幕永远断了。现在把一次完整的
+// “解析地址 → 取 token → 连接 → 读帧” 抽成 connectOnce，由 run 循环调用。
 func (s *danmakuSession) run() {
 	defer close(s.done)
 
 	logf("[Bilibili Danmaku] 开始监听 room=%s", s.roomID)
 
+	backoff := time.Second
+	for {
+		started := time.Now()
+		err := s.connectOnce()
+		if s.ctx.Err() != nil {
+			logf("[Bilibili Danmaku %s] 已停止", s.roomID)
+			return
+		}
+		if err != nil {
+			logf("[Bilibili Danmaku %s] 连接断开: %v，%s 后重连", s.roomID, err, backoff)
+		}
+
+		// 稳定跑过一段时间再断开，说明网络/服务端是偶发问题，
+		// 下一次重连不用等 30s。
+		if time.Since(started) >= stableConnection {
+			backoff = time.Second
+		}
+
+		select {
+		case <-s.ctx.Done():
+			logf("[Bilibili Danmaku %s] 已停止", s.roomID)
+			return
+		case <-time.After(backoff):
+		}
+
+		if backoff < maxBackoff {
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+}
+
+// connectOnce 执行一次完整的建档 + 连接 + 读帧。
+// 返回 nil 表示被 Stop 正常打断；其它错误交给 run 的退避循环。
+func (s *danmakuSession) connectOnce() error {
 	realID, liveStatus, _, _, err := s.client().roomInit(s.roomID)
 	if err != nil {
-		logf("[Bilibili Danmaku %s] 取真实房间号失败: %v", s.roomID, err)
-		return
+		return fmt.Errorf("取真实房间号失败: %w", err)
 	}
 	if liveStatus != 1 && liveStatus != 2 {
 		logf("[Bilibili Danmaku %s] 房间未开播（live_status=%d），仍尝试连接", s.roomID, liveStatus)
@@ -242,18 +288,16 @@ func (s *danmakuSession) run() {
 
 	token, hosts, err := s.client().danmuInfo(realID)
 	if err != nil {
-		logf("[Bilibili Danmaku %s] 取弹幕服务器失败: %v", s.roomID, err)
-		return
+		return fmt.Errorf("取弹幕服务器失败: %w", err)
 	}
 	if token == "" || len(hosts) == 0 {
-		logf("[Bilibili Danmaku %s] 没有可用的弹幕服务器", s.roomID)
-		return
+		return errors.New("没有可用的弹幕服务器")
 	}
 
 	var lastErr error
 	for _, host := range hosts {
 		if s.ctx.Err() != nil {
-			return
+			return nil
 		}
 		url := "wss://" + host + "/sub"
 		debugLog("尝试连接 %s（room=%s token=%d 字节）", url, realID, len(token))
@@ -280,7 +324,8 @@ func (s *danmakuSession) run() {
 		_ = conn.CloseNow()
 
 		if runErr == nil {
-			return
+			// readLoop 只在 ctx 取消时返回 nil。
+			return nil
 		}
 		lastErr = runErr
 		debugLog("连接结束: %v", runErr)
@@ -289,8 +334,9 @@ func (s *danmakuSession) run() {
 	}
 
 	if lastErr != nil {
-		logf("[Bilibili Danmaku %s] 弹幕连接结束: %v", s.roomID, lastErr)
+		return lastErr
 	}
+	return errors.New("所有弹幕服务器均连接失败")
 }
 
 // client 构造一个临时 HTTP 客户端（复用全局缓存的是包级变量，这里新建即可）。
@@ -360,9 +406,9 @@ func (s *danmakuSession) handleFrame(data []byte) {
 
 // packet 是一个解包后的 JSON 消息。
 type packet struct {
-	Op       uint32
-	Ver      uint16
-	Body     []byte
+	Op         uint32
+	Ver        uint16
+	Body       []byte
 	Popularity int64
 }
 
@@ -483,10 +529,10 @@ func (s *danmakuSession) handleGift(raw json.RawMessage) {
 		return
 	}
 	var gift struct {
-		Uname     string `json:"uname"`
-		GiftName  string `json:"giftName"`
-		Num       any    `json:"num"`
-		Action    string `json:"action"`
+		Uname    string `json:"uname"`
+		GiftName string `json:"giftName"`
+		Num      any    `json:"num"`
+		Action   string `json:"action"`
 	}
 	if err := json.Unmarshal(raw, &gift); err != nil || gift.GiftName == "" {
 		return

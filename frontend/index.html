@@ -65,7 +65,7 @@
         display: block;
         width: 5px;
         border-radius: 3px;
-        background: #d8ff4f;
+        background: var(--accent, #d8ff4f);
         transform-origin: center bottom;
         animation: dtv-splash-bar 1.15s ease-in-out infinite;
       }
@@ -86,7 +86,7 @@
         animation-delay: 0s;
       }
       html[data-theme="light"] .dtv-splash-mark i {
-        background: #3f6212;
+        background: var(--accent-ink, #3f6212);
       }
 
       .dtv-splash-word {
@@ -119,8 +119,23 @@
         position: absolute;
         inset: 0;
         transform: translateX(-100%);
-        background: linear-gradient(90deg, transparent, #d8ff4f 45%, #d8ff4f 55%, transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent, #d8ff4f) 45%,
+          var(--accent, #d8ff4f) 55%,
+          transparent
+        );
         animation: dtv-splash-run 1.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+      html[data-theme="light"] .dtv-splash-line::after {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent-ink, #3f6212) 45%,
+          var(--accent-ink, #3f6212) 55%,
+          transparent
+        );
       }
 
       .dtv-splash-caption {
@@ -167,18 +182,29 @@
     </style>
     <script>
       // 首帧之前贴主题：读 ThemeProvider 真正使用的键（theme_preference），
-      // 兼容 4.0 早期 dtv_theme_v1，并处理 "system"。
+      // 兼容 4.0 早期 dtv_theme_v1。4.1 的九个配色 id 需要映射成
+      // data-theme 的 dark / light，splash 才能在第一帧就用对底色。
       try {
         var raw = localStorage.getItem("theme_preference");
         if (raw == null) raw = localStorage.getItem("dtv_theme_v1");
-        var saved = String(raw || "dark").replace(/^"|"$/g, "");
+        var saved = String(raw || "signal").replace(/^"|"$/g, "");
+        var knownThemes = ["signal", "daylight", "mono", "paper", "ember", "parchment"];
+        var lightThemes = ["daylight", "paper", "parchment", "light"];
         if (saved === "system") {
           saved =
             window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
+              ? "signal"
+              : "daylight";
         }
-        document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
+        if (saved === "dark") saved = "signal";
+        if (saved === "light") saved = "daylight";
+        // 旧九套主题的 id 兼容：浅色旧主题落到青柠·日，深色旧主题落到青柠·夜
+        if (["frost", "sand", "sakura"].indexOf(saved) >= 0) saved = "daylight";
+        if (["midnight", "violet", "forest", "rose"].indexOf(saved) >= 0) saved = "signal";
+        if (knownThemes.indexOf(saved) < 0) saved = "signal";
+        var isLight = lightThemes.indexOf(saved) >= 0;
+        document.documentElement.dataset.theme = isLight ? "light" : "dark";
+        document.documentElement.dataset.palette = saved;
       } catch (e) {
         /* localStorage 不可用时保持默认深色 */
       }

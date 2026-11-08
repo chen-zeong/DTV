@@ -322,6 +322,7 @@ func (s *danmakuSession) run(ctx context.Context) {
 
 	backoff := time.Second
 	for {
+		started := time.Now()
 		err := s.connectAndRead(ctx)
 		if ctx.Err() != nil {
 			log.Printf("[Douyin Danmaku %s] 已停止监听", s.roomID)
@@ -329,6 +330,11 @@ func (s *danmakuSession) run(ctx context.Context) {
 		}
 		if err != nil {
 			log.Printf("[Douyin Danmaku %s] 连接断开: %v，%s 后重连", s.roomID, err, backoff)
+		}
+
+		// 稳定跑过 10s 再断，说明只是偶发抖动，下一次从 1s 重新退避。
+		if time.Since(started) >= 10*time.Second {
+			backoff = time.Second
 		}
 
 		select {
@@ -348,9 +354,9 @@ func (s *danmakuSession) run(ctx context.Context) {
 
 // wsCredentials 是连接弹幕所需的全部凭据。
 type wsCredentials struct {
-	roomID        string // 内部房间号（19 位）
-	userUniqueID  string
-	cookie        string
+	roomID       string // 内部房间号（19 位）
+	userUniqueID string
+	cookie       string
 }
 
 // resolveCredentials 从房间页拿内部 room_id、ttwid 等。
@@ -572,4 +578,3 @@ func debugLog(format string, args ...any) {
 		log.Printf("[Douyin Danmaku][debug] "+format, args...)
 	}
 }
-
