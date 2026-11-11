@@ -91,6 +91,35 @@ export function useDesktopOS(): string | null {
   return os;
 }
 
+/**
+ * 双击标题栏（`--wails-draggable: drag` 的拖拽区）最大化 / 还原。
+ *
+ * Wails v3 只把 macOS 上拖拽区的双击转成原生 `wails:drag:doubleclick`；
+ * Windows 的无边框窗口没有系统标题栏，`--wails-draggable` 又只负责拖动，
+ * 于是双击标题栏这一下没人接。这里统一补上：
+ *  - 目标元素的计算值必须是 drag，按钮 / 输入框等 no-drag 区域不受影响；
+ *  - 用 dblclick 而不是第二下 mousedown：等鼠标松开后再切，避免和 Wails
+ *    的原生拖动抢同一个按压；
+ *  - 窗口全屏时不处理 —— 全屏下没有「最大化」可切。
+ */
+export function installTitlebarDoubleClick(): () => void {
+  if (typeof window === "undefined" || isMacOS()) return () => undefined;
+
+  const onDoubleClick = (event: MouseEvent) => {
+    if (event.button !== 0) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const draggable = window.getComputedStyle(target).getPropertyValue("--wails-draggable").trim();
+    if (draggable !== "drag") return;
+
+    void isWindowFullscreen().then((fullscreen) => {
+      if (!fullscreen) void toggleMaximiseWindow();
+    });
+  };
+
+  window.addEventListener("dblclick", onDoubleClick, true);
+  return () => window.removeEventListener("dblclick", onDoubleClick, true);
+}
 export function toggleMaximiseWindow(): Promise<void> {
   return safe(() => Window.ToggleMaximise());
 }
