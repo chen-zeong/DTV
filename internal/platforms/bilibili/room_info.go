@@ -11,7 +11,7 @@ import (
 // room_info.go 负责"房间号 → 房间详情"。
 //
 // B 站房间号有两种：短号（如 6）与真实 room_id（如 7734200）。
-// 短号必须先经 room_init 换成真实 room_id，后续所有接口（playinfo/弹幕）都只认真实 id。
+// 短号必须先经 room_get_info 换成真实 room_id，后续所有接口（playinfo/弹幕）都只认真实 id。
 
 // NormalizeRoomID 从各种输入里取房间号（纯短号或 room_id）。
 //
@@ -55,17 +55,23 @@ func NormalizeRoomID(raw string) string {
 // roomInit 把短号换成真实 room_id，并拿到 live_status。
 //
 // live_status: 0=未开播, 1=直播中, 2=轮播（B 站把轮播也当"可播"）。
+//
+// 不再用 /room/v1/Room/room_init：2026-11 起它对匿名请求直接返回 HTTP 412
+// （带 finger/spi 下发的新 buvid3 也一样），于是关注列表刷新全部落到
+// "未开播"、所有直播间的取流也在第一步就失败。get_info 仍然匿名可用，
+// room_id / live_status / title 都有；主播昵称交给 getInfoByRoom 补。
 func (c *Client) roomInit(roomID string) (realID string, liveStatus int64, title, uname string, err error) {
-	target := buildURL(urlRoomInit, "id="+queryEscape(roomID))
+	target := buildURL(urlRoomGetInfo, "room_id="+queryEscape(roomID))
 	body, err := c.getRaw(target)
 	if err != nil {
-		return "", 0, "", "", describe("room_init 请求失败", err)
+		return "", 0, "", "", describe("room_get_info 请求失败", err)
 	}
 
 	var resp struct {
-		Code int64  `json:"code"`
-		Msg  string `json:"msg"`
-		Data struct {
+		Code    int64  `json:"code"`
+		Msg     string `json:"msg"`
+		Message string `json:"message"`
+		Data    struct {
 			RoomID     any    `json:"room_id"`
 			ShortID    any    `json:"short_id"`
 			UID        any    `json:"uid"`
@@ -75,10 +81,11 @@ func (c *Client) roomInit(roomID string) (realID string, liveStatus int64, title
 		} `json:"data"`
 	}
 	if err := unmarshalJSON(body, &resp); err != nil {
-		return "", 0, "", "", describe("room_init 解析失败", err)
+		return "", 0, "", "", describe("room_get_info 解析失败", err)
 	}
 	if resp.Code != 0 {
-		return "", 0, "", "", &apiError{Code: resp.Code, Message: resp.Msg, Endpoint: "Room/room_init"}
+		message := firstNonEmpty(resp.Msg, resp.Message)
+		return "", 0, "", "", &apiError{Code: resp.Code, Message: message, Endpoint: "Room/get_info"}
 	}
 
 	realID = jsonString(resp.Data.RoomID)
@@ -122,17 +129,17 @@ func (c *Client) fetchRoomInfo(roomID string) (*roomInfoData, error) {
 		Msg  string `json:"msg"`
 		Data struct {
 			RoomInfo struct {
-				RoomID        any    `json:"room_id"`
-				ShortID       any    `json:"short_id"`
-				Title         string `json:"title"`
-				LiveStatus    any    `json:"live_status"`
-				AreaName      string `json:"area_name"`
-				ParentArea    string `json:"parent_area_name"`
-				UserCover     string `json:"user_cover"`
-				Keyframe      string `json:"keyframe"`
-				Cover         string `json:"cover"`
-				Online        any    `json:"online"`
-				UID           any    `json:"uid"`
+				RoomID     any    `json:"room_id"`
+				ShortID    any    `json:"short_id"`
+				Title      string `json:"title"`
+				LiveStatus any    `json:"live_status"`
+				AreaName   string `json:"area_name"`
+				ParentArea string `json:"parent_area_name"`
+				UserCover  string `json:"user_cover"`
+				Keyframe   string `json:"keyframe"`
+				Cover      string `json:"cover"`
+				Online     any    `json:"online"`
+				UID        any    `json:"uid"`
 			} `json:"room_info"`
 			AnchorInfo struct {
 				BaseInfo struct {
@@ -187,7 +194,7 @@ func (c *Client) Streamer(roomID string) (common.Streamer, error) {
 
 	info, err := c.fetchRoomInfo(realID)
 	if err != nil {
-		// getInfoByRoom 失败时用 room_init 的字段兜底，保证卡片不至于全空
+		// getInfoByRoom 失败时用 room_get_info 的字段兜底，保证卡片不至于全空
 		return common.Streamer{
 			ID:           normalized,
 			Platform:     string(common.PlatformBilibili),

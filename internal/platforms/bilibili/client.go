@@ -20,10 +20,11 @@ func logf(format string, args ...any) {
 
 // 端点常量，集中放一处便于核对。
 const (
-	urlLiveHome     = "https://live.bilibili.com/lol"
-	urlAreaList     = "https://api.live.bilibili.com/room/v1/Area/getList"
-	urlLiveList     = "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList"
-	urlRoomInit     = "https://api.live.bilibili.com/room/v1/Room/room_init"
+	urlLiveHome = "https://live.bilibili.com/lol"
+	urlAreaList = "https://api.live.bilibili.com/room/v1/Area/getList"
+	urlLiveList = "https://api.live.bilibili.com/xlive/web-interface/v1/second/getList"
+	// room_init 从 2026-11 起对匿名请求直接 412，改用仍然可用的 get_info。
+	urlRoomGetInfo  = "https://api.live.bilibili.com/room/v1/Room/get_info"
 	urlRoomInfo     = "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom"
 	urlRoomPlayInfo = "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo"
 	urlDanmuInfo    = "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo"
@@ -344,8 +345,8 @@ func enforceHTTPS(raw string) string {
 
 // apiError 表示 B 站业务错误（HTTP 200 + code != 0）。
 type apiError struct {
-	Code    int64
-	Message string
+	Code     int64
+	Message  string
 	Endpoint string
 }
 
