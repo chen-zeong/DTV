@@ -8,7 +8,7 @@ import { ensureImageProxy } from "./lib/imageProxy";
 import { applyStartupLanding } from "./lib/navigation";
 import { dismissSplash } from "./lib/splash";
 import { migrateStorageKeys } from "./lib/storage";
-import { detectDesktopOS, isWailsRuntime } from "./lib/window";
+import { detectDesktopOS, installTitlebarDoubleClick, isWailsRuntime } from "./lib/window";
 
 const container = document.getElementById("root");
 if (!container) throw new Error("找不到 #root 挂载点");
@@ -27,6 +27,9 @@ if (desktopOS) {
 // 启动落地页：有订阅分区先进「订阅」，没有则保持斗鱼首页 `/`。
 // 必须在 HashRouter 挂载前改 hash，避免先渲染一帧斗鱼首页再跳转。
 applyStartupLanding();
+// 双击标题栏最大化 / 还原。Wails v3 在 Windows 上不接管拖拽区的双击，
+// 由这里统一补一条（见 lib/window.ts 的 installTitlebarDoubleClick）。
+installTitlebarDoubleClick();
 
 // P-02：图片代理不再阻塞首屏。
 // 代理启动需要一次 IPC + 一次本地 net.Listen；失败时 SmoothImage 会回退直连，
