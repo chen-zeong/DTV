@@ -33,6 +33,7 @@ import { useDanmuBlock } from "@/features/player/useDanmuBlock";
 import { useDanmuPreferences } from "@/features/player/useDanmuPreferences";
 import { useXgPlayer, type PlayerSource } from "@/features/player/useXgPlayer";
 import { cn } from "@/lib/cn";
+import { isFatalError, stripFatalPrefix } from "@/lib/errors";
 import { platformHomePath } from "@/lib/navigation";
 import { loadJSON, loadRaw, saveJSON, saveRaw, STORAGE_KEYS } from "@/lib/storage";
 import { prepareStreamRelay, supportsStreamRelay } from "@/lib/streamRelay";
@@ -379,9 +380,11 @@ export function PlayerPage() {
       })
       .catch((err: unknown) => {
         if (cancelled || roomOfflineRef.current) return;
-        setInfoError(err instanceof Error ? err.message : "房间信息加载失败");
-        // 网络恢复前一直按退避重试；确认下播会由轻量检查 / 复核分支停掉。
-        scheduleReconnect();
+        const message = err instanceof Error ? err.message : "房间信息加载失败";
+        setInfoError(stripFatalPrefix(message));
+        // 房间不存在 / 被风控拦截 / 房间号无效 等错误不重试
+        // 其余按退避重试；确认下播会由轻量检查 / 复核分支停掉。
+        if (!isFatalError(message)) scheduleReconnect();
       })
       .finally(() => {
         if (!cancelled) setLoadingInfo(false);

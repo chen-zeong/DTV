@@ -1,5 +1,6 @@
 import * as Douyin from "../../bindings/dtv/internal/services/douyinservice";
 
+import { stripFatalPrefix } from "@/lib/errors";
 import { createDanmakuSubscription } from "./douyu";
 import {
   mapCategoryGroup,
@@ -60,7 +61,12 @@ export const douyinApi = {
         });
         return [hit];
       })
-      .catch(() => [] as SearchHit[]);
+      .catch((err: unknown) => {
+        // 被服务器拦截（风控/验证码）时把错误透传给搜索框
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("拦截")) throw new Error(stripFatalPrefix(message));
+        return [] as SearchHit[];
+      });
   },
 
   getStreamInfo(roomId: string, line?: string | null): Promise<StreamInfo> {
