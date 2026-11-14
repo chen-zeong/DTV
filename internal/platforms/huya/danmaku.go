@@ -315,13 +315,13 @@ func (s *danmakuSession) buildRegPayload() ([]byte, error) {
 		ayyuid = int64(data.Stream.BaseStreamInfoList[0].ChannelID)
 	}
 	if ayyuid == 0 {
-		ayyuid = data.LiveData.Channel
+		ayyuid = int64(data.LiveData.Channel)
 	}
 	if ayyuid == 0 {
-		ayyuid = data.LiveData.UID
+		ayyuid = int64(data.LiveData.UID)
 	}
 	if ayyuid == 0 {
-		ayyuid = data.ProfileInfo.Yyid
+		ayyuid = int64(data.ProfileInfo.Yyid)
 	}
 	if ayyuid == 0 {
 		// 最后兜底：用房间号（与旧实现一致）

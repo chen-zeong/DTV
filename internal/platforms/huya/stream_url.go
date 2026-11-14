@@ -52,18 +52,18 @@ type profileResponse struct {
 // profileData 是 data 里用到的部分。
 type profileData struct {
 	LiveData struct {
-		Introduction string `json:"introduction"`
-		RoomName     string `json:"roomName"`
-		Nick         string `json:"nick"`
-		Avatar180    string `json:"avatar180"`
-		BitRateInfo  string `json:"bitRateInfo"`
-		UID          int64  `json:"uid"`
-		Channel      int64  `json:"channel"`
+		Introduction string  `json:"introduction"`
+		RoomName     string  `json:"roomName"`
+		Nick         string  `json:"nick"`
+		Avatar180    string  `json:"avatar180"`
+		BitRateInfo  string  `json:"bitRateInfo"`
+		UID          flexInt `json:"uid"`     // 虎牙有时返回字符串，有时返回数字
+		Channel      flexInt `json:"channel"` // 同上
 	} `json:"liveData"`
 	ProfileInfo struct {
-		Nick      string `json:"nick"`
-		Avatar180 string `json:"avatar180"`
-		Yyid      int64  `json:"yyid"`
+		Nick      string  `json:"nick"`
+		Avatar180 string  `json:"avatar180"`
+		Yyid      flexInt `json:"yyid"` // 同上
 	} `json:"profileInfo"`
 	Stream *struct {
 		BaseStreamInfoList []streamCandidateJSON `json:"baseSteamInfoList"`
