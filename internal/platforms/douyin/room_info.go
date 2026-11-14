@@ -36,6 +36,12 @@ const (
 	reflowAppID       = "1128"
 )
 
+// 请求被服务器拦截时房间页 HTML 里的特征字符
+var blockedMarkers = []string{
+	"verify_data",
+	"验证码中间页",
+}
+
 // roomIDPattern 匹配页面内嵌 JSON 里的内部 roomId。
 //
 // 页面里的 JSON 是转义过的（形如 \"roomId\":\"7702034233618877218\"），
@@ -322,7 +328,7 @@ type roomBundle struct {
 func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
 	webRID := NormalizeRoomID(roomID)
 	if webRID == "" {
-		return nil, fmt.Errorf("抖音房间号无效: %q", roomID)
+		return nil, common.Fatal("抖音房间号无效: %q", roomID)
 	}
 
 	html, err := c.fetchRoomPage(webRID)
@@ -330,10 +336,19 @@ func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
 		return nil, err
 	}
 
+	// log.Printf("[Douyin] 房间 %s 查找 roomId，页面内容：%s", webRID, html) // 开发时使用
+
+	// 页面里出现以下任一标记说明请求被服务器拦截（风控/验证码）。
+	for _, mark := range blockedMarkers {
+		if strings.Contains(html, mark) {
+			return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+		}
+	}
+
 	internalID := extractInternalRoomID(html)
 	if internalID == "" {
 		// 页面结构变化时给出明确提示，比"请求失败"好排查
-		return nil, fmt.Errorf("抖音房间 %s 页面里没有找到内部 roomId（房间可能不存在或页面结构变更）", webRID)
+		return nil, common.Fatal("抖音房间 %s 页面里没有找到内部 roomId（房间可能不存在或页面结构变更）", webRID)
 	}
 
 	room, err := c.fetchReflow(internalID)
