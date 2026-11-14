@@ -1,5 +1,6 @@
 .task
 bin
+frontend/bindings
 frontend/dist
 frontend/node_modules
 # `go build .` 会在仓库根产出同名二进制
