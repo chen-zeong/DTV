@@ -3,6 +3,7 @@ package douyin
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"regexp"
 	"sort"
@@ -269,7 +270,29 @@ func (c *Client) fetchRoomPage(webRID string) (string, error) {
 		"Accept-Language": "zh-CN,zh;q=0.9",
 		"Referer":         urlLiveHome,
 	}
-	return c.http.GetText(target, headers)
+
+	resp, err := c.http.Get(target, headers)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("读取响应失败 (%s): %w", target, err)
+	}
+	if resp.StatusCode >= 500 {
+		text := string(body)
+		if len(text) > 200 {
+			text = text[:200] + "…"
+		}
+		return "", fmt.Errorf("GET %s 返回 HTTP %d: %s", target, resp.StatusCode, text)
+	}
+	if resp.StatusCode >= 400 {
+		// HTTP 444 等错误不自动重试
+		return "", common.Fatal("本次请求受到服务器拦截 (HTTP %d)，请稍后再试", resp.StatusCode)
+	}
+	return string(body), nil
 }
 
 // extractInternalRoomID 从页面 HTML 里读内部 roomId。
