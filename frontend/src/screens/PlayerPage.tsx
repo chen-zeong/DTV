@@ -116,6 +116,8 @@ export function PlayerPage() {
   const playerHostRef = useRef<HTMLDivElement>(null);
   /** 轻量房间信息已确认未开播：此时忽略取流接口的失败，避免覆盖成错误态 */
   const roomOfflineRef = useRef(false);
+  /** 轻量房间信息已确认在播：取流接口若此时报未开播，以轻量结果为准 */
+  const roomLiveRef = useRef(false);
   /** 最近一次退出全屏的时间（Esc 可能先被浏览器/原生窗口消费，避免同一次按键又触发返回） */
   const lastFullscreenExitRef = useRef(0);
   /** 断流自动重连：定时器 / 连续失败次数 */
@@ -135,8 +137,23 @@ export function PlayerPage() {
   const [info, setInfo] = useState<StreamInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [infoError, setInfoError] = useState<string | null>(null);
+  /**
+   * 是否正在进行用户手动触发的刷新
+   *
+   * 未开播状态下 `offline` 为 true，通用的"正在拉取直播流"覆盖层被它
+   * 挡住，所以手动刷新需要自己的忙碌标记，否则按钮点下去毫无反馈。
+   */
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   /** 重新拉取房间信息 / 取流地址；自动重连也靠它触发 */
   const [reloadKey, setReloadKey] = useState(0);
+  /**
+   * 下一次拉取是否绕过后端缓存的未开播状态。
+   *
+   * 只有用户显式点「立即刷新」/「重试」时才设为 true：抖音的未开播结论会
+   * 缓存 offlineTrustTTL（60s），不绕过去的话这两个按钮在缓存期内点了也
+   * 只是读内存，一个请求都不会发出去。
+   */
+  const forceRefreshRef = useRef(false);
   const [danmuPanelOpen, setDanmuPanelOpen] = useState<boolean>(
     () => !loadJSON<boolean>(STORAGE_KEYS.danmuPanelCollapsed, false),
   );
@@ -324,31 +341,53 @@ export function PlayerPage() {
   useEffect(() => {
     if (!roomId) {
       setLoadingInfo(false);
+      setManualRefreshing(false);
       setInfoError("缺少房间号");
       return;
     }
     let cancelled = false;
     roomOfflineRef.current = false;
+    roomLiveRef.current = false;
     setLoadingInfo(true);
     setInfoError(null);
 
+    // 本次拉取是否强制绕过缓存的未开播状态
+    const force = forceRefreshRef.current;
+    forceRefreshRef.current = false;
+
     // 先用一个轻量请求判断是否在播；未开播时可以立刻显示空态，不必等取流。
     api
-      .getRoomInfo(platform, roomId)
+      .getRoomInfo(platform, roomId, force)
       .then((room) => {
-        if (cancelled || room.isLive) return;
+        if (cancelled) return;
+        if (room.isLive) {
+          // 轻量接口说在播：记下来。若取流接口随后报"未开播"（两个请求
+          // 跨越了后端缓存的过期边界时会这样），以这个结果为准——
+          // 主播已经在播，不能因为取流慢一拍就报未开播。
+          roomLiveRef.current = true;
+          return;
+        }
         enterOffline(room);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         // 轻量检查失败不阻塞取流接口，由它给出最终结果或错误
+        console.warn("[player] 拉取房间信息失败", err);
       });
 
     api
       // 线路会决定后端用哪个 CDN 出流，所以线路变化时要重新解析一次取流地址。
       // 清晰度不需要：后端一次就把所有档位的 URL 都取回来了。
-      .getStreamInfo(platform, roomId, lineId)
+      .getStreamInfo(platform, roomId, lineId, force)
       .then((next) => {
         if (cancelled) return;
+
+        // 轻量接口已经确认在播，取流接口却报未开播：两个请求跨越了后端
+        // "未开播"结论的过期边界时会出现这种情况。以轻量结果为准，
+        // 重新取一次流地址即可。
+        if (!next.isLive && roomLiveRef.current) {
+          scheduleReconnect();
+          return;
+        }
 
         // 断流后的“未开播”可能是上游瞬断：重连期间再问一次房间状态，
         // 只有两次都确认未开播才落到下播空态，避免网络抖动就误报“主播下线”。
@@ -379,15 +418,20 @@ export function PlayerPage() {
         setStreamRevision((revision) => revision + 1);
       })
       .catch((err: unknown) => {
-        if (cancelled || roomOfflineRef.current) return;
         const message = err instanceof Error ? err.message : "房间信息加载失败";
+        if (cancelled) return;
+        console.warn("[player] 拉取直播流信息失败", err);
+        if (roomOfflineRef.current) return;
         setInfoError(stripFatalPrefix(message));
         // 房间不存在 / 被风控拦截 / 房间号无效 等错误不重试
         // 其余按退避重试；确认下播会由轻量检查 / 复核分支停掉。
         if (!isFatalError(message)) scheduleReconnect();
       })
       .finally(() => {
-        if (!cancelled) setLoadingInfo(false);
+        if (!cancelled) {
+          setLoadingInfo(false);
+          setManualRefreshing(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -402,8 +446,9 @@ export function PlayerPage() {
   // 切线路时 info 会变成新对象，但房间没变，弹幕连接不应该重建。
   const infoPlatform = info?.platform;
   const infoRoomId = info?.roomId;
+  const infoIsLive = Boolean(info?.isLive);
   useEffect(() => {
-    if (!infoPlatform || !infoRoomId || !danmuEnabled) return;
+    if (!infoPlatform || !infoRoomId || !infoIsLive || !danmuEnabled) return;
     bufferRef.current = [];
     setMessages([]);
     const unsubscribe = api.subscribeDanmaku(infoPlatform, infoRoomId, (msg) => {
@@ -416,7 +461,7 @@ export function PlayerPage() {
       if (buffer.length > MAX_MESSAGES * 2) buffer.splice(0, buffer.length - MAX_MESSAGES);
     });
     return unsubscribe;
-  }, [infoPlatform, infoRoomId, danmuEnabled]);
+  }, [infoPlatform, infoRoomId, infoIsLive, danmuEnabled]);
 
   /* ----------------------------------------------------------------- 播放 */
   const variant = useMemo(() => {
@@ -521,6 +566,10 @@ export function PlayerPage() {
   const reloadStream = useCallback(() => {
     stopReconnect();
     attemptedLinesRef.current = new Set();
+    // 用户显式要求重新检查：必须绕过后端缓存的未开播状态，否则抖音蓝V
+    // 直播间在 offlineTrustTTL 内点这个按钮完全无效（不发出任何请求）
+    forceRefreshRef.current = true;
+    setManualRefreshing(true);
     setReloadKey((k) => k + 1);
   }, [stopReconnect, setReloadKey]);
 
@@ -1000,10 +1049,21 @@ export function PlayerPage() {
                     <MonitorOff size={26} strokeWidth={1.8} />
                   </span>
                   <p className={styles.overlayTitle}>主播暂时没有开播</p>
-                  <p className={styles.overlayText}>开播后会自动加载，也可以手动刷新试试</p>
-                  <button type="button" className={styles.primaryBtn} onClick={reloadStream}>
-                    <RotateCw size={13} strokeWidth={2.4} />
-                    立即刷新
+                  <p className={styles.overlayText}>
+                    {manualRefreshing ? "正在重新检查直播状态" : "开播后会自动加载，也可以手动刷新试试"}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={reloadStream}
+                    disabled={manualRefreshing}
+                  >
+                    <RotateCw
+                      size={13}
+                      strokeWidth={2.4}
+                      className={manualRefreshing ? styles.spinning : undefined}
+                    />
+                    {manualRefreshing ? "正在刷新" : "立即刷新"}
                   </button>
                 </div>
               )}

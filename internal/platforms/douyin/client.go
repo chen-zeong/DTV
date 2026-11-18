@@ -1,6 +1,7 @@
 package douyin
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -40,6 +41,70 @@ type Client struct {
 	mu       sync.Mutex
 	warmedAt time.Time
 	warmErr  error
+
+	// roomIDCache 缓存 webRID → 内部 roomId
+	roomIDCache   map[string]string
+	roomIDCacheAt map[string]time.Time
+
+	// offlineCache 缓存 webRID → 未开播记录。
+	//
+	// 蓝V/官方认证直播间未开播时，直播间页正常加载但内嵌 JSON 里没有
+	// roomId。验证码窗口里的脚本检测到这种情况会回传 offline 信号，
+	// 记录下来，避免下次再弹一次验证码窗口。
+	// 超过 offlineTrustTTL 之后必须重新验证，否则蓝V直播间中途开播会被
+	// 误判成"未开播"直到缓存过期。
+	offlineCache map[string]offlineRecord
+
+	// roomIDIndex 缓存 webRID → 内部 roomId，来自分区列表接口
+	roomIDIndex   map[string]string
+	roomIDIndexAt map[string]time.Time
+
+	// captchaResolver 由宿主注入
+	//
+	// 当直播间页被验证码拦截时，弹窗让用户在真实 WebView 里过验证码，
+	// 拿到内部 roomId 后回传
+	captchaResolver CaptchaResolver
+
+	// roomIDResolver 由宿主注入
+	//
+	// 解析 web_rid → 内部 roomId 且不弹窗，宿主侧用常驻 WebView 实现
+	// （浏览器会话级放行），供批量刷新场景用。
+	roomIDResolver RoomIDResolver
+}
+
+// SetRoomIDResolver 注入不弹窗的 roomId 解析器
+func (c *Client) SetRoomIDResolver(resolver RoomIDResolver) {
+	c.roomIDResolver = resolver
+}
+
+// CaptchaResolver 解决抖音直播间页的验证码拦截。
+//
+// 平台层不依赖 Wails，由 Service/main 层注入实现。
+// 入参 webRID ；返回内部 roomId；失败返回错误
+type CaptchaResolver func(webRID string) (string, error)
+
+// RoomIDResolver 解析 web_rid → 内部 roomId
+//
+// 与 CaptchaResolver 的区别:
+//   - CaptchaResolver：被拦时弹原生窗口让用户手动过验证码，适合用户主动
+//     进直播间（播放页 / 搜索）这种单次操作；
+//   - RoomIDResolver：复用同一个常驻 WebView（浏览器会话）导航到目标
+//     直播间页并从 DOM 里取 roomId。抖音的验证码是 IP 放行，用户过完
+//     一次之后，这个 WebView 就不再被拦截
+type RoomIDResolver func(webRID string) (string, error)
+
+// ErrCaptchaOffline 表示直播间页面正常加载但拿不到内部 roomId —— 蓝V/官方
+// 认证直播间未开播时的特征为页面内嵌 JSON 里根本没有 roomId
+// 主包的验证码脚本检测到这种情况回传哨兵值，resolveRoom 把它转成
+// 明确的"未开播"错误，而不是挂着验证码窗口白等到超时。
+var ErrCaptchaOffline = errors.New("直播间未开播或已结束")
+
+// ErrRoomOffline 表示"确认主播当前未开播"
+var ErrRoomOffline = errors.New("主播当前未开播或直播已结束")
+
+// SetCaptchaResolver 注入验证码解决器
+func (c *Client) SetCaptchaResolver(resolver CaptchaResolver) {
+	c.captchaResolver = resolver
 }
 
 // NewClient 创建抖音客户端。
@@ -49,9 +114,159 @@ type Client struct {
 // cookie，所以从来没有这笔开销）。实测列表接口不带 cookie 也能正常返回，
 // 预热只是为了拿到 ttwid 并顺手把 TLS 连接暖起来，绝不该阻塞首屏。
 func NewClient() *Client {
-	c := &Client{http: common.NewHttpClient()}
+	c := &Client{
+		http:          common.NewHttpClient(),
+		roomIDCache:   make(map[string]string),
+		roomIDCacheAt: make(map[string]time.Time),
+		offlineCache:  make(map[string]offlineRecord),
+		roomIDIndex:   make(map[string]string),
+		roomIDIndexAt: make(map[string]time.Time),
+	}
 	go func() { _ = c.warmup() }()
 	return c
+}
+
+// roomIDCacheTTL 是内部 roomId 缓存的有效期，与验证码放行冷却期对齐。
+const roomIDCacheTTL = 10 * time.Minute
+
+// offlineTrustTTL 获取到直播间"未开播"状态后直接复用的时长
+// 这段时间内，如果用户再次访问该直播间，直接返回"未开播"状态
+const offlineTrustTTL = 60 * time.Second
+
+// offlineRecord 是一条"未开播"记录。
+type offlineRecord struct {
+	// at 是确认"未开播"的时刻。超过 offlineTrustTTL 后结论作废，
+	// 必须重新访问直播间页验证。
+	at time.Time
+	// captchaFreeUntil 之前再访问该直播间不必弹验证码窗口。
+	captchaFreeUntil time.Time
+}
+
+// roomIDIndexTTL 是分区列表 → webRID → 内部 roomId 索引的有效期
+//
+// 比 roomIDCacheTTL 长很多：web_rid 与内部 roomId 的映射是**永久**的
+// （直播间关播后映射依然成立，只是 status 变 4），所以这个索引其实不需要
+// 过期；留一个较长的 TTL 只是为了万一抖音换号段时能自然淘汰旧映射。
+const roomIDIndexTTL = 12 * time.Hour
+
+// indexRoomID 记录 webRID → 内部 roomId
+func (c *Client) indexRoomID(webRID, internalID string) {
+	if webRID == "" || internalID == "" {
+		return
+	}
+	c.mu.Lock()
+	c.roomIDIndex[webRID] = internalID
+	c.roomIDIndexAt[webRID] = time.Now()
+	c.mu.Unlock()
+}
+
+// indexedRoomID 返回索引里的内部 roomId
+func (c *Client) indexedRoomID(webRID string) string {
+	if webRID == "" {
+		return ""
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id := c.roomIDIndex[webRID]
+	if id == "" {
+		return ""
+	}
+	if at := c.roomIDIndexAt[webRID]; time.Since(at) > roomIDIndexTTL {
+		delete(c.roomIDIndex, webRID)
+		delete(c.roomIDIndexAt, webRID)
+		return ""
+	}
+	return id
+}
+
+// cacheRoomID 记录 webRID → 内部 roomId 供取流/弹幕复用
+func (c *Client) cacheRoomID(webRID, internalID string) {
+	if webRID == "" || internalID == "" {
+		return
+	}
+	c.mu.Lock()
+	c.roomIDCache[webRID] = internalID
+	c.roomIDCacheAt[webRID] = time.Now()
+	c.mu.Unlock()
+}
+
+// cachedRoomID 返回缓存里的内部 roomId (命中且未过期时)
+func (c *Client) cachedRoomID(webRID string) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id := c.roomIDCache[webRID]
+	if id == "" {
+		return ""
+	}
+	if at := c.roomIDCacheAt[webRID]; time.Since(at) > roomIDCacheTTL {
+		delete(c.roomIDCache, webRID)
+		delete(c.roomIDCacheAt, webRID)
+		return ""
+	}
+	return id
+}
+
+// cacheOffline 记录 webRID 已确认未开播。
+//
+// 记录里带两个时间：
+//   - at：确认未开播的时刻，用来判断这条结论是否还新鲜
+//   - captchaFreeUntil：在这之前再访问该直播间不需要弹验证码窗口
+func (c *Client) cacheOffline(webRID string) {
+	if webRID == "" {
+		return
+	}
+	now := time.Now()
+	c.mu.Lock()
+	rec := c.offlineCache[webRID]
+	rec.at = now
+	// 放行冷却期从"确认未开播"起算；已经放行过的场景保留更长的那个，
+	// 避免因为反复确认未开播把冷却期越缩越短。
+	if until := rec.captchaFreeUntil; until.Before(now.Add(captchaPassWindow)) {
+		rec.captchaFreeUntil = now.Add(captchaPassWindow)
+	}
+	c.offlineCache[webRID] = rec
+	c.mu.Unlock()
+}
+
+// isCachedOffline 返回该直播间的"未开播"结论是否可直接复用。
+//
+// 只有结论还在 offlineTrustTTL 内、且验证码冷却期也还没过时才返回 true。
+// 冷却期过了但结论还新鲜的情况由 isCaptchaSuppressed 单独处理
+func (c *Client) isCachedOffline(webRID string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	rec, ok := c.offlineCache[webRID]
+	if !ok {
+		return false
+	}
+	if time.Since(rec.at) > offlineTrustTTL {
+		return false
+	}
+	return true
+}
+
+// isCaptchaSuppressed 返回该直播间当前是否可以免弹验证码窗口
+func (c *Client) isCaptchaSuppressed(webRID string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	rec, ok := c.offlineCache[webRID]
+	if !ok {
+		return false
+	}
+	return time.Now().Before(rec.captchaFreeUntil)
+}
+
+// clearOffline 让某个直播间的"未开播"结论失效，之后将重新请求该直播间。
+func (c *Client) clearOffline(webRID string) {
+	if webRID == "" {
+		return
+	}
+	c.mu.Lock()
+	if rec, ok := c.offlineCache[webRID]; ok {
+		rec.at = time.Time{}
+		c.offlineCache[webRID] = rec
+	}
+	c.mu.Unlock()
 }
 
 // warmup 访问一次直播首页以获取 cookie（ttwid 等）。

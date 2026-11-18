@@ -2,12 +2,15 @@ package douyin
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"dtv/internal/platforms/common"
 )
@@ -41,6 +44,19 @@ const (
 var blockedMarkers = []string{
 	"verify_data",
 	"验证码中间页",
+}
+
+// pageBlocked 判断直播间页 HTML 是否被风控/验证码拦截。
+//
+// 拦截页面里同样没有内嵌 roomId，所以不能用它判定未开播，
+// 否则正在直播的房间会被误判成下播。
+func pageBlocked(html string) bool {
+	for _, mark := range blockedMarkers {
+		if strings.Contains(html, mark) {
+			return true
+		}
+	}
+	return false
 }
 
 // roomIDPattern 匹配页面内嵌 JSON 里的内部 roomId。
@@ -347,11 +363,90 @@ type roomBundle struct {
 	Room       *reflowRoom
 }
 
-// resolveRoom 拉一个房间的完整数据（页面 → 内部 id → reflow）。
-func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
+// roomFromInternalID 用已知的内部 roomId 取直播间数据
+func (c *Client) roomFromInternalID(webRID, internalID string) (*roomBundle, error) {
+	room, err := c.fetchReflow(internalID)
+	if err != nil {
+		return nil, err
+	}
+	c.cacheRoomID(webRID, internalID)
+	return &roomBundle{WebRID: webRID, InternalID: internalID, Room: room}, nil
+}
+
+// forgetIndexedRoomID 当 id 失效时从索引里删掉某个映射
+func (c *Client) forgetIndexedRoomID(webRID string) {
+	c.mu.Lock()
+	delete(c.roomIDIndex, webRID)
+	delete(c.roomIDIndexAt, webRID)
+	c.mu.Unlock()
+}
+
+// captchaPassUntil 记录"验证码最近一次通过"的时间
+//
+// 若冷却期内有通过记录，直接重试 fetchRoomPage
+var (
+	captchaPassMu     sync.Mutex
+	captchaPassAt     time.Time
+	captchaPassWindow = 10 * time.Minute
+)
+
+// captchaRecentlyPassed 冷却期内是否已有验证码通过
+func captchaRecentlyPassed() bool {
+	captchaPassMu.Lock()
+	defer captchaPassMu.Unlock()
+	return !captchaPassAt.IsZero() && time.Since(captchaPassAt) < captchaPassWindow
+}
+
+// markCaptchaPassed 记录一次验证码通过。
+func markCaptchaPassed() {
+	captchaPassMu.Lock()
+	captchaPassAt = time.Now()
+	captchaPassMu.Unlock()
+}
+
+// resolveRoom 拉一个直播间的完整数据（页面 → 内部 id → reflow）。
+//
+// allowPopup 决定被拦时是否允许弹验证码窗口：
+//   - true: 弹窗
+//   - false: 不弹窗
+//
+// 用户在播放页点「立即刷新」，force 为 true ，
+// 忽略缓存的未开播状态，强制重新访问上游验证。
+// 如果继续复用缓存，这个按钮在 offlineTrustTTL
+// 内总是读内存，一个请求都不会发出去
+func (c *Client) resolveRoom(roomID string, allowPopup bool, force bool) (*roomBundle, error) {
 	webRID := NormalizeRoomID(roomID)
 	if webRID == "" {
-		return nil, common.Fatal("抖音房间号无效: %q", roomID)
+		return nil, common.Fatal("抖音直播间号无效: %q", roomID)
+	}
+
+	// 强制刷新，作废缓存的未开播状态
+	if force {
+		c.clearOffline(webRID)
+		log.Printf("[Douyin] 强制刷新房间 %s", webRID)
+	}
+
+	// 结论仍然新鲜时 (offlineTrustTTL 内) 直接返回"未开播"，
+	// 省掉一次直播间页请求（前端对未开播直播间每 30 秒轮询一次）
+	if c.isCachedOffline(webRID) {
+		return nil, ErrRoomOffline
+	}
+
+	// 先试缓存与索引拿内部 roomId —— 命中就完全不用访问直播间页。
+	if internalID := c.cachedRoomID(webRID); internalID != "" {
+		return c.roomFromInternalID(webRID, internalID)
+	}
+	if internalID := c.indexedRoomID(webRID); internalID != "" {
+		room, err := c.fetchReflow(internalID)
+		if err == nil {
+			c.cacheRoomID(webRID, internalID)
+			c.clearOffline(webRID)
+			return &roomBundle{WebRID: webRID, InternalID: internalID, Room: room}, nil
+		}
+		// 索引里的 id 失效（极少见：直播间被封号 / 映射变更）→ 落回直播间页
+		// 路径时先清掉索引，避免反复用同一个坏 id。
+		log.Printf("[Douyin] 索引 roomId 失效 web_rid=%s: %v", webRID, err)
+		c.forgetIndexedRoomID(webRID)
 	}
 
 	html, err := c.fetchRoomPage(webRID)
@@ -361,17 +456,88 @@ func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
 
 	// log.Printf("[Douyin] 房间 %s 查找 roomId，页面内容：%s", webRID, html) // 开发时使用
 
-	// 页面里出现以下任一标记说明请求被服务器拦截（风控/验证码）。
-	for _, mark := range blockedMarkers {
-		if strings.Contains(html, mark) {
-			return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+	internalID := ""
+	if pageBlocked(html) {
+		// 冷却期内已通过验证码：设备已被放行，直接重试页面请求
+		if captchaRecentlyPassed() {
+			time.Sleep(300 * time.Millisecond)
+			html, err = c.fetchRoomPage(webRID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if pageBlocked(html) {
+			// 按场景决定怎么拿内部 roomId：
+			//
+			// 1) 曾经确认过未开播、且验证码冷却期还没过的直播间：
+			//    直播状态结论过期了要重新验证，但用户短时间内
+			//    已通过验证码。此时通过 roomIDResolver 的
+			//    常驻 WebView 静默获取 roomId。
+			//
+			// 2) 不弹窗的场景，例如关注列表批量刷新：
+			//    通过 roomIDResolver 的常驻 WebView 静默获取 roomId。
+			//
+			// 3) 允许弹窗的场景：
+			//    弹窗让用户手动过验证码。
+			if !allowPopup && c.roomIDResolver != nil {
+				rid, rerr := c.roomIDResolver(webRID)
+				if rerr == nil && rid != "" {
+					c.cacheRoomID(webRID, rid)
+					c.clearOffline(webRID)
+					return c.roomFromInternalID(webRID, rid)
+				}
+				if errors.Is(rerr, ErrCaptchaOffline) {
+					c.cacheOffline(webRID)
+					return nil, ErrRoomOffline
+				}
+				log.Printf("[Douyin] 常驻 WebView 解析 roomId 失败 room=%s: %v", webRID, rerr)
+				return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+			}
+			if c.captchaResolver == nil || !allowPopup {
+				return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+			}
+			if c.isCaptchaSuppressed(webRID) && c.roomIDResolver != nil {
+				rid, rerr := c.roomIDResolver(webRID)
+				if rerr == nil && rid != "" {
+					c.cacheRoomID(webRID, rid)
+					c.clearOffline(webRID)
+					return c.roomFromInternalID(webRID, rid)
+				}
+				if errors.Is(rerr, ErrCaptchaOffline) {
+					c.cacheOffline(webRID)
+					return nil, ErrRoomOffline
+				}
+				log.Printf("[Douyin] 常驻 WebView 解析 roomId 失败 room=%s: %v", webRID, rerr)
+				return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+			}
+			rid, rerr := c.captchaResolver(webRID)
+			if rerr != nil {
+				if errors.Is(rerr, ErrCaptchaOffline) {
+					c.cacheOffline(webRID)
+					return nil, ErrRoomOffline
+				}
+				return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+			}
+			if rid == "" {
+				return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+			}
+			// 通过：记录放行时间
+			markCaptchaPassed()
+			// 缓存 roomId：弹幕连接时复用，避免再走被风控的 fetchRoomPage。
+			c.cacheRoomID(webRID, rid)
+			// 直播间能拿到 roomId，说明主播在播：清掉"未开播"结论。
+			c.clearOffline(webRID)
+			return c.roomFromInternalID(webRID, rid)
 		}
 	}
 
-	internalID := extractInternalRoomID(html)
 	if internalID == "" {
-		// 页面结构变化时给出明确提示，比"请求失败"好排查
-		return nil, common.Fatal("抖音房间 %s 页面里没有找到内部 roomId（房间可能不存在或页面结构变更）", webRID)
+		internalID = extractInternalRoomID(html)
+		if internalID == "" {
+			c.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
 	}
 
 	room, err := c.fetchReflow(internalID)
@@ -379,6 +545,8 @@ func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
 		return nil, err
 	}
 
+	c.cacheRoomID(webRID, internalID)
+	c.clearOffline(webRID)
 	return &roomBundle{WebRID: webRID, InternalID: internalID, Room: room}, nil
 }
 
@@ -699,9 +867,15 @@ func viewersOf(room *reflowRoom) int64 {
 	return parseViewerText(text)
 }
 
-// Streamer 拉房间卡片信息（不含取流）。
-func (c *Client) Streamer(roomID string) (common.Streamer, error) {
-	bundle, err := c.resolveRoom(roomID)
+// Streamer 拉直播间卡片信息（不含取流）。
+//
+// allowPopup 决定被风控拦截时是否允许弹验证码窗口:
+//   - true:  允许弹验证码窗口
+//   - false: 避免弹验证码窗口
+//
+// force 为 true 时忽略缓存的未开播状态，强制重新验证直播状态。
+func (c *Client) Streamer(roomID string, allowPopup bool, force bool) (common.Streamer, error) {
+	bundle, err := c.resolveRoom(roomID, allowPopup, force)
 	if err != nil {
 		return common.Streamer{}, err
 	}
@@ -744,8 +918,10 @@ func isRoomLive(room *reflowRoom) bool {
 //
 // 抖音没有"多线路"概念（flv_pull_url 里每个 key 就是一个清晰度），
 // 所以 Lines 恒为空，清晰度全部由 Variants 承担。
-func (c *Client) StreamInfo(roomID, line string) (*common.StreamInfo, error) {
-	bundle, err := c.resolveRoom(roomID)
+//
+// force 为 true 时忽略缓存的未开播状态，强制重新验证直播状态
+func (c *Client) StreamInfo(roomID, line string, force bool) (*common.StreamInfo, error) {
+	bundle, err := c.resolveRoom(roomID, true, force)
 	if err != nil {
 		return nil, err
 	}
@@ -794,7 +970,7 @@ func (c *Client) StreamInfo(roomID, line string) (*common.StreamInfo, error) {
 // quality 支持中文（原画/蓝光/超清/高清/标清）、稳定 id（source/bluray/high/
 // standard/low）以及上游 key（FULL_HD1 等）；找不到就退回最高清晰度。
 func (c *Client) StreamURL(roomID, quality, line string) (string, error) {
-	info, err := c.StreamInfo(roomID, line)
+	info, err := c.StreamInfo(roomID, line, false)
 	if err != nil {
 		return "", err
 	}
