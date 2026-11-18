@@ -45,12 +45,14 @@ export const douyinApi = {
   /**
    * 抖音没有搜索接口：按直播间号/链接直接取房间信息，失败则返回空结果。
    * 这样搜索框仍然可用（输入 933572413882 或直播间链接都能跳）。
+   *
+   * SearchRoom: 搜索被拦截时弹验证码窗口
    */
   search(keyword: string): Promise<SearchHit[]> {
     const trimmed = keyword.trim();
     if (!trimmed) return Promise.resolve([]);
 
-    return toPromise(Douyin.FetchRoomInfo(trimmed))
+    return toPromise(Douyin.SearchRoom(trimmed))
       .then((room) => {
         const hit = mapSearchHit({
           id: room.id,
@@ -69,15 +71,23 @@ export const douyinApi = {
       });
   },
 
-  getStreamInfo(roomId: string, line?: string | null): Promise<StreamInfo> {
-    return toPromise(Douyin.GetStreamInfo(roomId, line ?? "")).then((info) => {
+  /**
+   * @param force 丢弃后端缓存的未开播状态，强制重新向上游验证。
+   *   播放页的立即刷新按钮传 true，否则 offlineTrustTTL 内点了也不会
+   *   发出请求。
+   */
+  getStreamInfo(roomId: string, line?: string | null, force = false): Promise<StreamInfo> {
+    return toPromise(Douyin.GetStreamInfo(roomId, line ?? "", force)).then((info) => {
       if (!info) throw new Error(`房间 ${roomId} 未返回信息`);
       return mapStreamInfo(info, "douyin");
     });
   },
 
-  getRoomInfo(roomId: string): Promise<Streamer> {
-    return toPromise(Douyin.FetchRoomInfo(roomId)).then((info) => mapStreamer(info, "douyin"));
+  /** @param force 见 getStreamInfo。 */
+  getRoomInfo(roomId: string, force = false): Promise<Streamer> {
+    return toPromise(Douyin.FetchRoomInfo(roomId, force)).then((info) =>
+      mapStreamer(info, "douyin"),
+    );
   },
 
   getStreamURL(roomId: string, quality = ""): Promise<string> {

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { api, type LivePlatform, type Streamer } from "@/api";
 import { loadJSON, saveJSON, STORAGE_KEYS } from "@/lib/storage";
+import { useDouyinCaptchaPending } from "@/hooks/useDouyinCaptchaPending";
 
 /**
  * 关注列表 + 关注分组（文件夹）。
@@ -484,6 +485,12 @@ export function FollowProvider({ children }: { children: ReactNode }) {
   const followsRef = useRef<FollowRecord[]>(state.follows);
   followsRef.current = state.follows;
 
+  /* ---------------------------------------------------- 抖音人机验证挑战 */
+  // 正在进行抖音人机验证时，暂停后台刷新，直到人机验证完成
+  const captchaPending = useDouyinCaptchaPending();
+  const captchaPendingRef = useRef(captchaPending);
+  captchaPendingRef.current = captchaPending;
+
   /* ---------------------------------------------------------------- 持久化 */
   // 始终写成老 Tauri 版形状：旧版本 / JSON 导入导出都依赖这些字段名。
   useEffect(() => {
@@ -758,10 +765,18 @@ export function FollowProvider({ children }: { children: ReactNode }) {
       );
     };
 
+    const waitForCaptchaIfNeeded = async (): Promise<void> => {
+      while (captchaPendingRef.current) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    };
+
     try {
       await Promise.all(
         Array.from({ length: workerCount }, async () => {
           while (queue.length > 0) {
+            await waitForCaptchaIfNeeded();
+
             const record = queue.shift();
             if (!record) return;
             const key = followKey(record.platform, record.id);
@@ -781,28 +796,39 @@ export function FollowProvider({ children }: { children: ReactNode }) {
               });
             } catch (primaryError) {
               // 轻量房间信息失败时退回取流信息接口再试一次（老项目也是逐个平台取详情）
-              try {
-                const stream = await withTimeout(
-                  api.getStreamInfo(record.platform, record.id),
-                  20_000,
-                  `${record.platform}:${record.id}`,
-                );
-                updatedCount += 1;
-                applyPatch(key, {
-                  nickname: stream.nickname || record.nickname,
-                  title: stream.title || record.title,
-                  avatar: stream.avatar || record.avatar,
-                  isLive: stream.isLive,
-                });
-              } catch (fallbackError) {
+              //
+              // 抖音例外: getStreamInfo 在被风控拦截时会弹验证码窗口
+              if (record.platform === "douyin") {
                 failedCount += 1;
-                // 对齐老项目：刷新失败的直播间不要继续挂着"直播中"
                 applyPatch(key, { isLive: false });
                 console.warn(
-                  `[follow-refresh] ${record.platform}:${record.id} 刷新失败`,
+                  `[follow-refresh] douyin:${record.id} 刷新失败`,
                   primaryError,
-                  fallbackError,
                 );
+              } else {
+                try {
+                  const stream = await withTimeout(
+                    api.getStreamInfo(record.platform, record.id),
+                    20_000,
+                    `${record.platform}:${record.id}`,
+                  );
+                  updatedCount += 1;
+                  applyPatch(key, {
+                    nickname: stream.nickname || record.nickname,
+                    title: stream.title || record.title,
+                    avatar: stream.avatar || record.avatar,
+                    isLive: stream.isLive,
+                  });
+                } catch (fallbackError) {
+                  failedCount += 1;
+                  // 对齐老项目：刷新失败的直播间不要继续挂着"直播中"
+                  applyPatch(key, { isLive: false });
+                  console.warn(
+                    `[follow-refresh] ${record.platform}:${record.id} 刷新失败`,
+                    primaryError,
+                    fallbackError,
+                  );
+                }
               }
             } finally {
               tick();
@@ -834,6 +860,17 @@ export function FollowProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => void refreshStatusesRef.current(), 1200);
     return () => window.clearTimeout(timer);
   }, []);
+
+  // 人机验证挑战结束后，若上轮刷新被打断，自动重试一次
+  const prevCaptchaPendingRef = useRef(captchaPending);
+  useEffect(() => {
+    const wasPending = prevCaptchaPendingRef.current;
+    prevCaptchaPendingRef.current = captchaPending;
+    if (wasPending && !captchaPending) {
+      console.info("[follow-refresh] 人机验证挑战结束，自动补刷关注状态");
+      void refreshStatusesRef.current();
+    }
+  }, [captchaPending]);
 
   const value = useMemo<FollowContextValue>(
     () => ({

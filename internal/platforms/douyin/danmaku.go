@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	_ "embed"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -42,6 +43,15 @@ const (
 	readTimeout       = 90 * time.Second
 	dialTimeout       = 15 * time.Second
 	maxFrameSize      = 4 << 20
+
+	// offlineRetryInterval 确认未开播后的检查间隔
+	//
+	// 未开播是正常状态而不是故障，不能按指数退避重试
+	// 蓝V/官方认证直播间未开播时页面里没有内嵌 roomId，每次重试都要
+	// 访问直播间。
+	//
+	// 取值略长于 offlineTrustTTL: 这个时长之内默认直播间未开播，不会再访问。
+	offlineRetryInterval = offlineTrustTTL + 5*time.Second
 )
 
 //go:embed assets/sign.js
@@ -179,8 +189,18 @@ type DanmakuManager struct {
 }
 
 // NewDanmakuManager 创建抖音弹幕管理器。
-func NewDanmakuManager(emit EmitFunc) *DanmakuManager {
-	return &DanmakuManager{emit: emit, client: NewClient()}
+//
+// client:
+//   - 传入后与获取直播流共用同一个 Client 共享 cookie jar 与 roomId
+//     缓存，弹幕连接时能直接复用获取直播流已解析出的内部 roomId，避免
+//     再走一次被风控的 fetchRoomPage
+//   - 不传则独立建一个 Client
+func NewDanmakuManager(emit EmitFunc, client ...*Client) *DanmakuManager {
+	c := NewClient()
+	if len(client) > 0 && client[0] != nil {
+		c = client[0]
+	}
+	return &DanmakuManager{emit: emit, client: c}
 }
 
 // Start 开始监听指定房间（会先停掉正在监听的房间）。
@@ -189,6 +209,9 @@ func (m *DanmakuManager) Start(roomID string) error {
 	if trimmed == "" {
 		return fmt.Errorf("缺少房间号")
 	}
+
+	// 用户主动访问直播间，作废缓存的未开播状态
+	m.client.clearOffline(NormalizeRoomID(trimmed))
 
 	m.stopCurrent()
 
@@ -328,6 +351,19 @@ func (s *danmakuSession) run(ctx context.Context) {
 			log.Printf("[Douyin Danmaku %s] 已停止监听", s.roomID)
 			return
 		}
+
+		if errors.Is(err, ErrRoomOffline) {
+			log.Printf("[Douyin Danmaku %s] 主播未开播，%s 后重新检查",
+				s.roomID, offlineRetryInterval)
+			backoff = time.Second
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(offlineRetryInterval):
+			}
+			continue
+		}
+
 		if err != nil {
 			log.Printf("[Douyin Danmaku %s] 连接断开: %v，%s 后重连", s.roomID, err, backoff)
 		}
@@ -360,20 +396,55 @@ type wsCredentials struct {
 }
 
 // resolveCredentials 从房间页拿内部 room_id、ttwid 等。
+//
+// 返回 douyin.ErrRoomOffline 表示已确认主播当前未开播 (页面正常加载但
+// 没有内嵌 roomId)，调用时应当按正常状态处理而不是当作连接故障重试。
 func (s *danmakuSession) resolveCredentials() (*wsCredentials, error) {
 	webRID := NormalizeRoomID(s.roomID)
 	if webRID == "" {
 		return nil, fmt.Errorf("抖音房间号无效: %q", s.roomID)
 	}
 
-	html, err := s.manager.client.fetchRoomPage(webRID)
-	if err != nil {
-		return nil, err
+	if s.manager.client.isCachedOffline(webRID) {
+		return nil, ErrRoomOffline
 	}
 
-	internalID := extractInternalRoomID(html)
+	// 优先读缓存: 获取直播流 (StreamInfo) 成功时已把 webRID → 内部 roomId
+	// 写入 Client 缓存。验证码通过后 Go 的 fetchRoomPage 仍被风控，但缓存
+	// 里已有 roomId，直接复用，不必再走一次会被拦截的页面请求
+	internalID := s.manager.client.cachedRoomID(webRID)
+	fromCache := internalID != ""
 	if internalID == "" {
-		return nil, fmt.Errorf("抖音房间 %s 页面里没有找到内部 roomId", webRID)
+		internalID = s.manager.client.indexedRoomID(webRID)
+		fromCache = internalID != ""
+	}
+	if internalID == "" {
+		html, err := s.manager.client.fetchRoomPage(webRID)
+		if err != nil {
+			return nil, err
+		}
+		internalID = extractInternalRoomID(html)
+		if internalID == "" {
+			if pageBlocked(html) {
+				return nil, fmt.Errorf("抖音直播间 %s 获取弹幕时被风控拦截", webRID)
+			}
+			s.manager.client.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
+		s.manager.client.cacheRoomID(webRID, internalID)
+		s.manager.client.clearOffline(webRID)
+	}
+
+	if fromCache {
+		room, rerr := s.manager.client.fetchReflow(internalID)
+		switch {
+		case rerr != nil:
+			debugLog("复核直播状态失败 room=%s: %v", internalID, rerr)
+		case !isRoomLive(room):
+			log.Printf("[Douyin Danmaku %s] 复核确认主播未开播", s.roomID)
+			s.manager.client.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
 	}
 
 	// cookie / user_unique_id 从 HTTP 客户端记录里取（ttwid 已在页面请求时收下）
