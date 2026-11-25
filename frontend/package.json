@@ -21,7 +21,6 @@
     "@react-aria/utils": "^3.34.1",
     "@tailwindcss/vite": "^4.3.3",
     "@wailsio/runtime": "3.0.0",
-    "danmu.js": "1.2.1",
     "lucide-react": "^0.546.0",
     "react": "^19.2.0",
     "react-aria": "^3.53.1",

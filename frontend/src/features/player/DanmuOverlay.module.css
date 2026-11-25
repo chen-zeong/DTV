@@ -1,8 +1,8 @@
 /* =============================================================================
- * 视频上的弹幕层（bytedance/danmu.js）
+ * 视频上的弹幕层（单层 Canvas 合成）
  *
- * danmu.js 会在容器上挂 .danmu，并创建绝对定位的 div 作为每条弹幕的包裹层；
- * 这里只负责容器材质、单条正文的描边/字体，以及表情图尺寸。
+ * 容器只承载一层 pointer-events: none 的全屏 <canvas>，文字描边、表情图与
+ * 轨道排版全部由 DanmuCanvasEngine 在离屏位图缓存后绘制，不再堆叠 DOM 节点。
  * ========================================================================== */
 
 .overlay {
@@ -12,50 +12,4 @@
   overflow: hidden;
   z-index: 7;
   font-family: var(--danmu-font-family);
-  transition: opacity 200ms var(--ease-out);
-}
-
-/* danmu.js 每条弹幕的包裹 div（直接子节点）。库负责写 left/top/transform，
- * 这里补上定位和防换行。 */
-.overlay > div {
-  position: absolute;
-  top: 0;
-  left: 0;
-  white-space: nowrap;
-  will-change: transform;
-}
-
-/* 单条弹幕正文：只保留四向描边，不加投影。
- * 多个平台/多条弹幕叠在一起时投影会让画面发灰。 */
-.comment {
-  display: inline-block;
-  font-family: var(--danmu-font-family);
-  font-weight: 700;
-  line-height: 1.25;
-  white-space: pre;
-  text-shadow:
-    -1px -1px 0 var(--danmu-stroke-color),
-    1px -1px 0 var(--danmu-stroke-color),
-    -1px 1px 0 var(--danmu-stroke-color),
-    1px 1px 0 var(--danmu-stroke-color);
-}
-
-/* 表情图：跟着字号缩放，垂直居中偏下一点（和文字基线对齐）。
- * display 必须显式写 inline-block —— Tailwind 的 preflight 把 img 设成了
- * block，不覆盖的话每个表情都会独占一行，弹幕宽度也会算错。 */
-.emote {
-  display: inline-block;
-  width: 1.15em;
-  height: 1.15em;
-  margin: 0 1px;
-  vertical-align: -0.22em;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .overlay {
-    transition: none;
-  }
 }

@@ -30,14 +30,13 @@ type DouyuService struct {
 // client 可选：main.go 会把同一个 *douyu.Client 同时交给斗鱼服务与直播流
 // 中继，两边的登录 Cookie / did / 加密描述符缓存才能保持一致（否则中继用
 // 独立 client 取流会退回游客档位，甚至和登录态对不上）。
-func NewDouyuService(emit douyu.EmitFunc, client ...*douyu.Client) *DouyuService {
-	c := douyu.NewClient()
-	if len(client) > 0 && client[0] != nil {
-		c = client[0]
+func NewDouyuService(emit douyu.EmitFunc, client *douyu.Client, hub ...*common.DanmakuHub) *DouyuService {
+	if client == nil {
+		client = douyu.NewClient()
 	}
 	return &DouyuService{
-		client:  c,
-		danmaku: douyu.NewDanmakuManager(emit),
+		client:  client,
+		danmaku: douyu.NewDanmakuManager(emit, hub...),
 	}
 }
 

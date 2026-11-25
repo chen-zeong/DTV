@@ -201,6 +201,26 @@ export function DanmuSettingsControl({
                   </div>
                 )}
 
+                <div className={styles.rowColor}>
+                  <span
+                    className={styles.label}
+                    title="减少同时显示的弹幕和文字特效，改善低配设备流畅度"
+                  >
+                    低配模式
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.lowPerformance}
+                    aria-label="低配弹幕模式"
+                    title="减少同时显示的弹幕和文字特效，改善低配设备流畅度"
+                    className={cn(styles.switch, settings.lowPerformance && styles.switchOn)}
+                    onClick={() => onChange({ lowPerformance: !settings.lowPerformance })}
+                  >
+                    <span className={styles.switchThumb} />
+                  </button>
+                </div>
+
                 <div className={styles.row}>
                   <label>
                     字体 <span className={styles.value}>{`${fontSize}px`}</span>
@@ -213,13 +233,16 @@ export function DanmuSettingsControl({
                     step={DANMU_FONT_STEP}
                     value={fontSize}
                     style={{ background: rangeFill(fontSize, DANMU_FONT_MIN, DANMU_FONT_MAX) }}
-                    onChange={(e) => onChange({ fontSize: `${sanitizeDanmuFontSize(Number(e.target.value))}px` })}
+                    onChange={(e) =>
+                      onChange({ fontSize: `${sanitizeDanmuFontSize(Number(e.target.value))}px` })
+                    }
                   />
                 </div>
 
                 <div className={styles.row}>
                   <label>
-                    速度 <span className={styles.value}>{formatDanmuDuration(settings.duration)}</span>
+                    速度{" "}
+                    <span className={styles.value}>{formatDanmuDuration(settings.duration)}</span>
                   </label>
                   <input
                     className={styles.range}
@@ -268,11 +291,7 @@ export function DanmuSettingsControl({
                     step={DANMU_OPACITY_STEP}
                     value={settings.opacity}
                     style={{
-                      background: rangeFill(
-                        settings.opacity,
-                        DANMU_OPACITY_MIN,
-                        DANMU_OPACITY_MAX,
-                      ),
+                      background: rangeFill(settings.opacity, DANMU_OPACITY_MIN, DANMU_OPACITY_MAX),
                     }}
                     onChange={(e) => onChange({ opacity: Number(e.target.value) })}
                   />

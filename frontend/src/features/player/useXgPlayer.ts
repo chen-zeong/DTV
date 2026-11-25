@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Player from "xgplayer";
 import "xgplayer/dist/index.min.css";
 import { loadRaw, saveRaw, STORAGE_KEYS } from "@/lib/storage";
@@ -358,16 +358,30 @@ export function useXgPlayer(
     })();
   }, []);
 
-  return {
-    state,
-    error,
-    errorNonce,
-    volume,
-    togglePlay,
-    toggleMute,
-    setVolume,
-    pipSupported,
-    pipActive,
-    togglePip,
-  };
+  return useMemo(
+    () => ({
+      state,
+      error,
+      errorNonce,
+      volume,
+      togglePlay,
+      toggleMute,
+      setVolume,
+      pipSupported,
+      pipActive,
+      togglePip,
+    }),
+    [
+      state,
+      error,
+      errorNonce,
+      volume,
+      togglePlay,
+      toggleMute,
+      setVolume,
+      pipSupported,
+      pipActive,
+      togglePip,
+    ],
+  );
 }

@@ -18,6 +18,7 @@ import (
 
 	"dtv/internal/appdirs"
 	"dtv/internal/logging"
+	"dtv/internal/platforms/common"
 	"dtv/internal/platforms/douyu"
 	"dtv/internal/services"
 )
@@ -175,11 +176,13 @@ func main() {
 	// 斗鱼 Client 由服务与直播流中继共用：登录 Cookie / did / 加密描述符
 	// 必须一致，否则中继会用另一份客户端按游客档位重新取流。
 	douyuClient := douyu.NewClient()
+	// 四个平台共用一个弹幕协调器，确保跨平台切房间时自动停掉旧平台连接。
+	danmakuHub := common.NewDanmakuHub()
 
-	app.RegisterService(application.NewService(services.NewDouyuService(emit, douyuClient)))
-	app.RegisterService(application.NewService(services.NewHuyaService(emit)))
-	app.RegisterService(application.NewService(services.NewDouyinService(emit)))
-	app.RegisterService(application.NewService(services.NewBilibiliService(emit)))
+	app.RegisterService(application.NewService(services.NewDouyuService(emit, douyuClient, danmakuHub)))
+	app.RegisterService(application.NewService(services.NewHuyaService(emit, danmakuHub)))
+	app.RegisterService(application.NewService(services.NewDouyinService(emit, danmakuHub)))
+	app.RegisterService(application.NewService(services.NewBilibiliService(emit, danmakuHub)))
 
 	// 直播流中继：斗鱼直链 300 秒后会被 CDN 断开，由它在到期前续流。
 	app.RegisterService(application.NewService(services.NewStreamRelayService(douyuClient)))

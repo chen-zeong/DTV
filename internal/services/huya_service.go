@@ -17,10 +17,10 @@ type HuyaService struct {
 }
 
 // NewHuyaService 创建虎牙服务；emit 由 main.go 注入（转成 app.Event.Emit）。
-func NewHuyaService(emit huya.EmitFunc) *HuyaService {
+func NewHuyaService(emit huya.EmitFunc, hub ...*common.DanmakuHub) *HuyaService {
 	return &HuyaService{
 		client:  huya.NewClient(),
-		danmaku: huya.NewDanmakuManager(emit),
+		danmaku: huya.NewDanmakuManager(emit, hub...),
 	}
 }
 

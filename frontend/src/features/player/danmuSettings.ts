@@ -25,6 +25,8 @@ export interface DanmuUserSettings {
   opacity: number;
   /** 使用平台自带的弹幕颜色；平台不支持或消息无颜色时回退到 color */
   colorful: boolean;
+  /** 降低同时显示的弹幕密度和文字特效，照顾低配设备 */
+  lowPerformance: boolean;
 }
 
 export interface DanmuPreferences {
@@ -55,6 +57,7 @@ export const DEFAULT_DANMU_SETTINGS: DanmuUserSettings = {
   mode: "scroll",
   opacity: 1,
   colorful: true,
+  lowPerformance: false,
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -80,7 +83,11 @@ export function sanitizeDanmuOpacity(value: number): number {
 
 export function sanitizeDanmuFontSize(value: number): number {
   if (!Number.isFinite(value)) return parseInt(DEFAULT_DANMU_SETTINGS.fontSize, 10);
-  return clamp(Math.round(value / DANMU_FONT_STEP) * DANMU_FONT_STEP, DANMU_FONT_MIN, DANMU_FONT_MAX);
+  return clamp(
+    Math.round(value / DANMU_FONT_STEP) * DANMU_FONT_STEP,
+    DANMU_FONT_MIN,
+    DANMU_FONT_MAX,
+  );
 }
 
 export function normalizeDanmuSettings(
@@ -117,6 +124,10 @@ export function normalizeDanmuSettings(
     ),
     colorful:
       typeof source.colorful === "boolean" ? source.colorful : DEFAULT_DANMU_SETTINGS.colorful,
+    lowPerformance:
+      typeof source.lowPerformance === "boolean"
+        ? source.lowPerformance
+        : DEFAULT_DANMU_SETTINGS.lowPerformance,
   };
 }
 

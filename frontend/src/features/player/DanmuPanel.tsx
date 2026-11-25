@@ -1,9 +1,10 @@
 import { ArrowDown, X } from "lucide-react";
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { DanmakuMessage, LivePlatform } from "@/api";
 import { EmoticonText } from "@/components/common/EmoticonText";
 import { cn } from "@/lib/cn";
 import { hashColor } from "@/lib/format";
+import type { DanmakuFeed } from "./danmakuFeed";
 import styles from "./DanmuPanel.module.css";
 
 const MAX_RENDER = 200;
@@ -82,7 +83,10 @@ export function DanmuPanel({
   const seenLenRef = useRef(0);
   const [pending, setPending] = useState(0);
 
-  const visible = messages.filter((m) => m.kind !== "enter").slice(-MAX_RENDER);
+  const visible = useMemo(
+    () => messages.filter((m) => m.kind !== "enter").slice(-MAX_RENDER),
+    [messages],
+  );
 
   /* 贴底滚动放进 rAF：高频消息不再触发布局抖动 */
   useLayoutEffect(() => {
@@ -200,5 +204,35 @@ export function DanmuPanel({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * 绑定 DanmakuFeed 的右侧弹幕面板。
+ *
+ * 只有该组件订阅列表刷新，PlayerPage 不会因弹幕到来而重渲染。
+ */
+export function BoundDanmuPanel({
+  feed,
+  onClose,
+  width = DEFAULT_PANEL_WIDTH,
+  onWidthChange,
+  platform,
+}: {
+  feed: DanmakuFeed;
+  onClose?: () => void;
+  width?: number;
+  onWidthChange?: (width: number) => void;
+  platform?: LivePlatform;
+}) {
+  const messages = useSyncExternalStore(feed.subscribeList, feed.getMessages);
+  return (
+    <DanmuPanel
+      messages={messages}
+      onClose={onClose}
+      width={width}
+      onWidthChange={onWidthChange}
+      platform={platform}
+    />
   );
 }

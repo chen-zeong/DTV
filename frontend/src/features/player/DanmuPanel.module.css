@@ -107,6 +107,8 @@
   font-size: var(--text-sm);
   line-height: 1.5;
   word-break: break-word;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 34px;
 }
 
 .item:hover {

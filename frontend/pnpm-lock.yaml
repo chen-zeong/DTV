@@ -29,9 +29,6 @@ importers:
       '@wailsio/runtime':
         specifier: 3.0.0
         version: 3.0.0
-      danmu.js:
-        specifier: 1.2.1
-        version: 1.2.1
       lucide-react:
         specifier: ^0.546.0
         version: 0.546.0(react@19.3.1)

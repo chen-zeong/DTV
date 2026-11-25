@@ -21,10 +21,10 @@ type BilibiliService struct {
 }
 
 // NewBilibiliService 创建 B 站服务；emit 由 main.go 注入（转成 app.Event.Emit）。
-func NewBilibiliService(emit bilibili.EmitFunc) *BilibiliService {
+func NewBilibiliService(emit bilibili.EmitFunc, hub ...*common.DanmakuHub) *BilibiliService {
 	return &BilibiliService{
 		client:  bilibili.NewClient(),
-		danmaku: bilibili.NewDanmakuManager(emit),
+		danmaku: bilibili.NewDanmakuManager(emit, hub...),
 	}
 }
 

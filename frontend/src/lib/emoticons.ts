@@ -15,8 +15,39 @@
  * 三级都没命中的保持原样（比如用户真的在讨论 `[100]`），不会误伤正常方括号内容。
  */
 
-import { GENERIC_EMOTICONS } from "./emoticons.data";
 import { EMOTE_ASSETS, type EmoteSetName } from "./emotes.data";
+
+let genericEmoticons: Record<string, string> | null = null;
+let genericLoadPromise: Promise<void> | null = null;
+const genericListeners = new Set<() => void>();
+
+/**
+ * 异步懒加载 4400 条通用中文表情兜底表（~95KB），避免同步打进播放页首包。
+ */
+export function ensureGenericEmoticons(): Promise<void> {
+  if (genericEmoticons) return Promise.resolve();
+  if (!genericLoadPromise) {
+    genericLoadPromise = import("./emoticons.data")
+      .then((mod) => {
+        genericEmoticons = mod.GENERIC_EMOTICONS;
+        for (const listener of genericListeners) listener();
+        genericListeners.clear();
+      })
+      .catch(() => {
+        genericLoadPromise = null;
+      });
+  }
+  return genericLoadPromise;
+}
+
+export function subscribeGenericEmoticons(listener: () => void): () => void {
+  if (genericEmoticons) return () => {};
+  genericListeners.add(listener);
+  void ensureGenericEmoticons();
+  return () => {
+    genericListeners.delete(listener);
+  };
+}
 
 /** 平台高频表情名 → Unicode 表情。英文键按小写匹配。 */
 const EMOTICONS: Record<string, string> = {
@@ -295,7 +326,11 @@ export function resolveEmoteImage(name: string, platform?: string): string | und
 /** 表情名 → Unicode 表情（官方表情图没收录时的兜底）。 */
 export function resolveEmoticonEmoji(name: string): string | undefined {
   if (!name) return undefined;
-  return EMOTICONS[name] ?? EMOTICONS[name.toLowerCase()] ?? GENERIC_EMOTICONS[name];
+  const hot = EMOTICONS[name] ?? EMOTICONS[name.toLowerCase()];
+  if (hot) return hot;
+  if (genericEmoticons) return genericEmoticons[name];
+  void ensureGenericEmoticons();
+  return undefined;
 }
 
 /** 解析出来的一段内容。 */

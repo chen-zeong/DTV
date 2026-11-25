@@ -56,7 +56,6 @@ export default defineConfig({
         // PlayerPage 已改为 lazy，这些 chunk 只在进入直播间时下载。
         manualChunks(id) {
           if (id.includes("node_modules/xgplayer")) return "player-xgplayer";
-          if (id.includes("node_modules/@ironkinoko/danmaku")) return "player-danmaku";
           if (id.includes("node_modules/@heroui") || id.includes("node_modules/react-aria"))
             return "ui-vendor";
           return undefined;

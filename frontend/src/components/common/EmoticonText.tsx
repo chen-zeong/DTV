@@ -1,6 +1,6 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { LivePlatform } from "@/api";
-import { splitEmoticons } from "@/lib/emoticons";
+import { splitEmoticons, subscribeGenericEmoticons } from "@/lib/emoticons";
 import styles from "./EmoticonText.module.css";
 
 /**
@@ -17,7 +17,19 @@ export function EmoticonText({
   text: string;
   platform?: LivePlatform;
 }) {
-  const parts = useMemo(() => splitEmoticons(text, platform), [platform, text]);
+  const [genericVersion, setGenericVersion] = useState(0);
+
+  useEffect(() => {
+    if (!text.includes("[")) return;
+    return subscribeGenericEmoticons(() => {
+      setGenericVersion((v) => v + 1);
+    });
+  }, [text]);
+
+  const parts = useMemo(() => {
+    void genericVersion;
+    return splitEmoticons(text, platform);
+  }, [genericVersion, platform, text]);
 
   return (
     <>

@@ -20,10 +20,10 @@ type DouyinService struct {
 }
 
 // NewDouyinService 创建抖音服务；emit 由 main.go 注入（转成 app.Event.Emit）。
-func NewDouyinService(emit douyin.EmitFunc) *DouyinService {
+func NewDouyinService(emit douyin.EmitFunc, hub ...*common.DanmakuHub) *DouyinService {
 	return &DouyinService{
 		client:  douyin.NewClient(),
-		danmaku: douyin.NewDanmakuManager(emit),
+		danmaku: douyin.NewDanmakuManager(emit, hub...),
 	}
 }
 

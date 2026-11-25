@@ -189,19 +189,17 @@
   height: 44px;
   border-radius: 999px;
   color: rgba(255, 255, 255, 0.92);
-  background: rgba(10, 10, 12, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  background: rgba(10, 11, 13, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
-    0 22px 54px rgba(0, 0, 0, 0.32),
-    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    0 12px 28px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
   flex: 0 0 auto;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .backBtn:hover {
-  background: rgba(10, 10, 12, 0.72);
+  background: rgba(16, 18, 22, 0.88);
   border-color: rgba(255, 255, 255, 0.24);
 }
 
@@ -211,12 +209,10 @@
   gap: 10px;
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(10, 10, 12, 0.52);
+  background: rgba(10, 11, 13, 0.76);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
   box-shadow:
-    0 18px 46px rgba(0, 0, 0, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.26),
     0 0 0 1px rgba(255, 255, 255, 0.06) inset;
   min-width: 0;
   max-width: 64%;
@@ -297,15 +293,13 @@
   font-weight: var(--weight-bold);
   letter-spacing: 0.01em;
   color: rgba(255, 255, 255, 0.92);
-  background: rgba(10, 10, 12, 0.44);
+  background: rgba(18, 20, 24, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   flex: 0 0 auto;
 }
 
 .followBtn:hover {
-  background: rgba(10, 10, 12, 0.56);
+  background: rgba(24, 27, 32, 0.86);
   border-color: rgba(255, 255, 255, 0.22);
 }
 

@@ -22,13 +22,10 @@ import (
 )
 
 // EmitFunc 由上层注入的事件发射器。
-//
-// 平台层刻意不 import Wails：这样它既能被单测直接调用，
-// 也方便未来换 IPC 实现（只需换一个闭包）。
-type EmitFunc func(eventName string, payload any)
+type EmitFunc = common.DanmakuEmitFunc
 
 // EventDanmakuMessage 与旧项目、以及其它三个平台保持一致。
-const EventDanmakuMessage = "danmaku-message"
+const EventDanmakuMessage = common.EventDanmakuMessage
 
 const (
 	// 心跳间隔：B 站 30 秒发一次就够（旧实现也是 30s）。
@@ -61,113 +58,67 @@ const (
 // 而 zlib 是 Go 标准库自带，不用引第三方 brotli 依赖。
 const danmakuProtover = 2
 
-// DanmakuManager 管理"同一时刻只监听一个房间"的弹幕会话。
-//
-// 与斗鱼/虎牙/抖音的 manager 语义保持一致：切房间会先停掉上一个。
+// DanmakuManager 管理 B 站弹幕连接，通过共享 DanmakuHub 保证跨平台同时只监听一个房间。
 type DanmakuManager struct {
-	emit EmitFunc
-
-	mu      sync.Mutex
-	current *danmakuSession
-	seq     int64
+	ctrl *common.DanmakuController
 }
 
 // NewDanmakuManager 构造。
-func NewDanmakuManager(emit EmitFunc) *DanmakuManager {
-	if emit == nil {
-		emit = func(string, any) {}
+func NewDanmakuManager(emit EmitFunc, hub ...*common.DanmakuHub) *DanmakuManager {
+	var shared *common.DanmakuHub
+	if len(hub) > 0 {
+		shared = hub[0]
 	}
-	return &DanmakuManager{emit: emit}
+	return &DanmakuManager{
+		ctrl: common.NewDanmakuController(common.PlatformBilibili, emit, shared),
+	}
 }
 
 // RunningRoom 返回当前正在监听的房间号，没有则为空串。
 func (m *DanmakuManager) RunningRoom() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.current == nil {
-		return ""
-	}
-	return m.current.roomID
+	return m.ctrl.RunningRoom()
 }
 
-// Start 开始监听某个房间（会先停掉上一个）。
+// Start 开始监听某个房间（会先停掉全局上一个会话）。
 func (m *DanmakuManager) Start(roomID string) error {
 	text := NormalizeRoomID(roomID)
 	if text == "" {
 		return fmt.Errorf("房间号为空")
 	}
 
-	m.StopAll()
-
-	session, err := newDanmakuSession(m, text)
-	if err != nil {
-		return err
+	s := &danmakuSession{
+		manager: m,
+		roomID:  text,
 	}
-
-	m.mu.Lock()
-	m.current = session
-	m.mu.Unlock()
-
-	go session.run()
+	m.ctrl.Start(text, func(ctx context.Context) {
+		s.ctx = ctx
+		logf("[Bilibili Danmaku] 开始监听 room=%s", s.roomID)
+		common.RunDanmakuLoop(ctx, "Bilibili Danmaku "+text, stableConnection, maxBackoff, func(context.Context) error {
+			return s.connectOnce()
+		})
+	}, s.closeConn)
 	return nil
 }
 
 // Stop 停止指定房间（roomID 不为空时只停那个）。
 func (m *DanmakuManager) Stop(roomID string) {
-	m.mu.Lock()
-	session := m.current
-	if session != nil && roomID != "" && session.roomID != NormalizeRoomID(roomID) {
-		m.mu.Unlock()
-		return
+	if roomID != "" {
+		roomID = NormalizeRoomID(roomID)
 	}
-	if session != nil {
-		m.current = nil
-	}
-	m.mu.Unlock()
-
-	if session != nil {
-		session.stop()
-	}
+	m.ctrl.Stop(roomID)
 }
 
 // StopAll 停止所有监听。
 func (m *DanmakuManager) StopAll() {
-	m.mu.Lock()
-	session := m.current
-	m.current = nil
-	m.mu.Unlock()
-
-	if session != nil {
-		session.stop()
-	}
+	m.ctrl.StopAll()
 }
 
-// nextMessageID 生成稳定递增的消息 id。
 func (m *DanmakuManager) nextMessageID(roomID string, at int64) string {
-	m.mu.Lock()
-	m.seq++
-	seq := m.seq
-	m.mu.Unlock()
-	return fmt.Sprintf("bilibili:%s:%d:%d", roomID, at, seq)
+	return m.ctrl.NextMessageID(roomID, at)
 }
 
-// emitMessage 推送一条归一化弹幕。
 func (m *DanmakuManager) emitMessage(roomID string, msg common.DanmakuMessage) {
-	if msg.At == 0 {
-		msg.At = time.Now().UnixMilli()
-	}
-	if msg.ID == "" {
-		msg.ID = m.nextMessageID(roomID, msg.At)
-	}
-	if msg.Kind == "" {
-		msg.Kind = string(common.DanmakuChat)
-	}
-
-	m.emit(EventDanmakuMessage, common.DanmakuEvent{
-		RoomID:   roomID,
-		Platform: string(common.PlatformBilibili),
-		Message:  msg,
-	})
+	m.ctrl.Emit(roomID, msg, false)
 }
 
 // danmakuSession 是一次房间监听会话。
@@ -175,43 +126,19 @@ type danmakuSession struct {
 	manager *DanmakuManager
 	roomID  string
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx context.Context
 
 	connMu sync.Mutex
 	conn   *websocket.Conn
-
-	done chan struct{}
 }
 
-// newDanmakuSession 构造会话（此时还没连）。
-func newDanmakuSession(manager *DanmakuManager, roomID string) (*danmakuSession, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &danmakuSession{
-		manager: manager,
-		roomID:  roomID,
-		ctx:     ctx,
-		cancel:  cancel,
-		done:    make(chan struct{}),
-	}, nil
-}
-
-// stop 停止会话并关闭连接。
-func (s *danmakuSession) stop() {
-	s.cancel()
-
+func (s *danmakuSession) closeConn() {
 	s.connMu.Lock()
 	conn := s.conn
 	s.conn = nil
 	s.connMu.Unlock()
-
 	if conn != nil {
 		_ = conn.CloseNow()
-	}
-
-	select {
-	case <-s.done:
-	case <-time.After(3 * time.Second):
 	}
 }
 
@@ -229,50 +156,6 @@ func (s *danmakuSession) clearConn(conn *websocket.Conn) {
 		s.conn = nil
 	}
 	s.connMu.Unlock()
-}
-
-// run 是会话主循环：断线后按退避重连，直到会话被 Stop。
-//
-// 之前这里是“一次性”的：roomInit / danmuInfo / readLoop 任一环节失败，
-// run 就直接返回，房间还开着但弹幕永远断了。现在把一次完整的
-// “解析地址 → 取 token → 连接 → 读帧” 抽成 connectOnce，由 run 循环调用。
-func (s *danmakuSession) run() {
-	defer close(s.done)
-
-	logf("[Bilibili Danmaku] 开始监听 room=%s", s.roomID)
-
-	backoff := time.Second
-	for {
-		started := time.Now()
-		err := s.connectOnce()
-		if s.ctx.Err() != nil {
-			logf("[Bilibili Danmaku %s] 已停止", s.roomID)
-			return
-		}
-		if err != nil {
-			logf("[Bilibili Danmaku %s] 连接断开: %v，%s 后重连", s.roomID, err, backoff)
-		}
-
-		// 稳定跑过一段时间再断开，说明网络/服务端是偶发问题，
-		// 下一次重连不用等 30s。
-		if time.Since(started) >= stableConnection {
-			backoff = time.Second
-		}
-
-		select {
-		case <-s.ctx.Done():
-			logf("[Bilibili Danmaku %s] 已停止", s.roomID)
-			return
-		case <-time.After(backoff):
-		}
-
-		if backoff < maxBackoff {
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-		}
-	}
 }
 
 // connectOnce 执行一次完整的建档 + 连接 + 读帧。

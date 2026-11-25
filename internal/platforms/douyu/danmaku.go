@@ -5,30 +5,20 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"dtv/internal/platforms/common"
 )
 
-// EmitFunc 是平台层向外发事件的抽象。
-//
-// 平台层不依赖 Wails，Service 负责把事件接到 app.Event.Emit 上，
-// 这样 internal/platforms 可以脱离 Wails 用 go test 跑。
-type EmitFunc func(eventName string, payload any)
+// EmitFunc 是平台层向外发事件的抽象，脱离 Wails 以便单测。
+type EmitFunc = common.DanmakuEmitFunc
 
-// 事件名与旧项目保持一致（前端按这两个名字订阅）。
-const (
-	// EventDanmakuMessage 全局弹幕事件（payload 为 common.DanmakuEvent）。
-	EventDanmakuMessage = "danmaku-message"
-	// eventDanmakuPrefix 按房间的事件名前缀：danmaku-<roomId>。
-	eventDanmakuPrefix = "danmaku-"
-)
+// EventDanmakuMessage 全局弹幕事件名（兼容旧引用）。
+const EventDanmakuMessage = common.EventDanmakuMessage
 
 // 斗鱼弹幕服务器的连接方式。
 //
@@ -59,134 +49,64 @@ const (
 	maxPacketSize = 1 << 16
 )
 
-// DanmakuManager 管理"同一时刻只有一个房间"的弹幕连接，与旧实现业务规则一致
-// （main.rs 里的 start_danmaku_listener 会先停掉上一个监听器）。
+// DanmakuManager 管理斗鱼弹幕连接，通过共享 DanmakuHub 保证跨平台同时只监听一个房间。
 type DanmakuManager struct {
-	mu      sync.Mutex
-	session *danmakuSession
-	emit    EmitFunc
-	seq     atomic.Uint64
+	ctrl *common.DanmakuController
 }
 
 // NewDanmakuManager 创建管理器；emit 为 nil 时事件会被丢弃（便于单测）。
-func NewDanmakuManager(emit EmitFunc) *DanmakuManager {
-	return &DanmakuManager{emit: emit}
+func NewDanmakuManager(emit EmitFunc, hub ...*common.DanmakuHub) *DanmakuManager {
+	var shared *common.DanmakuHub
+	if len(hub) > 0 {
+		shared = hub[0]
+	}
+	return &DanmakuManager{
+		ctrl: common.NewDanmakuController(common.PlatformDouyu, emit, shared),
+	}
 }
 
-// Start 开始监听指定房间的弹幕（会先停掉正在监听的房间）。
+// Start 开始监听指定房间的弹幕（会先停掉全局正在监听的房间）。
 func (m *DanmakuManager) Start(roomID string) error {
 	trimmed := strings.TrimSpace(roomID)
 	if trimmed == "" {
 		return fmt.Errorf("缺少房间号")
 	}
 
-	m.stopCurrent()
-
-	ctx, cancel := context.WithCancel(context.Background())
 	s := &danmakuSession{
 		roomID:  trimmed,
-		cancel:  cancel,
-		done:    make(chan struct{}),
 		manager: m,
 	}
-
-	m.mu.Lock()
-	m.session = s
-	m.mu.Unlock()
-
-	go s.run(ctx)
+	m.ctrl.Start(trimmed, func(ctx context.Context) {
+		common.RunDanmakuLoop(ctx, "Douyu Danmaku "+trimmed, 10*time.Second, maxBackoff, s.connectAndRead)
+	}, s.closeConn)
 	return nil
 }
 
-// Stop 停止监听。
-//
-// roomID 非空时只停那一个房间：切房间时旧房间的 Stop 可能比新房间的 Start
-// 更晚到达，如果无条件停“当前连接”，就会把刚建立的新房间连接一起停掉。
-func (m *DanmakuManager) Stop(roomID string) {
-	trimmed := strings.TrimSpace(roomID)
-	m.mu.Lock()
-	current := m.session
-	if current == nil || (trimmed != "" && current.roomID != trimmed) {
-		m.mu.Unlock()
-		return
-	}
-	m.session = nil
-	m.mu.Unlock()
-
-	log.Printf("[Douyu Danmaku] 停止监听 room=%s (request=%s)", current.roomID, roomID)
-	current.stop()
-}
+// Stop 停止监听（roomID 非空时仅在房间匹配时停掉）。
+func (m *DanmakuManager) Stop(roomID string) { m.ctrl.Stop(roomID) }
 
 // StopAll 在应用退出时调用。
-func (m *DanmakuManager) StopAll() {
-	m.Stop("")
-}
+func (m *DanmakuManager) StopAll() { m.ctrl.StopAll() }
 
 // RunningRoom 返回当前正在监听的房间号（空表示没有）。
-func (m *DanmakuManager) RunningRoom() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.session == nil {
-		return ""
-	}
-	return m.session.roomID
-}
+func (m *DanmakuManager) RunningRoom() string { return m.ctrl.RunningRoom() }
 
-func (m *DanmakuManager) stopCurrent() {
-	m.mu.Lock()
-	current := m.session
-	m.session = nil
-	m.mu.Unlock()
-	if current != nil {
-		current.stop()
-	}
-}
-
-// emitEvent 向两个事件名各发一次：全局 + 按房间（兼容旧前端）。
 func (m *DanmakuManager) emitEvent(roomID string, message common.DanmakuMessage) {
-	if m.emit == nil {
-		return
-	}
-	payload := common.DanmakuEvent{
-		RoomID:   roomID,
-		Platform: string(common.PlatformDouyu),
-		Message:  message,
-	}
-	m.emit(EventDanmakuMessage, payload)
-	m.emit(eventDanmakuPrefix+roomID, payload)
+	m.ctrl.Emit(roomID, message, true)
 }
 
-// nextMessageID 生成弹幕唯一 id（前端当 React key 用）。
 func (m *DanmakuManager) nextMessageID(roomID string, at int64) string {
-	return "douyu:" + roomID + ":" + strconv.FormatInt(at, 10) + ":" + strconv.FormatUint(m.seq.Add(1), 10)
+	return m.ctrl.NextMessageID(roomID, at)
 }
 
 // ------------------------------------------------------------------ 单个连接
 
 type danmakuSession struct {
 	roomID  string
-	cancel  context.CancelFunc
-	done    chan struct{}
 	manager *DanmakuManager
-	once    sync.Once
 
 	mu   sync.Mutex
 	conn net.Conn
-}
-
-func (s *danmakuSession) stop() {
-	// 先取消上下文，再主动断开连接：阻塞中的 Read 会立刻返回错误，
-	// 不必等 readTimeout 到期。
-	s.cancel()
-	s.closeConn()
-
-	s.once.Do(func() {
-		select {
-		case <-s.done:
-		case <-time.After(3 * time.Second):
-			log.Printf("[Douyu Danmaku %s] 等待退出超时", s.roomID)
-		}
-	})
 }
 
 func (s *danmakuSession) setConn(conn net.Conn) {
@@ -210,42 +130,6 @@ func (s *danmakuSession) closeConn() {
 	s.mu.Unlock()
 	if conn != nil {
 		_ = conn.Close()
-	}
-}
-
-// run 是重连主循环：断开后指数退避重连，直到被停掉。
-func (s *danmakuSession) run(ctx context.Context) {
-	defer close(s.done)
-
-	backoff := time.Second
-	for {
-		started := time.Now()
-		err := s.connectAndRead(ctx)
-		if ctx.Err() != nil {
-			log.Printf("[Douyu Danmaku %s] 已停止监听", s.roomID)
-			return
-		}
-		if err != nil {
-			log.Printf("[Douyu Danmaku %s] 连接断开: %v，%s 后重连", s.roomID, err, backoff)
-		}
-
-		// 稳定跑过 10s 再断，说明只是偶发抖动，下一次从 1s 重新退避。
-		if time.Since(started) >= 10*time.Second {
-			backoff = time.Second
-		}
-
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(backoff):
-		}
-
-		if backoff < maxBackoff {
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-		}
 	}
 }
 
