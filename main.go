@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -206,9 +207,11 @@ func main() {
 		Y:               y,
 		MinWidth:        minWindowWidth,
 		MinHeight:       minWindowHeight,
-		// 与 Tauri 版一致：无系统标题栏，标题栏由前端 Navbar 自绘
-		// （前端通过 CSS `--wails-draggable: drag` 提供拖拽区域）
-		Frameless:     true,
+		// Windows / Linux 无系统标题栏，标题栏由前端 Navbar 自绘
+		// （前端通过 CSS `--wails-draggable: drag` 提供拖拽区域）；
+		// macOS 不能开 Frameless：Wails v3 在 Frameless=true 时会跳过 Mac.TitleBar
+		// 并强制隐藏原生红绿灯，因此 macOS 关闭 Frameless 以启用 MacTitleBarHiddenInset。
+		Frameless:     runtime.GOOS != "darwin",
 		DisableResize: false,
 		// 首帧背景色与暗色主题 --bg-primary 对齐，避免启动白闪
 		BackgroundColour: application.NewRGB(0x0a, 0x0b, 0x0d),

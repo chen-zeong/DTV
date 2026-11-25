@@ -13,7 +13,7 @@ import styles from "./WindowControls.module.css";
  *
  * 旧版逻辑分散在 Navbar 与 MainPlayer 两处，各写一遍 Tauri 动态 import。
  * 这里统一到 lib/window，并且**按平台渲染**：macOS 用系统红绿灯
- * （Frameless + MacTitleBarHiddenInset 已经提供），不显示这一组。
+ * （由后端 Frameless=false + MacTitleBarHiddenInset 提供），不显示这一组。
  *
  * Windows 上这三个按钮通过 CSS 标记（`--wails-non-client-region`）注册成
  * 原生非客户区，因此拥有系统按钮的命中测试 / 悬停捕获，最大化按钮还能弹出

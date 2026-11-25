@@ -245,6 +245,7 @@
   position: relative;
   z-index: 2;
   min-width: 0;
+  contain: layout style;
 }
 
 .row {
@@ -466,8 +467,8 @@
   background: var(--color-card);
   border: 1px solid var(--color-border);
   overflow: hidden;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  /* 侧栏本身是实色表面，去掉逐帧重采样的 backdrop-filter 并限制布局影响，避免展开首帧掉帧 */
+  contain: layout style;
   transition:
     background-color 0.25s ease,
     border-color 0.25s ease,
@@ -630,21 +631,18 @@
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
-  visibility: visible;
   transition:
     grid-template-rows 240ms var(--ease-out),
-    opacity 180ms var(--ease-out),
-    visibility 0s linear 0s;
+    opacity 180ms var(--ease-out);
 }
 
 .folderContentCollapsed {
   grid-template-rows: 0fr;
   opacity: 0;
-  visibility: hidden;
+  pointer-events: none;
   transition:
     grid-template-rows 240ms var(--ease-out),
-    opacity 150ms var(--ease-out),
-    visibility 0s linear 240ms;
+    opacity 150ms var(--ease-out);
 }
 
 .folderContentInner {

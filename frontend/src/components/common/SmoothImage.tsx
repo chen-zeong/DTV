@@ -20,6 +20,8 @@ interface SmoothImageProps {
   seed?: string;
   /** 首屏前几张图：高优先级 + 立即解码 */
   priority?: boolean;
+  /** 后台提前加载但保持低请求优先级（用于折叠文件夹内头像，避免首次展开集中卡顿） */
+  eager?: boolean;
   /** 展示宽度（CSS px）；代理按 2x 出图并生成 srcSet */
   displayWidth?: number;
 }
@@ -42,6 +44,7 @@ export function SmoothImage({
   rounded = false,
   seed,
   priority = false,
+  eager = false,
   displayWidth,
 }: SmoothImageProps) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
@@ -116,7 +119,7 @@ export function SmoothImage({
       src={resolved}
       srcSet={srcSet}
       alt={alt}
-      loading={priority ? "eager" : "lazy"}
+      loading={priority || eager ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : "low"}
       draggable={false}

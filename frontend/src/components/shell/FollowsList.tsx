@@ -534,7 +534,13 @@ export function FollowsList({
         >
           <span className={styles.avatarWrap}>
             <span className={styles.avatar}>
-              <SmoothImage src={record.avatar} alt={record.nickname} rounded />
+              <SmoothImage
+                src={record.avatar}
+                alt={record.nickname}
+                rounded
+                eager
+                displayWidth={48}
+              />
             </span>
             <span
               className={cn(
@@ -708,6 +714,7 @@ export function FollowsList({
                         !expanded && styles.folderContentCollapsed,
                       )}
                       aria-hidden={!expanded}
+                      inert={!expanded}
                     >
                       <div className={styles.folderContentInner}>
                         {folder.records.length > 0 && (
@@ -904,7 +911,12 @@ export function FollowsList({
                     >
                       <span className={styles.overlayAvatarWrap}>
                         <span className={styles.overlayAvatar}>
-                          <SmoothImage src={record.avatar} alt={record.nickname} rounded />
+                          <SmoothImage
+                            src={record.avatar}
+                            alt={record.nickname}
+                            rounded
+                            displayWidth={48}
+                          />
                         </span>
                         <span
                           className={cn(
