@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Browser, Events, System, Window } from "@wailsio/runtime";
 
 /**
@@ -211,4 +211,26 @@ export async function isMaximised(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** 同步窗口是否处于最大化状态（供顶栏按钮与播放器边距布局共用）。 */
+export function useWindowMaximised(): [boolean, Dispatch<SetStateAction<boolean>>] {
+  const [maximised, setMaximised] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const sync = () => {
+      void isMaximised().then((next) => {
+        if (active) setMaximised(next);
+      });
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    return () => {
+      active = false;
+      window.removeEventListener("resize", sync);
+    };
+  }, []);
+
+  return [maximised, setMaximised];
 }

@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { cn } from "@/lib/cn";
+import { useWindowMaximised } from "@/lib/window";
 import { usePlayerUi } from "@/state/PlayerUiProvider";
 import { HomeStack } from "./HomeStack";
 import { Navbar } from "./Navbar";
@@ -19,6 +20,7 @@ import styles from "./AppShell.module.css";
 export function AppShell() {
   const { pathname } = useLocation();
   const { isFullscreen } = usePlayerUi();
+  const [maximised] = useWindowMaximised();
   const isPlayer = pathname.startsWith("/player");
   const hideChrome = isFullscreen;
 
@@ -31,7 +33,13 @@ export function AppShell() {
       {!hideChrome && <Sidebar />}
       <div className={styles.appMain}>
         {!hideChrome && <Navbar />}
-        <main className={cn(styles.appBody, isPlayer && styles.appBodyPlayer)}>
+        <main
+          className={cn(
+            styles.appBody,
+            isPlayer && styles.appBodyPlayer,
+            isPlayer && (maximised || isFullscreen) && styles.appBodyPlayerFlush,
+          )}
+        >
           {/* 平台首页 / 订阅页常驻，用 Activity 在其它路由隐藏，实现 keep-alive */}
           <HomeStack />
           <SubscribeStack />

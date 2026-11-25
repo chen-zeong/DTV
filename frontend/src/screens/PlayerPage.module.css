@@ -15,7 +15,14 @@
   overflow: hidden;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
-  background: var(--bg-secondary);
+  /* 用纯黑兜底舞台区，避免高分屏缩放（如 150% DPI）下子像素取整露出 1px 浅色底缝 */
+  background: #000;
+}
+
+.shellMaximised {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
 }
 
 .playerBody {
@@ -24,6 +31,7 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
+  background: #000;
 }
 
 .shellFull {

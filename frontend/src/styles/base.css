@@ -12,6 +12,7 @@
 }
 
 html {
+  height: 100%;
   font-family: var(--font-text);
   font-size: 15px;
   background: var(--bg-primary);
@@ -36,6 +37,7 @@ h4 {
 }
 
 body {
+  height: 100%;
   margin: 0;
   padding: 0;
   background-color: transparent;
@@ -51,7 +53,7 @@ body {
 }
 
 #root {
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 

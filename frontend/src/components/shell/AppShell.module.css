@@ -3,7 +3,7 @@
 .appShell {
   position: relative;
   display: flex;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   background: var(--bg-primary);
 }
@@ -76,14 +76,18 @@
   }
 }
 
-/* 播放页：播放器自己铺满，不再额外留底部空隙 */
+/* 播放页：普通窗口下底部保留与左右一致的留白；最大化/全屏时底部间距归零 */
 .appBodyPlayer {
-  padding: 0 14px;
+  padding: 0 14px 14px;
   overflow: hidden;
 }
 
 @media (max-width: 1240px) {
   .appBodyPlayer {
-    padding: 0 10px;
+    padding: 0 10px 10px;
   }
+}
+
+.appBodyPlayerFlush {
+  padding-bottom: 0;
 }

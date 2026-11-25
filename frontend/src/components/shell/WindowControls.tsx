@@ -1,5 +1,11 @@
-import { useEffect, useState } from "react";
-import { closeWindow, isMacOS, isMaximised, minimiseWindow, toggleMaximiseWindow, useDesktopOS } from "@/lib/window";
+import {
+  closeWindow,
+  isMacOS,
+  minimiseWindow,
+  toggleMaximiseWindow,
+  useDesktopOS,
+  useWindowMaximised,
+} from "@/lib/window";
 import styles from "./WindowControls.module.css";
 
 /**
@@ -16,17 +22,7 @@ import styles from "./WindowControls.module.css";
 export function WindowControls({ className }: { className?: string }) {
   // os 未知时（浏览器预览）默认按 Windows 显示
   const os = useDesktopOS();
-  const [maximised, setMaximised] = useState(false);
-
-  useEffect(() => {
-    void isMaximised().then(setMaximised);
-
-    // 用户拖拽边框 / 双击标题栏 / 贴靠布局都能改变最大化状态，
-    // 这里跟着窗口尺寸事件同步一次按钮图标。
-    const sync = () => void isMaximised().then(setMaximised);
-    window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
-  }, []);
+  const [maximised, setMaximised] = useWindowMaximised();
 
   if (os === "darwin" || isMacOS()) return null;
 

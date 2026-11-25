@@ -24,6 +24,7 @@ import { useStreamController } from "@/features/player/useStreamController";
 import { cn } from "@/lib/cn";
 import { ensureGenericEmoticons } from "@/lib/emoticons";
 import { loadJSON, loadRaw, saveJSON, saveRaw, STORAGE_KEYS } from "@/lib/storage";
+import { useWindowMaximised } from "@/lib/window";
 import { useFollow } from "@/state/FollowProvider";
 import styles from "./PlayerPage.module.css";
 
@@ -65,6 +66,7 @@ export function PlayerPage() {
   const playerHostRef = useRef<HTMLDivElement>(null);
 
   const { isFollowing, toggleFollow } = useFollow();
+  const [maximised] = useWindowMaximised();
 
   const [danmuPanelOpen, setDanmuPanelOpen] = useState<boolean>(
     () => !loadJSON<boolean>(STORAGE_KEYS.danmuPanelCollapsed, false),
@@ -172,7 +174,13 @@ export function PlayerPage() {
   return (
     <div className={styles.page}>
       <h1 className="visually-hidden">{info ? `${info.nickname} 的直播间` : "直播间"}</h1>
-      <div className={cn(styles.playerShell, isFullscreen && styles.shellFull)}>
+      <div
+        className={cn(
+          styles.playerShell,
+          maximised && !isFullscreen && styles.shellMaximised,
+          isFullscreen && styles.shellFull,
+        )}
+      >
         <div className={styles.playerBody}>
           <div className={styles.stageCol}>
             <div

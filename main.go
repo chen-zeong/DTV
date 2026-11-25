@@ -21,6 +21,7 @@ import (
 	"dtv/internal/platforms/common"
 	"dtv/internal/platforms/douyu"
 	"dtv/internal/services"
+	"dtv/internal/windowfix"
 )
 
 //go:embed all:frontend/dist
@@ -323,6 +324,8 @@ func main() {
 		}
 		persist()
 	})
+
+	windowfix.AttachMaximiseWorkAreaFix(mainWindow)
 
 	if maximised {
 		mainWindow.Maximise()
