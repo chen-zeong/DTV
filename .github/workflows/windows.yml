@@ -1,0 +1,119 @@
+name: Windows MSI
+
+# Windows MSI 专用发布流水线（只构建 .msi 安装包）。
+#
+# 触发方式：
+#   - Actions 页面手动 Run workflow
+#   - push 形如 v4.2.0 / 4.2.0 的 tag（自动上传到对应 GitHub Release）
+#
+# 产物：
+#   - DTV-<version>-amd64.msi
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+      - "[0-9]*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-msi-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows amd64 MSI
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: go.sum
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install Wails3 CLI
+        shell: pwsh
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+          "$(go env GOPATH)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dtv.exe
+        shell: pwsh
+        run: |
+          wails3 build SIGN_ENABLED=false
+          if (-not (Test-Path -LiteralPath "bin/dtv.exe")) {
+            Write-Error "bin/dtv.exe was not created"
+            exit 1
+          }
+
+      - name: Package MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $WixBin = ""
+          if ($env:WIX -and (Test-Path -LiteralPath (Join-Path $env:WIX "bin\candle.exe"))) {
+            $WixBin = Join-Path $env:WIX "bin"
+          } elseif (Get-Command candle.exe -ErrorAction SilentlyContinue) {
+            $WixBin = Split-Path -Parent (Get-Command candle.exe).Source
+          } else {
+            Write-Host "Downloading WiX Toolset v3.14 binaries..."
+            $wixZip = Join-Path $env:RUNNER_TEMP "wix314-binaries.zip"
+            $wixDir = Join-Path $env:RUNNER_TEMP "wix314"
+            Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile $wixZip
+            Expand-Archive -LiteralPath $wixZip -DestinationPath $wixDir -Force
+            $WixBin = $wixDir
+          }
+
+          $Version = "4.2.0"
+          if (Test-Path -LiteralPath "build/windows/info.json") {
+            $info = Get-Content -LiteralPath "build/windows/info.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($info.fixed.file_version) {
+              $Version = $info.fixed.file_version
+            }
+          }
+
+          New-Item -ItemType Directory -Force -Path "artifacts" | Out-Null
+          $MsiOut = "artifacts/DTV-$Version-amd64.msi"
+          powershell -NoProfile -ExecutionPolicy Bypass -File "build/windows/msi/build-msi.ps1" `
+            -WixBin $WixBin `
+            -Version $Version `
+            -Output $MsiOut
+
+          if (-not (Test-Path -LiteralPath $MsiOut)) {
+            Write-Error "$MsiOut was not created"
+            exit 1
+          }
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: DTV-amd64-msi
+          path: artifacts/*.msi
+          if-no-files-found: error
+
+      - name: Attach MSI to tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.msi
+          generate_release_notes: true
