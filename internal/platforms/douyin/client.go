@@ -48,10 +48,10 @@ type Client struct {
 
 	// offlineCache 缓存 webRID → 未开播记录。
 	//
-	// 蓝V/官方认证直播间未开播时，直播间页正常加载但内嵌 JSON 里没有
+	// 政务/事业机构直播间未开播时，直播间页正常加载但内嵌 JSON 里没有
 	// roomId。验证码窗口里的脚本检测到这种情况会回传 offline 信号，
 	// 记录下来，避免下次再弹一次验证码窗口。
-	// 超过 offlineTrustTTL 之后必须重新验证，否则蓝V直播间中途开播会被
+	// 超过 offlineTrustTTL 之后必须重新验证，否则政务/事业机构直播间中途开播会被
 	// 误判成"未开播"直到缓存过期。
 	offlineCache map[string]time.Time
 
@@ -89,8 +89,8 @@ type CaptchaResolver func(webRID string) (string, error)
 //     一次之后，这个 WebView 就不再被拦截
 type RoomIDResolver func(webRID string) (string, error)
 
-// ErrCaptchaOffline 表示直播间页面正常加载但拿不到内部 roomId —— 蓝V/官方
-// 认证直播间未开播时的特征为页面内嵌 JSON 里根本没有 roomId
+// ErrCaptchaOffline 表示直播间页面正常加载但拿不到内部 roomId
+// 政务/事业机构直播间未开播时的特征为页面内嵌 JSON 里根本没有 roomId
 // 主包的验证码脚本检测到这种情况回传哨兵值，resolveRoom 把它转成
 // 明确的"未开播"错误，而不是挂着验证码窗口白等到超时。
 var ErrCaptchaOffline = errors.New("直播间未开播或已结束")

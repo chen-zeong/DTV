@@ -360,7 +360,7 @@ func extractJS(webRID string) string {
 // 消息格式:
 //   - dtv:roomid:<webRID>:<internalRoomID>  已放行，回传内部 roomId
 //   - dtv:captcha-page:<webRID>             页面仍是验证码中间页，请求显示窗口
-//   - dtv:offline:<webRID>                  未开播/蓝V直播间页面内嵌 JSON 无 roomId
+//   - dtv:offline:<webRID>                  未开播/政务/事业机构直播间页面内嵌 JSON 无 roomId
 //   - dtv:cancel:<webRID>                   用户点了外壳上的关闭按钮
 func (d *Captcha) HandleMessage(_ application.Window, message string, _ *application.OriginInfo) {
 	const cancelPrefix = "dtv:cancel:"

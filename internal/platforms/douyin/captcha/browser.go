@@ -88,7 +88,7 @@ type browserSession struct {
 	result string
 	done   chan struct{}
 	closed bool
-	// offline 表示页面正常加载但拿不到 roomId (未开播的蓝V直播间)
+	// offline 表示页面正常加载但拿不到 roomId (未开播的政务/事业机构直播间)
 	offline bool
 	// awaitingUser 表示正在等用户手动通过验证码
 	awaitingUser bool

@@ -452,7 +452,7 @@ func (c *Client) resolveRoom(roomID string, allowPopup bool, force bool) (*roomB
 
 	internalID := extractInternalRoomID(html)
 	if internalID == "" {
-		// 内嵌 roomId 是否存在只跟官方认证直播间是否在播有关：
+		// 内嵌 roomId 是否存在只跟政务/事业机构直播间是否在播有关：
 		// 下播的官V房间（无论纯数字直播间号还是包含字母的抖音号）
 		// SSR 里都没有 roomId；在播房间都有。
 		// 所以拿不到 roomId 时不能直接判未开播 (hydration 可能未完成),
