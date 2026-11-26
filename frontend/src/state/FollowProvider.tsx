@@ -8,8 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api, type LivePlatform, type Streamer } from "@/api";
+import { api, type LivePlatform, type Streamer, type StreamInfo } from "@/api";
 import { loadJSON, saveJSON, STORAGE_KEYS } from "@/lib/storage";
+import { useDouyinCaptchaPending } from "@/hooks/useDouyinCaptchaPending";
 
 /**
  * 关注列表 + 关注分组（文件夹）。
@@ -484,6 +485,12 @@ export function FollowProvider({ children }: { children: ReactNode }) {
   const followsRef = useRef<FollowRecord[]>(state.follows);
   followsRef.current = state.follows;
 
+  /* ---------------------------------------------------- 抖音人机验证挑战 */
+  // 正在进行抖音人机验证时，暂停后台刷新，直到人机验证完成
+  const captchaPending = useDouyinCaptchaPending();
+  const captchaPendingRef = useRef(captchaPending);
+  captchaPendingRef.current = captchaPending;
+
   /* ---------------------------------------------------------------- 持久化 */
   // 始终写成老 Tauri 版形状：旧版本 / JSON 导入导出都依赖这些字段名。
   useEffect(() => {
@@ -758,17 +765,34 @@ export function FollowProvider({ children }: { children: ReactNode }) {
       );
     };
 
+    const waitForCaptchaIfNeeded = async (): Promise<void> => {
+      while (captchaPendingRef.current) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    };
+
     try {
       await Promise.all(
         Array.from({ length: workerCount }, async () => {
           while (queue.length > 0) {
+            await waitForCaptchaIfNeeded();
+
             const record = queue.shift();
             if (!record) return;
             const key = followKey(record.platform, record.id);
             try {
               const info = await withTimeout(
                 api.getRoomInfo(record.platform, record.id),
-                15_000,
+                // 必须覆盖后端常驻浏览器的排队时间。
+                //
+                // 抖音的常驻浏览器是串行的, 同一时刻只服务一个直播间。
+                // 一次批量刷新几十个房间时，排在后面的要等一两分钟才轮到。
+                // 如果排到后面的房间前端先超时放弃，后端随后才拿到正确的
+                // 直播状态，在播房间会被错误标记为下播。
+                //
+                // 后端队列上限是 3 分钟 (browserQueueTimeout), 此处留 30s 余量，
+                // 等待后端返回结果或错误
+                210_000,
                 `${record.platform}:${record.id}`,
               );
               updatedCount += 1;
@@ -781,12 +805,25 @@ export function FollowProvider({ children }: { children: ReactNode }) {
               });
             } catch (primaryError) {
               // 轻量房间信息失败时退回取流信息接口再试一次（老项目也是逐个平台取详情）
-              try {
-                const stream = await withTimeout(
-                  api.getStreamInfo(record.platform, record.id),
-                  20_000,
-                  `${record.platform}:${record.id}`,
-                );
+              //
+              // 抖音例外: getStreamInfo 在被风控拦截时会弹验证码窗口，
+              // 批量刷新不能弹窗风暴，所以不走回退。
+              let stream: StreamInfo | null = null;
+              if (record.platform !== "douyin") {
+                try {
+                  stream = await withTimeout(
+                    api.getStreamInfo(record.platform, record.id),
+                    20_000,
+                    `${record.platform}:${record.id}`,
+                  );
+                } catch (fallbackError) {
+                  console.warn(
+                    `[follow-refresh] ${record.platform}:${record.id} 回退取流信息也失败`,
+                    fallbackError,
+                  );
+                }
+              }
+              if (stream) {
                 updatedCount += 1;
                 applyPatch(key, {
                   nickname: stream.nickname || record.nickname,
@@ -794,14 +831,13 @@ export function FollowProvider({ children }: { children: ReactNode }) {
                   avatar: stream.avatar || record.avatar,
                   isLive: stream.isLive,
                 });
-              } catch (fallbackError) {
+              } else {
                 failedCount += 1;
                 // 对齐老项目：刷新失败的直播间不要继续挂着"直播中"
                 applyPatch(key, { isLive: false });
                 console.warn(
                   `[follow-refresh] ${record.platform}:${record.id} 刷新失败`,
                   primaryError,
-                  fallbackError,
                 );
               }
             } finally {
@@ -834,6 +870,17 @@ export function FollowProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => void refreshStatusesRef.current(), 1200);
     return () => window.clearTimeout(timer);
   }, []);
+
+  // 人机验证挑战结束后，若上轮刷新被打断，自动重试一次
+  const prevCaptchaPendingRef = useRef(captchaPending);
+  useEffect(() => {
+    const wasPending = prevCaptchaPendingRef.current;
+    prevCaptchaPendingRef.current = captchaPending;
+    if (wasPending && !captchaPending) {
+      console.info("[follow-refresh] 人机验证挑战结束，自动补刷关注状态");
+      void refreshStatusesRef.current();
+    }
+  }, [captchaPending]);
 
   const value = useMemo<FollowContextValue>(
     () => ({

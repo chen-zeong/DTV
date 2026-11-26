@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { loadRaw, saveRaw, STORAGE_KEYS } from "@/lib/storage";
+import * as Captcha from "../../bindings/dtv/internal/platforms/douyin/captcha/captchaservice";
 import {
   getTheme,
   normalizeThemeId,
@@ -51,6 +52,9 @@ function applyTheme(theme: Theme) {
   root.dataset.theme = option.mode;
   root.dataset.palette = theme;
   root.style.colorScheme = option.mode;
+
+  // 同步明暗模式给验证码弹窗 WebView
+  void Captcha.SetThemeMode(option.mode).catch(() => {});
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

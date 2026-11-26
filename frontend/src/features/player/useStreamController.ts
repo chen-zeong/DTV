@@ -15,6 +15,8 @@ export interface UseStreamControllerResult {
   offline: boolean;
   reconnecting: boolean;
   retryAttempt: number;
+  /** 用户手动刷新进行中（未开播态下通用加载覆盖层不显示，需要单独的忙碌标记） */
+  manualRefreshing: boolean;
   variant: StreamInfo["variants"][number] | null;
   activeLineId: string;
   currentQualityLabel: string | null;
@@ -36,13 +38,18 @@ export function useStreamController(
   const { toast } = useToast();
 
   const roomOfflineRef = useRef(false);
+  /** 轻量房间信息已确认在播：取流接口若此时报未开播，以轻量结果为准 */
+  const roomLiveRef = useRef(false);
   const reconnectTimerRef = useRef<number | null>(null);
   const reconnectAttemptRef = useRef(0);
   const attemptedLinesRef = useRef<Set<string>>(new Set());
+  /** 下一次拉取是否绕过后端缓存的未开播状态（只有用户显式刷新才置 true） */
+  const forceRefreshRef = useRef(false);
 
   const [info, setInfo] = useState<StreamInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [infoError, setInfoError] = useState<string | null>(null);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [streamRevision, setStreamRevision] = useState(0);
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -122,28 +129,46 @@ export function useStreamController(
   useEffect(() => {
     if (!roomId) {
       setLoadingInfo(false);
+      setManualRefreshing(false);
       setInfoError("缺少房间号");
       return;
     }
     let cancelled = false;
     roomOfflineRef.current = false;
+    roomLiveRef.current = false;
     setLoadingInfo(true);
     setInfoError(null);
 
+    // 本次拉取是否强制绕过后端缓存的未开播状态（抖音 offlineTrustTTL）
+    const force = forceRefreshRef.current;
+    forceRefreshRef.current = false;
+
     api
-      .getRoomInfo(platform, roomId)
+      .getRoomInfo(platform, roomId, force)
       .then((room) => {
-        if (cancelled || room.isLive) return;
+        if (cancelled) return;
+        if (room.isLive) {
+          roomLiveRef.current = true;
+          return;
+        }
         enterOffline(room);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         // 轻量检查失败不阻塞取流接口
+        console.warn("[player] 拉取房间信息失败", err);
       });
 
     api
-      .getStreamInfo(platform, roomId, lineId)
+      .getStreamInfo(platform, roomId, lineId, force)
       .then((next) => {
         if (cancelled) return;
+
+        // 轻量接口确认在播、取流接口却报未开播（两个请求跨越了后端缓存的
+        // 过期边界）：以轻量结果为准，重新取一次流地址即可。
+        if (!next.isLive && roomLiveRef.current) {
+          scheduleReconnect();
+          return;
+        }
 
         if (!next.isLive && !roomOfflineRef.current && reconnectAttemptRef.current > 0) {
           void api
@@ -170,13 +195,18 @@ export function useStreamController(
         setStreamRevision((revision) => revision + 1);
       })
       .catch((err: unknown) => {
-        if (cancelled || roomOfflineRef.current) return;
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : "房间信息加载失败";
+        console.warn("[player] 拉取直播流信息失败", err);
+        if (roomOfflineRef.current) return;
         setInfoError(stripFatalPrefix(message));
         if (!isFatalError(message)) scheduleReconnect();
       })
       .finally(() => {
-        if (!cancelled) setLoadingInfo(false);
+        if (!cancelled) {
+          setLoadingInfo(false);
+          setManualRefreshing(false);
+        }
       });
 
     return () => {
@@ -273,6 +303,10 @@ export function useStreamController(
   const reloadStream = useCallback(() => {
     stopReconnect();
     attemptedLinesRef.current = new Set();
+    // 用户显式要求重新检查：必须绕过后端缓存的未开播状态，否则抖音直播间
+    // 在 offlineTrustTTL 内点这个按钮完全无效（不发出任何请求）
+    forceRefreshRef.current = true;
+    setManualRefreshing(true);
     setReloadKey((k) => k + 1);
   }, [stopReconnect]);
 
@@ -358,6 +392,7 @@ export function useStreamController(
     offline,
     reconnecting,
     retryAttempt,
+    manualRefreshing,
     variant,
     activeLineId,
     currentQualityLabel,

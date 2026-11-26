@@ -113,6 +113,7 @@ export function PlayerPage() {
     offline,
     reconnecting,
     retryAttempt,
+    manualRefreshing,
     variant,
     activeLineId,
     currentQualityLabel,
@@ -140,7 +141,7 @@ export function PlayerPage() {
   const danmuFeed = useDanmakuFeed(
     info?.platform,
     info?.roomId,
-    danmuEnabled,
+    danmuEnabled && Boolean(info?.isLive),
     blockKeywordsLower,
   );
 
@@ -352,10 +353,21 @@ export function PlayerPage() {
                     <MonitorOff size={26} strokeWidth={1.8} />
                   </span>
                   <p className={styles.overlayTitle}>主播暂时没有开播</p>
-                  <p className={styles.overlayText}>开播后会自动加载，也可以手动刷新试试</p>
-                  <button type="button" className={styles.primaryBtn} onClick={reloadStream}>
-                    <RotateCw size={13} strokeWidth={2.4} />
-                    立即刷新
+                  <p className={styles.overlayText}>
+                    {manualRefreshing ? "正在重新检查直播状态" : "开播后会自动加载，也可以手动刷新试试"}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={reloadStream}
+                    disabled={manualRefreshing}
+                  >
+                    <RotateCw
+                      size={13}
+                      strokeWidth={2.4}
+                      className={manualRefreshing ? styles.spinning : undefined}
+                    />
+                    {manualRefreshing ? "正在刷新" : "立即刷新"}
                   </button>
                 </div>
               )}

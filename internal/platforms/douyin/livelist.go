@@ -41,8 +41,8 @@ type partitionRoom struct {
 }
 
 type partitionRm struct {
-	IDStr string `json:"id_str"`
-	Title string `json:"title"`
+	IDStr string  `json:"id_str"`
+	Title string  `json:"title"`
 	Cover urlList `json:"cover"`
 	Owner struct {
 		Nickname    string  `json:"nickname"`
@@ -124,6 +124,10 @@ func (c *Client) FetchLiveList(cateID string, page, limit int) (common.StreamerP
 	items := make([]common.Streamer, 0, len(wrapper.Data))
 	for _, entry := range wrapper.Data {
 		items = append(items, mapPartitionRoom(entry))
+		// 将 web_rid → roomId 加入索引
+		if entry.WebRID != "" && entry.Room.IDStr != "" {
+			c.cacheRoomID(entry.WebRID, entry.Room.IDStr)
+		}
 	}
 
 	// 抖音不给总页数，只能靠 has_more / 本页是否满来判断

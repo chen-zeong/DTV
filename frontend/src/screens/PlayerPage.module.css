@@ -456,6 +456,24 @@
   transform: translateY(-1px);
 }
 
+.primaryBtn:disabled {
+  /* 手动刷新进行中，不响应悬停位移/变色 */
+  opacity: 0.7;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* 手动刷新时的旋转图标 */
+.spinning {
+  animation: btn-spin 0.9s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .emptyState {
   display: flex;
   flex: 1;

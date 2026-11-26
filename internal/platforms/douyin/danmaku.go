@@ -174,14 +174,18 @@ type DanmakuManager struct {
 }
 
 // NewDanmakuManager 创建抖音弹幕管理器。
-func NewDanmakuManager(emit EmitFunc, hub ...*common.DanmakuHub) *DanmakuManager {
+//
+// client 与获取直播流共用同一个 Client, 共享 cookie jar 与 roomId 缓存，
+// 弹幕连接时能直接复用获取直播流已解析出的内部 roomId，避免再走一次
+// 被风控的 fetchRoomPage。
+func NewDanmakuManager(emit EmitFunc, client *Client, hub ...*common.DanmakuHub) *DanmakuManager {
 	var shared *common.DanmakuHub
 	if len(hub) > 0 {
 		shared = hub[0]
 	}
 	return &DanmakuManager{
 		ctrl:   common.NewDanmakuController(common.PlatformDouyin, emit, shared),
-		client: NewClient(),
+		client: client,
 	}
 }
 
@@ -191,6 +195,9 @@ func (m *DanmakuManager) Start(roomID string) error {
 	if trimmed == "" {
 		return fmt.Errorf("缺少房间号")
 	}
+
+	// 用户主动访问直播间，作废缓存的未开播状态
+	m.client.clearOffline(NormalizeRoomID(trimmed))
 
 	s := &danmakuSession{
 		roomID:  trimmed,
@@ -261,20 +268,51 @@ type wsCredentials struct {
 }
 
 // resolveCredentials 从房间页拿内部 room_id、ttwid 等。
+//
+// 返回 douyin.ErrRoomOffline 表示已确认主播当前未开播 (页面正常加载但
+// 没有内嵌 roomId)，调用时应当按正常状态处理而不是当作连接故障重试。
 func (s *danmakuSession) resolveCredentials() (*wsCredentials, error) {
 	webRID := NormalizeRoomID(s.roomID)
 	if webRID == "" {
 		return nil, fmt.Errorf("抖音房间号无效: %q", s.roomID)
 	}
 
-	html, err := s.manager.client.fetchRoomPage(webRID)
-	if err != nil {
-		return nil, err
+	if s.manager.client.isCachedOffline(webRID) {
+		return nil, ErrRoomOffline
 	}
 
-	internalID := extractInternalRoomID(html)
+	// 优先读缓存: 获取直播流 (StreamInfo) 成功时已把 webRID → 内部 roomId
+	// 写入 Client 缓存。验证码通过后 Go 的 fetchRoomPage 仍被风控，但缓存
+	// 里已有 roomId，直接复用，不必再走一次会被拦截的页面请求
+	internalID := s.manager.client.lookupRoomID(webRID)
+	fromCache := internalID != ""
 	if internalID == "" {
-		return nil, fmt.Errorf("抖音房间 %s 页面里没有找到内部 roomId", webRID)
+		html, err := s.manager.client.fetchRoomPage(webRID)
+		if err != nil {
+			return nil, err
+		}
+		internalID = extractInternalRoomID(html)
+		if internalID == "" {
+			if pageBlocked(html) {
+				return nil, fmt.Errorf("抖音直播间 %s 获取弹幕时被风控拦截", webRID)
+			}
+			s.manager.client.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
+		s.manager.client.cacheRoomID(webRID, internalID)
+		s.manager.client.clearOffline(webRID)
+	}
+
+	if fromCache {
+		room, rerr := s.manager.client.fetchReflow(internalID)
+		switch {
+		case rerr != nil:
+			debugLog("复核直播状态失败 room=%s: %v", internalID, rerr)
+		case !isRoomLive(room):
+			log.Printf("[Douyin Danmaku %s] 复核确认主播未开播", s.roomID)
+			s.manager.client.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
 	}
 
 	// cookie / user_unique_id 从 HTTP 客户端记录里取（ttwid 已在页面请求时收下）

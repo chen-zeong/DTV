@@ -34,8 +34,12 @@ interface PlatformAdapter {
   listCategories(): Promise<CategoryGroup[]>;
   listStreamers(categoryId: string, page: number): Promise<StreamerPage>;
   search(keyword: string): Promise<SearchHit[]>;
-  getRoomInfo(roomId: string): Promise<Streamer>;
-  getStreamInfo(roomId: string, line?: string | null): Promise<StreamInfo>;
+  /**
+   * @param force 丢弃后端缓存的未开播状态，强制重新向上游验证
+   *   目前只有抖音有这类缓存 (offlineTrustTTL)，其它平台忽略该参数
+   */
+  getRoomInfo(roomId: string, force?: boolean): Promise<Streamer>;
+  getStreamInfo(roomId: string, line?: string | null, force?: boolean): Promise<StreamInfo>;
   subscribeDanmaku(roomId: string, onMessage: (msg: DanmakuMessage) => void): () => void;
 
   /* 以下为可选能力：只有斗鱼有三级分区（"赛事直播"之类的子分类） */
@@ -87,14 +91,20 @@ export interface DtvApi {
   search(platform: LivePlatform, keyword: string): Promise<SearchHit[]>;
 
   /** 轻量房间信息（关注列表刷新在线状态用，不取播放地址） */
-  getRoomInfo(platform: LivePlatform, roomId: string): Promise<Streamer>;
+  getRoomInfo(platform: LivePlatform, roomId: string, force?: boolean): Promise<Streamer>;
 
   /**
    * 房间信息 + 所有清晰度。
    *
    * `line` 只在支持多线路的平台（斗鱼/虎牙）有意义，传空表示用平台默认线路。
+   * `force` 丢弃后端缓存的未开播状态（目前只有抖音有），用于用户点「立即刷新」。
    */
-  getStreamInfo(platform: LivePlatform, roomId: string, line?: string | null): Promise<StreamInfo>;
+  getStreamInfo(
+    platform: LivePlatform,
+    roomId: string,
+    line?: string | null,
+    force?: boolean,
+  ): Promise<StreamInfo>;
 
   /** 返回取消订阅函数 */
   subscribeDanmaku(
@@ -151,9 +161,9 @@ export const api: DtvApi = {
     return adapter ? adapter.search(keyword) : mockApi.search(platform, keyword);
   },
 
-  getRoomInfo(platform, roomId) {
+  getRoomInfo(platform, roomId, force) {
     const adapter = adapterFor(platform);
-    if (adapter) return adapter.getRoomInfo(roomId);
+    if (adapter) return adapter.getRoomInfo(roomId, force);
     return mockApi.getStreamInfo(platform, roomId).then((info) => ({
       id: info.roomId,
       platform,
@@ -167,10 +177,10 @@ export const api: DtvApi = {
     }));
   },
 
-  getStreamInfo(platform, roomId, line) {
+  getStreamInfo(platform, roomId, line, force) {
     const adapter = adapterFor(platform);
     return adapter
-      ? adapter.getStreamInfo(roomId, line)
+      ? adapter.getStreamInfo(roomId, line, force)
       : mockApi.getStreamInfo(platform, roomId);
   },
 
