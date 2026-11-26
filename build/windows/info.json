@@ -1,12 +1,12 @@
 {
 	"fixed": {
-		"file_version": "4.1.0",
-		"product_version": "4.1.0"
+		"file_version": "4.2.0",
+		"product_version": "4.2.0"
 	},
 	"info": {
 		"0409": {
-			"FileVersion": "4.1.0",
-			"ProductVersion": "4.1.0",
+			"FileVersion": "4.2.0",
+			"ProductVersion": "4.2.0",
 			"CompanyName": "DTV",
 			"FileDescription": "DTV - 直播聚合客户端",
 			"InternalName": "dtv",

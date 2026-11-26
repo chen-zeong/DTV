@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DanmakuMessage } from "@/api";
 import { DanmakuFeed } from "./danmakuFeed";
-import { canFitScrollLane, computeLaneMetrics, isEmoteOnlyParts } from "./danmuCanvasEngine";
+import {
+  canFitScrollLane,
+  computeEffectiveScrollDuration,
+  computeLaneMetrics,
+  isEmoteOnlyParts,
+} from "./danmuCanvasEngine";
 
 function makeMsg(id: string, kind: DanmakuMessage["kind"] = "chat", content = "hello"): DanmakuMessage {
   return {
@@ -75,5 +80,12 @@ describe("danmuCanvasEngine helpers", () => {
     expect(isEmoteOnlyParts([{ type: "image", name: "doge", src: "/x.png" }])).toBe(true);
     expect(isEmoteOnlyParts([{ type: "emoji", name: "赞", emoji: "👍" }])).toBe(true);
     expect(isEmoteOnlyParts([{ type: "text", text: "666" }])).toBe(false);
+  });
+
+  it("scales scroll duration gently on wide fullscreen stages to keep angular speed steady", () => {
+    expect(computeEffectiveScrollDuration(10000, 960)).toBe(10000);
+    const fullHdDuration = computeEffectiveScrollDuration(10000, 1920);
+    expect(fullHdDuration).toBeGreaterThan(12500);
+    expect(fullHdDuration).toBeLessThanOrEqual(15500);
   });
 });

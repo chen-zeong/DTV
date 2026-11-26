@@ -1,8 +1,9 @@
 /* =============================================================================
- * 视频上的弹幕层（单层 Canvas 合成）
+ * 视频上的弹幕层（B 站同款 GPU 合成器层 + DOM 节点对象池）
  *
- * 容器只承载一层 pointer-events: none 的全屏 <canvas>，文字描边、表情图与
- * 轨道排版全部由 DanmuCanvasEngine 在离屏位图缓存后绘制，不再堆叠 DOM 节点。
+ * 容器开启 contain: strict 彻底隔离布局与绘制边界；每条弹幕通过
+ * Web Animations API 驱动 translate3d 在 Chromium 合成器线程独立滚动，
+ * 不再由全屏 Canvas 每帧 clearRect 重绘整屏像素。
  * ========================================================================== */
 
 .overlay {
@@ -12,4 +13,5 @@
   overflow: hidden;
   z-index: 7;
   font-family: var(--danmu-font-family);
+  contain: strict;
 }

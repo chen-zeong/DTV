@@ -6,11 +6,13 @@ import type { DanmuUserSettings } from "./danmuSettings";
 import styles from "./DanmuOverlay.module.css";
 
 /**
- * 视频上的弹幕层（单层 Canvas + 离屏位图缓存）。
+ * 视频上的弹幕层（B 站同款 GPU 合成器层 + DOM 节点对象池 + 离屏 measureText 零回流）。
  *
- * 相比旧版 DOM 方案（danmu.js）：
- *   - 全屏只占 1 个合成层，消除几十个 DOM 节点的 `getBoundingClientRect()` 回流；
- *   - 通过 DanmakuFeed 直接订阅增量 chat 消息，不再触发 PlayerPage 整页重渲染。
+ * 核心设计：
+ *   - 弹幕位移由 Chromium 合成器线程（Compositor Thread）驱动 translate3d，彻底脱离
+ *     JS 主线程逐帧重绘，避免与 xgplayer-flv 直播流解复用争抢主线程导致全屏掉帧；
+ *   - 离屏 Canvas measureText 预计算宽度 + DOM 节点池复用，全程零 getBoundingClientRect() 回流；
+ *   - 通过 DanmakuFeed 直接订阅增量 chat 消息，不触发 PlayerPage 整页重渲染。
  */
 export function DanmuOverlay({
   feed,

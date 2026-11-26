@@ -70,8 +70,10 @@ export function usePlayerFullscreen(
       setChromeHidden(false);
       return clearTimer;
     }
+    let lastArmAt = 0;
     const arm = () => {
       clearTimer();
+      lastArmAt = performance.now();
       chromeIdleTimer.current = window.setTimeout(() => {
         chromeIdleTimer.current = null;
         setChromeHidden(true);
@@ -79,7 +81,10 @@ export function usePlayerFullscreen(
     };
     const onMove = () => {
       setChromeHidden(false);
-      arm();
+      // 高回报率鼠标全屏移动时节流重置定时器，避免每秒几百次 clearTimeout/setTimeout
+      if (performance.now() - lastArmAt >= 200 || chromeIdleTimer.current == null) {
+        arm();
+      }
     };
     window.addEventListener("mousemove", onMove, { passive: true });
     arm();
