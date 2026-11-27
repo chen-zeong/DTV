@@ -11,14 +11,14 @@ import styles from "./SearchBox.module.css";
 const PLACEHOLDER: Record<LivePlatform, string> = {
   douyu: "搜索关键词或直播间号…",
   huya: "搜索关键词或直播间号…",
-  douyin: "输入抖音直播间号…",
+  douyin: "输入抖音号或直播间号…",
   bilibili: "搜索关键词或直播间号…",
 };
 
 const SEARCH_HINT: Record<LivePlatform, string> = {
   douyu: "支持关键词与直播间号，↑↓ 选择，Enter 打开",
   huya: "支持关键词与直播间号，↑↓ 选择，Enter 打开",
-  douyin: "抖音仅支持直播间号，输入后按 Enter 进入",
+  douyin: "支持抖音号或直播间号，输入后按 Enter 进入",
   bilibili: "支持关键词与直播间号，↑↓ 选择，Enter 打开",
 };
 

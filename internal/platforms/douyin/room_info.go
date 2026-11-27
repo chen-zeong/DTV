@@ -2,12 +2,14 @@ package douyin
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"dtv/internal/platforms/common"
 )
@@ -41,6 +43,19 @@ const (
 var blockedMarkers = []string{
 	"verify_data",
 	"验证码中间页",
+}
+
+// pageBlocked 判断直播间页 HTML 是否被风控/验证码拦截。
+//
+// 拦截页面里同样没有内嵌 roomId，所以不能用它判定未开播，
+// 否则正在直播的房间会被误判成下播。
+func pageBlocked(html string) bool {
+	for _, mark := range blockedMarkers {
+		if strings.Contains(html, mark) {
+			return true
+		}
+	}
+	return false
 }
 
 // roomIDPattern 匹配页面内嵌 JSON 里的内部 roomId。
@@ -233,7 +248,7 @@ func NormalizeRoomID(input string) string {
 						v = v[:j]
 					}
 					if v != "" {
-						return keepDigits(v)
+						return keepWebRID(v)
 					}
 				}
 			}
@@ -247,14 +262,20 @@ func NormalizeRoomID(input string) string {
 	if i := strings.LastIndex(s, "/"); i >= 0 {
 		s = s[i+1:]
 	}
-	return keepDigits(s)
+	return keepWebRID(s)
 }
 
-// keepDigits 只保留数字（抖音 web_rid 是纯数字）。
-func keepDigits(s string) string {
+// keepWebRID 保留字母和数字。
+//
+// 抖音允许通过抖音号访问直播间，别名可含 . _ - (如 cctv_video)
+//   - https://live.douyin.com/cctv.com
+//   - https://live.douyin.com/870887192950
+//   - https://live.douyin.com/cctv_video
+//   - https://live.douyin.com/547977714661
+func keepWebRID(s string) string {
 	var b strings.Builder
 	for _, ch := range s {
-		if ch >= '0' && ch <= '9' {
+		if (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '.' || ch == '_' || ch == '-' {
 			b.WriteRune(ch)
 		}
 	}
@@ -334,8 +355,17 @@ func (c *Client) fetchReflow(internalRoomID string) (*reflowRoom, error) {
 			return nil, fmt.Errorf("解析抖音房间数据失败: %w", err)
 		}
 	}
+
+	// status_code != 0 表示服务端异常，
+	// 这类异常重试无意义，将上游原文展示给用户，标记 common.Fatal
+	// 前端识别该前缀后不触发自动重连，并去掉前缀直接显示内容
+	if resp.StatusCode != 0 {
+		raw, _ := json.Marshal(resp)
+		return nil, common.Fatal("服务异常: %s", raw)
+	}
+
 	if data.Room == nil {
-		return nil, fmt.Errorf("抖音房间数据为空（status_code=%d）", resp.StatusCode)
+		return nil, fmt.Errorf("抖音房间数据为空 (status_code: %d)", resp.StatusCode)
 	}
 	return data.Room, nil
 }
@@ -347,11 +377,55 @@ type roomBundle struct {
 	Room       *reflowRoom
 }
 
-// resolveRoom 拉一个房间的完整数据（页面 → 内部 id → reflow）。
-func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
+// roomFromInternalID 用已知的内部 roomId 取直播间数据
+func (c *Client) roomFromInternalID(webRID, internalID string) (*roomBundle, error) {
+	room, err := c.fetchReflow(internalID)
+	if err != nil {
+		return nil, err
+	}
+	c.cacheRoomID(webRID, internalID)
+	return &roomBundle{WebRID: webRID, InternalID: internalID, Room: room}, nil
+}
+
+// resolveRoom 拉一个直播间的完整数据（页面 → 内部 id → reflow）。
+//
+// allowPopup 决定被拦时是否允许弹验证码窗口：
+//   - true: 弹窗
+//   - false: 不弹窗
+//
+// 用户在播放页点「立即刷新」，force 为 true ，
+// 忽略缓存的未开播状态，强制重新访问上游验证。
+// 如果继续复用缓存，这个按钮在 offlineTrustTTL
+// 内总是读内存，一个请求都不会发出去
+func (c *Client) resolveRoom(roomID string, allowPopup bool, force bool) (*roomBundle, error) {
 	webRID := NormalizeRoomID(roomID)
 	if webRID == "" {
-		return nil, common.Fatal("抖音房间号无效: %q", roomID)
+		return nil, common.Fatal("抖音直播间号无效: %q", roomID)
+	}
+
+	// 强制刷新，作废缓存的未开播状态
+	if force {
+		c.clearOffline(webRID)
+		log.Printf("[Douyin] 强制刷新房间 %s", webRID)
+	}
+
+	// 结论仍然新鲜时 (offlineTrustTTL 内) 直接返回"未开播"，
+	// 省掉一次直播间页请求（前端对未开播直播间每 30 秒轮询一次）
+	if c.isCachedOffline(webRID) {
+		return nil, ErrRoomOffline
+	}
+
+	// 先试缓存拿内部 roomId —— 命中就完全不用访问直播间页。
+	if internalID := c.lookupRoomID(webRID); internalID != "" {
+		room, err := c.fetchReflow(internalID)
+		if err == nil {
+			c.clearOffline(webRID)
+			return &roomBundle{WebRID: webRID, InternalID: internalID, Room: room}, nil
+		}
+		// 缓存里的 id 失效（极少见：直播间被封号 / 映射变更）→ 落回直播间页
+		// 路径时先清掉缓存，避免反复用同一个坏 id。
+		log.Printf("[Douyin] 缓存 roomId 失效 web_rid=%s: %v", webRID, err)
+		c.forgetRoomID(webRID)
 	}
 
 	html, err := c.fetchRoomPage(webRID)
@@ -361,17 +435,29 @@ func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
 
 	// log.Printf("[Douyin] 房间 %s 查找 roomId，页面内容：%s", webRID, html) // 开发时使用
 
-	// 页面里出现以下任一标记说明请求被服务器拦截（风控/验证码）。
-	for _, mark := range blockedMarkers {
-		if strings.Contains(html, mark) {
-			return nil, common.Fatal("本次请求受到服务器拦截，请稍后再试")
+	if pageBlocked(html) {
+		// 放行有效期内：设备已被放行，直接重试页面请求
+		if CaptchaRecentlyPassed() {
+			time.Sleep(300 * time.Millisecond)
+			html, err = c.fetchRoomPage(webRID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if pageBlocked(html) {
+			return c.resolveBlocked(webRID, allowPopup)
 		}
 	}
 
 	internalID := extractInternalRoomID(html)
 	if internalID == "" {
-		// 页面结构变化时给出明确提示，比"请求失败"好排查
-		return nil, common.Fatal("抖音房间 %s 页面里没有找到内部 roomId（房间可能不存在或页面结构变更）", webRID)
+		// 内嵌 roomId 是否存在只跟政务/事业机构直播间是否在播有关：
+		// 下播的官V房间（无论纯数字直播间号还是包含字母的抖音号）
+		// SSR 里都没有 roomId；在播房间都有。
+		// 所以拿不到 roomId 时不能直接判未开播 (hydration 可能未完成),
+		// 转常驻 WebView/弹窗解析确认。
+		return c.resolveBlocked(webRID, allowPopup)
 	}
 
 	room, err := c.fetchReflow(internalID)
@@ -379,7 +465,54 @@ func (c *Client) resolveRoom(roomID string) (*roomBundle, error) {
 		return nil, err
 	}
 
+	c.cacheRoomID(webRID, internalID)
+	c.clearOffline(webRID)
 	return &roomBundle{WebRID: webRID, InternalID: internalID, Room: room}, nil
+}
+
+// resolveBlocked 处理直播间页被风控拦截的情况
+//
+// 优先级：
+//  1. 不允许弹窗（关注列表批量刷新）-> 常驻 WebView 静默解析；
+//  2. 允许弹窗但该设备仍在放行有效期内 -> 常驻 WebView 静默解析；
+//  3. 其余 -> 弹验证码窗口
+func (c *Client) resolveBlocked(webRID string, allowPopup bool) (*roomBundle, error) {
+	blockedErr := common.Fatal("本次请求受到服务器拦截，请稍后再试")
+	silent := !allowPopup || CaptchaRecentlyPassed()
+	if silent && c.roomIDResolver != nil {
+		rid, err := c.roomIDResolver(webRID)
+		if err == nil && rid != "" {
+			c.clearOffline(webRID)
+			return c.roomFromInternalID(webRID, rid)
+		}
+		if errors.Is(err, ErrCaptchaOffline) {
+			c.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
+		log.Printf("[Douyin] 常驻 WebView 解析 roomId 失败 room=%s: %v", webRID, err)
+		return nil, blockedErr
+	}
+
+	if !allowPopup || c.captchaResolver == nil {
+		return nil, blockedErr
+	}
+
+	rid, err := c.captchaResolver(webRID)
+	if err != nil {
+		if errors.Is(err, ErrCaptchaOffline) {
+			c.cacheOffline(webRID)
+			return nil, ErrRoomOffline
+		}
+		return nil, blockedErr
+	}
+	if rid == "" {
+		return nil, blockedErr
+	}
+	// 通过：记录放行时间
+	MarkCaptchaPassed()
+	// 直播间包含 roomId，说明主播在播，清除缓存的未开播状态
+	c.clearOffline(webRID)
+	return c.roomFromInternalID(webRID, rid)
 }
 
 // flvQuality 是一个可用的清晰度档位。
@@ -699,9 +832,15 @@ func viewersOf(room *reflowRoom) int64 {
 	return parseViewerText(text)
 }
 
-// Streamer 拉房间卡片信息（不含取流）。
-func (c *Client) Streamer(roomID string) (common.Streamer, error) {
-	bundle, err := c.resolveRoom(roomID)
+// Streamer 拉直播间卡片信息（不含取流）。
+//
+// allowPopup 决定被风控拦截时是否允许弹验证码窗口:
+//   - true:  允许弹验证码窗口
+//   - false: 避免弹验证码窗口
+//
+// force 为 true 时忽略缓存的未开播状态，强制重新验证直播状态。
+func (c *Client) Streamer(roomID string, allowPopup bool, force bool) (common.Streamer, error) {
+	bundle, err := c.resolveRoom(roomID, allowPopup, force)
 	if err != nil {
 		return common.Streamer{}, err
 	}
@@ -744,8 +883,10 @@ func isRoomLive(room *reflowRoom) bool {
 //
 // 抖音没有"多线路"概念（flv_pull_url 里每个 key 就是一个清晰度），
 // 所以 Lines 恒为空，清晰度全部由 Variants 承担。
-func (c *Client) StreamInfo(roomID, line string) (*common.StreamInfo, error) {
-	bundle, err := c.resolveRoom(roomID)
+//
+// force 为 true 时忽略缓存的未开播状态，强制重新验证直播状态
+func (c *Client) StreamInfo(roomID, line string, force bool) (*common.StreamInfo, error) {
+	bundle, err := c.resolveRoom(roomID, true, force)
 	if err != nil {
 		return nil, err
 	}
@@ -794,7 +935,7 @@ func (c *Client) StreamInfo(roomID, line string) (*common.StreamInfo, error) {
 // quality 支持中文（原画/蓝光/超清/高清/标清）、稳定 id（source/bluray/high/
 // standard/low）以及上游 key（FULL_HD1 等）；找不到就退回最高清晰度。
 func (c *Client) StreamURL(roomID, quality, line string) (string, error) {
-	info, err := c.StreamInfo(roomID, line)
+	info, err := c.StreamInfo(roomID, line, false)
 	if err != nil {
 		return "", err
 	}

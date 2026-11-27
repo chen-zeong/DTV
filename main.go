@@ -20,6 +20,7 @@ import (
 	"dtv/internal/appdirs"
 	"dtv/internal/logging"
 	"dtv/internal/platforms/common"
+	"dtv/internal/platforms/douyin/captcha"
 	"dtv/internal/platforms/douyu"
 	"dtv/internal/services"
 	"dtv/internal/windowfix"
@@ -97,6 +98,12 @@ func main() {
 	var mainWindow *application.WebviewWindow
 	var saveMu sync.Mutex
 
+	// 抖音人机验证码
+	var captchaSvc *captcha.Captcha
+	// captcha.Browser 是常驻的隐藏 WebView: 用户过一次验证码后
+	// 该会话即被抖音放行，之后可用它静默解析任意房间的内部 roomId
+	var browserSvc *captcha.Browser
+
 	app := application.New(application.Options{
 		Name:        "DTV",
 		Description: "DTV — 直播聚合客户端",
@@ -123,6 +130,15 @@ func main() {
 		// 崩溃时保留堆栈，方便定位平台接口解析问题（同时写入日志文件）
 		PanicHandler: func(details *application.PanicDetails) {
 			slog.Error("应用崩溃", "error", details.Error, "stack", details.StackTrace)
+		},
+		// RawMessageHandler：抖音验证码弹窗的注入脚本用 postMessage 回传
+		RawMessageHandler: func(window application.Window, message string, origin *application.OriginInfo) {
+			if captchaSvc != nil {
+				captchaSvc.HandleMessage(window, message, origin)
+			}
+			if browserSvc != nil {
+				browserSvc.HandleMessage(message)
+			}
 		},
 	})
 
@@ -183,7 +199,28 @@ func main() {
 
 	app.RegisterService(application.NewService(services.NewDouyuService(emit, douyuClient, danmakuHub)))
 	app.RegisterService(application.NewService(services.NewHuyaService(emit, danmakuHub)))
-	app.RegisterService(application.NewService(services.NewDouyinService(emit, danmakuHub)))
+
+	// 抖音验证码: 房间页被风控拦截时, 弹窗让用户过验证码
+	captchaSvc = captcha.New(app)
+	// 常驻浏览器会话, 避免频繁请求验证码
+	browserSvc = captcha.NewBrowser(app)
+	browserSvc.SetCaptchaFallback(captchaSvc.Resolve)
+	captchaSvc.SetBrowser(browserSvc)
+	// 保证同一时刻屏幕上最多只有一个验证码弹窗
+	browserSvc.SetGate(captchaSvc.Gate())
+	// 等待验证码挑战, 挑战状态变化时通知前端,
+	// 让前端暂停/恢复关注列表的后台刷新
+	// 两个窗口共用同一个 gate, 回调注册一次即可。
+	captchaSvc.SetPendingCallback(func(pending bool) {
+		app.Event.Emit(captcha.EventCaptchaPending, pending)
+	})
+	app.RegisterService(application.NewService(captcha.NewCaptchaService(captchaSvc, browserSvc)))
+	app.RegisterService(application.NewService(services.NewDouyinService(services.DouyinOptions{
+		Emit:            emit,
+		Hub:             danmakuHub,
+		CaptchaResolver: captchaSvc.Resolve,
+		RoomIDResolver:  browserSvc.Resolve,
+	})))
 	app.RegisterService(application.NewService(services.NewBilibiliService(emit, danmakuHub)))
 
 	// 直播流中继：斗鱼直链 300 秒后会被 CDN 断开，由它在到期前续流。
@@ -321,11 +358,27 @@ func main() {
 		captureNormalBounds()
 		schedulePersist()
 	})
+
+	// 退出程序, 确保关闭驻的隐藏 WebView
+	shutdownOnce := sync.Once{}
+	shutdown := func() {
+		shutdownOnce.Do(func() {
+			if browserSvc != nil {
+				browserSvc.Close()
+			}
+			if captchaSvc != nil {
+				captchaSvc.Close()
+			}
+			app.Quit()
+		})
+	}
+
 	mainWindow.OnWindowEvent(events.Common.WindowClosing, func(*application.WindowEvent) {
 		if persistTimer != nil {
 			persistTimer.Stop()
 		}
 		persist()
+		shutdown()
 	})
 
 	windowfix.AttachMaximiseWorkAreaFix(mainWindow)
